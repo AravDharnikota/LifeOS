@@ -1,0 +1,24 @@
+{
+  "name": "aravos",
+  "private": true,
+  "version": "0.1.0",
+  "description": "AravOS: a personal life operating system. Web + iOS.",
+  "packageManager": "pnpm@10.28.0",
+  "engines": { "node": ">=22.13" },
+  "scripts": {
+    "dev": "pnpm -r --parallel --filter ./apps/* dev",
+    "dev:server": "pnpm --filter @aravos/server dev",
+    "dev:web": "pnpm --filter @aravos/web dev",
+    "build": "pnpm --filter @aravos/shared build && pnpm --filter @aravos/web build && pnpm --filter @aravos/server build",
+    "start": "pnpm --filter @aravos/server start",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "test:e2e": "pnpm --filter @aravos/web test:e2e",
+    "db:generate": "pnpm --filter @aravos/server db:generate",
+    "ios:sync": "pnpm --filter @aravos/web ios:sync",
+    "ios:open": "pnpm --filter @aravos/web ios:open"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  }
+}
