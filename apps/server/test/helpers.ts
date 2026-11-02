@@ -14,12 +14,12 @@ export interface TestApp {
   cleanup: () => void;
 }
 
-export function makeTestApp(opts: { token?: string | null } = {}): TestApp {
+export function makeTestApp(opts: { token?: string | null; timezone?: string } = {}): TestApp {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "aravos-test-"));
   const db = openDb(":memory:");
   const ai = new MockAiProvider();
   const { app, ctx } = createApp({
-    env: { nodeEnv: "test", token: opts.token ?? null, dataDir, uploadsDir: path.join(dataDir, "uploads"), timezone: "UTC", publicUrl: "http://test.local" },
+    env: { nodeEnv: "test", token: opts.token ?? null, dataDir, uploadsDir: path.join(dataDir, "uploads"), timezone: opts.timezone ?? "UTC", publicUrl: "http://test.local" },
     db,
     ai,
     webDist: null,

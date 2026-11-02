@@ -9,7 +9,10 @@ import { notFound } from "../lib/errors.ts";
 import { createEvent, deleteEvent, getEvent, listEvents, overrideInstance, updateEvent } from "../services/calendar.ts";
 import { requestReplan } from "../services/replan.ts";
 
-const RangeQuery = z.object({ from: z.string(), to: z.string(), calendarIds: z.string().optional(), includeCancelled: z.enum(["true", "false"]).optional() });
+const RangeQuery = z
+  .object({ from: z.string().refine((v) => !Number.isNaN(Date.parse(v)), "from must be a date"), to: z.string().refine((v) => !Number.isNaN(Date.parse(v)), "to must be a date"), calendarIds: z.string().optional(), includeCancelled: z.enum(["true", "false"]).optional() })
+  .refine((q) => Date.parse(q.to) > Date.parse(q.from), { message: "to must be after from" })
+  .refine((q) => Date.parse(q.to) - Date.parse(q.from) <= 366 * 24 * 3600 * 1000, { message: "Range must be a year or less" });
 
 export function calendarRoutes(app: App): void {
   app.get("/api/calendars", (c) => {

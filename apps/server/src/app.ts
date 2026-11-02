@@ -5,6 +5,7 @@ import { serveStatic } from "@hono/node-server/serve-static";
 import fs from "node:fs";
 import path from "node:path";
 import { ZodError } from "zod";
+import { timingSafeEqual } from "node:crypto";
 import type { Db } from "./db/client.ts";
 import { openDb } from "./db/client.ts";
 import { loadEnv, type Env } from "./lib/env.ts";
@@ -40,9 +41,12 @@ export function createApp(opts: CreateAppOptions = {}): { app: App; ctx: AppCont
   const ctx: AppContext = { db, env, ai };
   const app: App = new Hono();
 
-  if (env.nodeEnv !== "test") app.use("*", logger((s) => process.stdout.write(s + "\n")));
-  app.use("/api/*", cors({ origin: (o) => o, credentials: true, allowHeaders: ["Authorization", "Content-Type", "X-Actor"], exposeHeaders: ["Content-Type"] }));
-  app.use("/mcp", cors({ origin: (o) => o, allowHeaders: ["Authorization", "Content-Type", "Mcp-Session-Id", "Mcp-Protocol-Version"], exposeHeaders: ["Mcp-Session-Id"] }));
+  if (env.nodeEnv !== "test") app.use("*", logger((s) => process.stdout.write(s.replace(/([?&]token=)[^&\s]+/g, "$1[redacted]") + "\n")));
+  // Without a token the server is for local use only: restrict browsers to the app's own origins.
+  const localOrigins = new Set([env.publicUrl, "http://localhost:5173", "http://127.0.0.1:5173", `http://localhost:${env.port}`, "capacitor://localhost", "ionic://localhost"]);
+  const corsOrigin = (o: string): string | null => (env.token ? o : localOrigins.has(o) ? o : null);
+  app.use("/api/*", cors({ origin: corsOrigin, allowHeaders: ["Authorization", "Content-Type", "X-Actor"], exposeHeaders: ["Content-Type"] }));
+  app.use("/mcp", cors({ origin: corsOrigin, allowHeaders: ["Authorization", "Content-Type", "Mcp-Session-Id", "Mcp-Protocol-Version"], exposeHeaders: ["Mcp-Session-Id"] }));
 
   app.use("*", async (c, next) => {
     c.set("ctx", ctx);
@@ -59,7 +63,7 @@ export function createApp(opts: CreateAppOptions = {}): { app: App; ctx: AppCont
     const header = c.req.header("authorization") ?? "";
     const q = c.req.query("token");
     const presented = header.toLowerCase().startsWith("bearer ") ? header.slice(7).trim() : q ?? "";
-    if (presented !== env.token) {
+    if (!tokenMatches(presented, env.token)) {
       if (p.startsWith("/mcp")) return c.json({ jsonrpc: "2.0", error: { code: -32001, message: "Unauthorized" }, id: null }, 401);
       return c.json({ error: "Unauthorized" }, 401);
     }
@@ -70,14 +74,14 @@ export function createApp(opts: CreateAppOptions = {}): { app: App; ctx: AppCont
     if (err instanceof HttpError) return c.json({ error: err.message, details: err.details ?? null }, err.status as 400);
     if (err instanceof ZodError) return c.json({ error: "Validation failed", details: err.issues }, 400);
     console.error(err);
-    return c.json({ error: err.message || "Internal error" }, 500);
+    return c.json({ error: env.nodeEnv === "production" ? "Something went wrong on the server" : err.message || "Internal error" }, 500);
   });
 
   app.get("/api/health", (c) => c.json({ ok: true, name: "AravOS", version: "0.1.0", ai: ai.enabled, authRequired: Boolean(env.token), time: new Date().toISOString() }));
   app.get("/api/auth/check", (c) => {
     const header = c.req.header("authorization") ?? "";
     const presented = header.toLowerCase().startsWith("bearer ") ? header.slice(7).trim() : "";
-    const ok = !env.token || presented === env.token;
+    const ok = !env.token || tokenMatches(presented, env.token);
     return c.json({ ok, authRequired: Boolean(env.token) }, ok ? 200 : 401);
   });
 
@@ -97,6 +101,12 @@ export function createApp(opts: CreateAppOptions = {}): { app: App; ctx: AppCont
     });
   }
   return { app, ctx };
+}
+
+function tokenMatches(presented: string, expected: string): boolean {
+  const a = Buffer.from(presented);
+  const b = Buffer.from(expected);
+  return a.length === b.length && timingSafeEqual(a, b);
 }
 
 function findWebDist(): string | null {

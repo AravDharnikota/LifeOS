@@ -192,7 +192,7 @@ function loadCandidates(db: Db, lastDay: string, taskIds?: string[]): Task[] {
   return withBlocks(db, rows);
 }
 
-function loadExistingBlocks(db: Db, taskIds: string[]): Map<string, ScheduleExistingBlock[]> {
+function loadExistingBlocks(db: Db, taskIds: string[], horizonEnd?: Date): Map<string, ScheduleExistingBlock[]> {
   const map = new Map<string, ScheduleExistingBlock[]>();
   if (taskIds.length === 0) return map;
   const e = schema.events;
@@ -204,7 +204,9 @@ function loadExistingBlocks(db: Db, taskIds: string[]): Map<string, ScheduleExis
     .all();
   for (const r of rows) {
     if (!r.taskId) continue;
-    map.set(r.taskId, [...(map.get(r.taskId) ?? []), { id: r.id, start: r.start, end: r.end, locked: r.locked }]);
+    // Blocks beyond the planning horizon are kept as they are (treated as locked) rather than pulled forward.
+    const locked = r.locked || (horizonEnd !== undefined && r.start >= horizonEnd.toISOString());
+    map.set(r.taskId, [...(map.get(r.taskId) ?? []), { id: r.id, start: r.start, end: r.end, locked }]);
   }
   return map;
 }
@@ -329,7 +331,7 @@ export async function runScheduler(ctx: AppContext, opts: RunSchedulerOptions): 
   const history = loadHistory(db);
   const estimates = await estimateFor(ctx, tasks, history, prefs);
   const factor = calibrationFactor(history);
-  const existing = loadExistingBlocks(db, ids);
+  const existing = loadExistingBlocks(db, ids, horizonEnd);
   const candidates = tasks.map((t) => toCandidate(t, estimates.get(t.id) ?? { taskId: t.id, minutes: prefs.defaultEstimateMinutes, source: "default" }, factor, prefs, existing.get(t.id) ?? []));
   const plan = scheduleTasks({ candidates, busy: busyIntervals(db, now, horizonEnd, new Set(ids)), prefs, now, horizonDays });
 

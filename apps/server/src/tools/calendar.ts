@@ -209,7 +209,11 @@ const deleteEventTool = defineTool({
   handler: (i, { ctx, actor }) => {
     const target = resolveTarget(ctx.db, i);
     if (target.instance) overrideInstance(ctx.db, target.id, target.instance, { cancel: true }, actor);
-    else deleteEvent(ctx.db, target.id, actor);
+    else {
+      const row = getEvent(ctx.db, target.id);
+      if (row.recurrenceParentId) updateEvent(ctx.db, target.id, { status: "cancelled" }, actor);
+      else deleteEvent(ctx.db, target.id, actor);
+    }
     return { ok: true, id: target.id, occurrence: target.instance };
   },
 });

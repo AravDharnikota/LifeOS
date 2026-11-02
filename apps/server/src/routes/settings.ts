@@ -9,7 +9,7 @@ export function settingsRoutes(app: App): void {
     const { db, env, ai } = c.get("ctx");
     const google = getRawSetting(db, "google_tokens") as { email?: string; connectedAt?: string } | null;
     return c.json({
-      app: getAppSettings(db),
+      app: { ...getAppSettings(db), timezone: env.timezone },
       healthProfile: getHealthProfile(db),
       scheduler: getSchedulerPrefs(db),
       integrations: {
@@ -17,13 +17,13 @@ export function settingsRoutes(app: App): void {
         google: { configured: Boolean(env.googleClientId && env.googleClientSecret), connected: Boolean(google?.connectedAt), email: google?.email ?? null, connectedAt: google?.connectedAt ?? null },
         mcp: { url: `${env.publicUrl}/mcp`, authRequired: Boolean(env.token) },
       },
-      server: { publicUrl: env.publicUrl, timezone: env.timezone, dataDir: env.dataDir, version: "0.1.0" },
+      server: { publicUrl: env.publicUrl, timezone: env.timezone, version: "0.1.0" },
     });
   });
   app.patch("/api/settings/app", async (c) => {
     const { db } = c.get("ctx");
     const body = await parseBody(c, AppSettings.partial());
-    const merged = AppSettings.parse({ ...getAppSettings(db), ...body });
+    const merged = AppSettings.parse({ ...getAppSettings(db), ...body, timezone: c.get("ctx").env.timezone });
     setSetting(db, "app", merged);
     return c.json(merged);
   });

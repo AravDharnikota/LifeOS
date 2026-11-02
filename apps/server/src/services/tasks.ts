@@ -1,7 +1,6 @@
 import { and, asc, desc, eq, gte, inArray, isNull, lte, or, sql } from "drizzle-orm";
-import rrulePkg from "rrule";
-const { RRule } = rrulePkg;
-import { addDaysString, parseDateString, parseTaskInput, toDateString, todayString, type Task, type TaskCreate, type TaskUpdate } from "@aravos/shared";
+import { buildRule, validateRrule } from "../lib/rrule.ts";
+import { addDaysString, parseTaskInput, todayString, type Task, type TaskCreate, type TaskUpdate } from "@aravos/shared";
 import type { Db } from "../db/client.ts";
 import { schema } from "../db/client.ts";
 import { newId, nowIso } from "../lib/ids.ts";
@@ -62,6 +61,9 @@ export function withBlocks(db: Db, rows: Row[]): Task[] {
   return rows.map((r) => serializeTask(r, map.get(r.id) ?? []));
 }
 
+/** ISO instant of local midnight for a YYYY-MM-DD date (process TZ is the user's timezone). */
+export const dayStart = (date: string): string => new Date(date + "T00:00:00").toISOString();
+
 export type TaskView = "today" | "upcoming" | "inbox" | "all" | "done" | "overdue" | "anytime" | "list";
 
 export function listTasks(db: Db, opts: { view?: TaskView; listId?: string; date?: string; goalId?: string; limit?: number; includeDone?: boolean } = {}): Task[] {
@@ -73,13 +75,13 @@ export function listTasks(db: Db, opts: { view?: TaskView; listId?: string; date
   if (opts.listId) conds.push(eq(t.listId, opts.listId));
   switch (view) {
     case "today":
-      conds.push(or(and(eq(t.status, "open"), or(lte(t.dueDate, today), lte(t.startDate, today))), and(eq(t.status, "done"), sql`substr(${t.completedAt}, 1, 10) = ${today}`))!);
+      conds.push(or(and(eq(t.status, "open"), or(lte(t.dueDate, today), lte(t.startDate, today))), and(eq(t.status, "done"), gte(t.completedAt, dayStart(today)), sql`${t.completedAt} < ${dayStart(addDaysString(today, 1))}`))!);
       break;
     case "overdue":
       conds.push(eq(t.status, "open"), sql`${t.dueDate} < ${today}`);
       break;
     case "upcoming":
-      conds.push(eq(t.status, "open"), or(sql`${t.dueDate} > ${today}`, sql`${t.startDate} > ${today}`)!, sql`${t.dueDate} <= ${addDaysString(today, 30)} OR ${t.startDate} <= ${addDaysString(today, 30)}`);
+      conds.push(eq(t.status, "open"), or(sql`${t.dueDate} > ${today}`, sql`${t.startDate} > ${today}`)!, or(lte(t.dueDate, addDaysString(today, 30)), lte(t.startDate, addDaysString(today, 30)))!);
       break;
     case "anytime":
       conds.push(eq(t.status, "open"), isNull(t.dueDate), isNull(t.startDate));
@@ -146,7 +148,7 @@ export function createTask(db: Db, input: TaskCreate, actor = "user"): Task {
       priority: input.priority ?? 0,
       estimateMinutes: input.estimateMinutes ?? null,
       tags: JSON.stringify(input.tags ?? []),
-      recurrence: input.recurrence ?? null,
+      recurrence: validateRrule(input.recurrence),
       sortOrder: input.sortOrder ?? maxSort + 1,
       source: input.source ?? (actor === "user" ? "app" : actor),
     })
@@ -177,9 +179,11 @@ export function updateTask(db: Db, id: string, input: TaskUpdate, actor = "user"
   const existing = db.select().from(schema.tasks).where(and(eq(schema.tasks.id, id), isNull(schema.tasks.deletedAt))).get();
   if (!existing) throw notFound("Task");
   const set: Partial<typeof schema.tasks.$inferInsert> = { updatedAt: nowIso() };
-  for (const k of ["title", "notes", "listId", "parentId", "goalId", "dueDate", "dueTime", "startDate", "priority", "estimateMinutes", "actualMinutes", "recurrence", "sortOrder", "source"] as const) {
+  for (const k of ["title", "notes", "listId", "parentId", "goalId", "dueDate", "dueTime", "startDate", "priority", "estimateMinutes", "actualMinutes", "sortOrder", "source"] as const) {
     if (input[k] !== undefined) (set as Record<string, unknown>)[k] = input[k];
   }
+  if (input.recurrence !== undefined) set.recurrence = validateRrule(input.recurrence);
+  if (input.listId && !db.select({ id: schema.taskLists.id }).from(schema.taskLists).where(eq(schema.taskLists.id, input.listId)).get()) throw badRequest("Unknown listId");
   if (input.tags !== undefined) set.tags = JSON.stringify(input.tags);
   if (input.status !== undefined && input.status !== existing.status) {
     if (input.status === "done") return completeTask(db, id, { actualMinutes: input.actualMinutes ?? undefined }, actor);
@@ -188,7 +192,10 @@ export function updateTask(db: Db, id: string, input: TaskUpdate, actor = "user"
       set.completedAt = null;
     } else {
       set.status = input.status;
-      if (input.status === "cancelled") set.completedAt = nowIso();
+      if (input.status === "cancelled") {
+        set.completedAt = nowIso();
+        db.update(schema.events).set({ deletedAt: nowIso(), updatedAt: nowIso() }).where(and(eq(schema.events.taskId, id), eq(schema.events.kind, "timebox"), isNull(schema.events.deletedAt), sql`${schema.events.start} > ${nowIso()}`)).run();
+      }
     }
   }
   if (input.completedAt !== undefined) set.completedAt = input.completedAt;
@@ -229,10 +236,13 @@ export function completeTask(db: Db, id: string, opts: { actualMinutes?: number 
   // Recurrence: spawn the next occurrence
   if (existing.recurrence && existing.dueDate) {
     try {
-      const rule = RRule.fromString(existing.recurrence.startsWith("DTSTART") || existing.recurrence.startsWith("RRULE") ? existing.recurrence : `RRULE:${existing.recurrence}`);
-      const base = parseDateString(existing.dueDate);
-      const next = new RRule({ ...rule.origOptions, dtstart: base }).after(base, false);
-      if (next) {
+      const [y, m, d] = existing.dueDate.split("-").map(Number);
+      const base = new Date(Date.UTC(y!, m! - 1, d!));
+      const rule = buildRule(existing.recurrence, base);
+      const next = rule.after(base, false);
+      const count = rule.origOptions.count;
+      const nextRecurrence = count != null ? (count - 1 >= 2 ? existing.recurrence.replace(/COUNT=\d+/, `COUNT=${count - 1}`) : null) : existing.recurrence;
+      if (next && (count == null || count - 1 >= 1)) {
         createTask(
           db,
           {
@@ -240,12 +250,12 @@ export function completeTask(db: Db, id: string, opts: { actualMinutes?: number 
             notes: existing.notes,
             listId: existing.listId,
             goalId: existing.goalId,
-            dueDate: toDateString(next),
+            dueDate: next.toISOString().slice(0, 10),
             dueTime: existing.dueTime,
             priority: existing.priority,
             estimateMinutes: existing.estimateMinutes,
             tags: parseJson<string[]>(existing.tags, []),
-            recurrence: existing.recurrence,
+            recurrence: nextRecurrence,
             source: existing.source,
           },
           "system",
@@ -281,14 +291,14 @@ export function countOpenTasks(db: Db): number {
 }
 
 export function tasksDoneOn(db: Db, date: string): number {
-  return db.select({ n: sql<number>`count(*)` }).from(schema.tasks).where(and(isNull(schema.tasks.deletedAt), eq(schema.tasks.status, "done"), sql`substr(${schema.tasks.completedAt},1,10) = ${date}`)).get()?.n ?? 0;
+  return db.select({ n: sql<number>`count(*)` }).from(schema.tasks).where(and(isNull(schema.tasks.deletedAt), eq(schema.tasks.status, "done"), gte(schema.tasks.completedAt, dayStart(date)), sql`${schema.tasks.completedAt} < ${dayStart(addDaysString(date, 1))}`)).get()?.n ?? 0;
 }
 
 export function searchTasks(db: Db, q: string, limit = 20): Task[] {
   const rows = db
     .select()
     .from(schema.tasks)
-    .where(and(isNull(schema.tasks.deletedAt), sql`lower(${schema.tasks.title}) like ${"%" + q.toLowerCase() + "%"}`))
+    .where(and(isNull(schema.tasks.deletedAt), sql`lower(${schema.tasks.title}) like ${"%" + q.toLowerCase().replace(/[%_\\]/g, "\\$&") + "%"} escape '\\'`))
     .orderBy(desc(schema.tasks.updatedAt))
     .limit(limit)
     .all();

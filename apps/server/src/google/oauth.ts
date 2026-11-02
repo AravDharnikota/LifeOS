@@ -101,8 +101,8 @@ export function createAuthUrl(ctx: AppContext): string {
 /** Validates and consumes the stored OAuth state. Returns false when it does not match or has expired. */
 export function consumeOAuthState(db: Db, state: string): boolean {
   const raw = getRawSetting(db, OAUTH_STATE_KEY) as { state?: string; createdAt?: string } | null;
-  db.delete(schema.settings).where(eq(schema.settings.key, OAUTH_STATE_KEY)).run();
   if (!raw || typeof raw.state !== "string" || raw.state !== state) return false;
+  db.delete(schema.settings).where(eq(schema.settings.key, OAUTH_STATE_KEY)).run();
   const created = Date.parse(raw.createdAt ?? "");
   return Number.isFinite(created) && Date.now() - created <= STATE_TTL_MS;
 }

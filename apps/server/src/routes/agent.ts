@@ -9,7 +9,7 @@ import { createThread, deleteThread, getThread, IMAGE_MEDIA_TYPES, listAgentTool
 const ThreadBody = z.object({ title: z.string().trim().max(120).optional() });
 const MessageBody = z.object({
   text: z.string().max(20000).default(""),
-  images: z.array(z.object({ base64: z.string().min(1), mediaType: z.enum(IMAGE_MEDIA_TYPES) })).max(4).optional(),
+  images: z.array(z.object({ base64: z.string().min(1).max(8_000_000), mediaType: z.enum(IMAGE_MEDIA_TYPES) })).max(4).optional(),
 });
 const QuickBody = z.object({ text: z.string().trim().min(1).max(20000) });
 

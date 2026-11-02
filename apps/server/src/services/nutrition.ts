@@ -48,15 +48,16 @@ export const MealItemInputLoose = MealItemInput.extend({ name: z.string().trim()
 export type MealItemInputLoose = z.infer<typeof MealItemInputLoose>;
 export const MealItemPatch = MealItemInputLoose.partial();
 export type MealItemPatch = z.infer<typeof MealItemPatch>;
-export const MealCreateInput = MealCreate.extend({ source: MealSource.optional(), photoPath: z.string().max(300).nullable().optional(), items: z.array(MealItemInputLoose).max(60).optional() });
+const uploadPath = z.string().regex(/^\/uploads\/[a-z]+\/[0-9a-f-]{36}\.(jpg|jpeg|png|webp)$/, "Not an upload path");
+export const MealCreateInput = MealCreate.extend({ source: MealSource.optional(), photoPath: uploadPath.nullable().optional(), items: z.array(MealItemInputLoose).max(60).optional() });
 export type MealCreateInput = z.infer<typeof MealCreateInput>;
 export const MealUpdateInput = MealCreateInput.partial();
 export type MealUpdateInput = z.infer<typeof MealUpdateInput>;
 export const WaterCreate = z.object({ ml: z.number().int().min(1).max(5000), date: isoDate.optional() });
 export type WaterCreate = z.infer<typeof WaterCreate>;
-export const AnalysisCorrection = z.object({ analysis: FoodAnalysis, note: z.string().trim().min(1).max(2000), imagePath: z.string().max(300).optional() });
+export const AnalysisCorrection = z.object({ analysis: FoodAnalysis, note: z.string().trim().min(1).max(2000), imagePath: uploadPath.optional() });
 export type AnalysisCorrection = z.infer<typeof AnalysisCorrection>;
-export const MealFromAnalysis = z.object({ analysis: FoodAnalysis, date: isoDate.optional(), mealType: MealType.optional(), imagePath: z.string().max(300).nullable().optional(), name: z.string().trim().min(1).max(200).optional() });
+export const MealFromAnalysis = z.object({ analysis: FoodAnalysis, date: isoDate.optional(), mealType: MealType.optional(), imagePath: uploadPath.nullable().optional(), name: z.string().trim().min(1).max(200).optional() });
 export type MealFromAnalysis = z.infer<typeof MealFromAnalysis>;
 
 // ---------- AI guard ----------

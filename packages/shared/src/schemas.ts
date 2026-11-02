@@ -604,7 +604,7 @@ export const SchedulerPrefs = z.object({
   horizonDays: z.number().int().min(1).max(30).default(7),
   lunch: z.object({ start: hhmm, end: hhmm }).nullable().default({ start: "12:30", end: "13:15" }),
   autoRun: z.boolean().default(true),
-  snapMinutes: z.number().int().min(5).max(60).default(15),
+  snapMinutes: z.number().int().min(5).max(60).refine((v) => 60 % v === 0, "snapMinutes must divide 60").default(15),
 });
 export type SchedulerPrefs = z.infer<typeof SchedulerPrefs>;
 

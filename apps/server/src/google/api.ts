@@ -102,7 +102,8 @@ export class GoogleClient {
         await getAccessToken(this.ctx, this.deps, { force: true });
         continue;
       }
-      if (shouldRetry(res.status) && attempt < MAX_ATTEMPTS - 1) {
+      const idempotent = method.toUpperCase() !== "POST" || res.status === 429;
+      if (idempotent && shouldRetry(res.status) && attempt < MAX_ATTEMPTS - 1) {
         attempt += 1;
         await this.deps.sleep(BACKOFF_BASE_MS * 2 ** (attempt - 1));
         continue;

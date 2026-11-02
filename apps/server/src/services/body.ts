@@ -73,7 +73,11 @@ export async function addBodyPhoto(ctx: AppContext, image: Blob, fields: BodyPho
 export function deleteBodyPhoto(ctx: AppContext, id: string, actor = "user"): void {
   const row = photoRow(ctx.db, id);
   ctx.db.update(schema.bodyPhotos).set({ deletedAt: nowIso() }).where(eq(schema.bodyPhotos.id, id)).run();
-  deleteUpload(ctx.env, row.path);
+  try {
+    deleteUpload(ctx.env, row.path);
+  } catch (e) {
+    console.warn("Could not remove photo file", row.path, e instanceof Error ? e.message : e);
+  }
   logActivity(ctx.db, { actor, action: "deleted", entity: "body_photo", entityId: id, summary: `Deleted ${row.pose} progress photo from ${row.date}` });
 }
 
