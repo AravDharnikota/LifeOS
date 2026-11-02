@@ -166,7 +166,8 @@ export function scoreLine(totals: Partial<Nutrients>, modelScore: number | null)
   const h = mealHealthScore(totals);
   const score = modelScore ?? h?.score ?? null;
   if (score == null) return { score: null, reason: "Too small to score" };
-  const reason = h?.reasons[0] ?? (score >= 8 ? "Balanced" : "Based on the items above");
+  const agrees = h != null && Math.abs(h.score - score) <= 2;
+  const reason = agrees ? (h.reasons[0] ?? (score >= 8 ? "Balanced" : "Based on the items above")) : score >= 8 ? "Balanced" : score >= 5 ? "Based on the items above" : "Could be more balanced";
   return { score, reason };
 }
 

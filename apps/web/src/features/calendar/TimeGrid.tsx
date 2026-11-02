@@ -188,8 +188,10 @@ export function TimeGrid({ days, events, calendars, now, pager, header, scrollRe
     }
     setDragBoth(base);
     clearHold();
+    console.log("DBG down touch", e.pointerId);
     holdTimer.current = window.setTimeout(() => {
       const d = dragRef.current;
+      console.log("DBG hold fired", JSON.stringify({ has: Boolean(d), pid: d?.pointerId, epid: e.pointerId }));
       if (!d || d.pointerId !== e.pointerId) return;
       try {
         el.setPointerCapture(e.pointerId);
@@ -218,6 +220,7 @@ export function TimeGrid({ days, events, calendars, now, pager, header, scrollRe
 
   const onBlockPointerUp = (e: ReactPointerEvent<HTMLDivElement>) => {
     const d = dragRef.current;
+    console.log("DBG up", JSON.stringify({ has: Boolean(d), pid: d?.pointerId, epid: e.pointerId, lifted: d?.lifted, active: d?.active, type: e.pointerType }));
     clearHold();
     stopEdgeScroll();
     if (!d || d.pointerId !== e.pointerId) return;

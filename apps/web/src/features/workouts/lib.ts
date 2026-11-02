@@ -27,7 +27,7 @@ export function storeDistance(display: number, units: Units): number {
 /** Weight increment for the keyboard accessory: 2.5 kg or 5 lb. */
 export const weightStep = (units: Units): number => (units === "imperial" ? 5 : 2.5);
 
-const trim = (n: number, digits = 2): string => Number(n.toFixed(digits)).toLocaleString("en-US", { maximumFractionDigits: digits });
+const trim = (n: number, digits = 1): string => Number(n.toFixed(digits)).toLocaleString("en-US", { maximumFractionDigits: digits });
 export const fmtNum = trim;
 export const fmtWeightValue = (kg: number, units: Units): string => `${trim(displayWeight(kg, units))} ${weightUnit(units)}`;
 export const fmtVolume = (kg: number, units: Units): string => `${fmtInt(units === "imperial" ? kgToLb(kg) : kg)} ${weightUnit(units)}`;

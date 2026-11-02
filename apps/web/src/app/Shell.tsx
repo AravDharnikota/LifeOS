@@ -5,6 +5,7 @@ import { Icon, type IconName } from "@/ui/Icon";
 import { useIsDesktop } from "@/lib/hooks";
 import { useUi } from "@/state/ui";
 import { AgentSheet } from "@/features/agent/AgentSheet";
+import { RestTimerHost } from "@/features/workouts/WorkoutsRoutes";
 import { Skeleton } from "@/ui/Empty";
 
 const tabs: { to: string; label: string; icon: IconName; fill: IconName }[] = [
@@ -61,6 +62,7 @@ export function Shell() {
       </main>
       {!isDesktop && <TabBar path={location.pathname} />}
       <AgentSheet />
+      <RestTimerHost />
     </div>
   );
 }

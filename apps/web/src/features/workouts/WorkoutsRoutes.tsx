@@ -46,7 +46,6 @@ export default function WorkoutsRoutes() {
         </Routes>
       </Suspense>
       {showResume && active.data && <ResumeBar workout={active.data} />}
-      <RestTimerHost />
     </div>
   );
 }
@@ -73,8 +72,8 @@ function ResumeBar({ workout }: { workout: Workout }) {
   );
 }
 
-/** Fires the end-of-rest effects exactly once per countdown and renders the timer sheet. */
-function RestTimerHost() {
+/** Fires the end-of-rest effects exactly once per countdown and renders the timer sheet. Mounted once in the app shell. */
+export function RestTimerHost() {
   const endsAt = useRestTimer((s) => s.endsAt);
   const muted = useRestTimer((s) => s.muted);
   const remaining = useRestRemaining();
