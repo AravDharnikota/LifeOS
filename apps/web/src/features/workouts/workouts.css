@@ -1,0 +1,67 @@
+/* Workouts feature styles. Only token-derived colors; no hex. */
+
+.wk-set-done { background: color-mix(in oklab, var(--success) 12%, var(--bg-surface)); }
+.wk-set-done .wk-input { background: color-mix(in oklab, var(--success) 10%, var(--bg-surface)); }
+.wk-set-done .wk-input:focus { background: var(--bg-surface); }
+
+.wk-input {
+  width: 100%;
+  height: 34px;
+  border-radius: var(--r-sm);
+  background: var(--bg-surface-2);
+  border: 1px solid transparent;
+  text-align: center;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  padding: 0 4px;
+  transition: border-color var(--dur-micro) var(--ease-out), background-color var(--dur-micro) var(--ease-out);
+}
+.wk-input:focus { border-color: var(--accent); background: var(--bg-surface); }
+.wk-input::placeholder { color: var(--text-tertiary); }
+.wk-input::-webkit-outer-spin-button, .wk-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* Set table: Set | Previous | value columns | check. Columns are set per category via inline style. */
+.wk-grid { display: grid; align-items: center; column-gap: 6px; min-height: 44px; }
+.wk-grid-head { min-height: 28px; }
+
+.wk-check { width: 30px; height: 30px; border-radius: var(--r-sm); background: var(--bg-surface-2); color: var(--text-tertiary); display: inline-flex; align-items: center; justify-content: center; transition: background-color var(--dur-press) var(--ease-out), color var(--dur-press) var(--ease-out), transform var(--dur-press) var(--ease-out); }
+.wk-check:active { transform: scale(0.94); }
+.wk-check-on { background: var(--success); color: var(--on-accent); }
+
+.wk-tag { font-weight: 600; font-variant-numeric: tabular-nums; }
+.wk-tag-normal { color: var(--text-secondary); }
+.wk-tag-warmup { color: var(--warning-text); }
+.wk-tag-drop { color: var(--fat-text); }
+.wk-tag-failure { color: var(--danger-text); }
+
+/* Superset bar: the only colored edge in the app; it carries grouping meaning (Strong pattern). */
+.wk-superset { position: relative; }
+.wk-superset::before { content: ""; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; border-radius: 2px; background: var(--wk-ss, var(--cal-gray)); }
+
+.wk-swipe-bg { background: var(--danger); color: var(--on-accent); }
+
+/* Keyboard accessory row above the system keyboard (touch devices). */
+.wk-accessory { position: fixed; left: 0; right: 0; z-index: 40; background: var(--bg-elevated); border-top: 1px solid var(--separator); display: flex; align-items: stretch; height: 44px; }
+.wk-accessory button { flex: 1; font-size: 15px; font-weight: 600; color: var(--accent-text); font-variant-numeric: tabular-nums; }
+.wk-accessory button + button { border-left: 1px solid var(--separator); }
+.wk-accessory button:active { background: var(--bg-pressed); }
+
+/* Persistent resume bar sits above the tab bar; screens under it get extra bottom padding. */
+.wk-resume-bar { position: fixed; left: 0; right: 0; z-index: 35; }
+.wk-with-resume .scroller { padding-bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 24px + 60px); }
+@media (min-width: 1024px) {
+  .wk-resume-bar { left: var(--sidebar-w); }
+  .wk-with-resume .scroller { padding-bottom: 100px; }
+}
+
+/* Charts */
+.wk-chart-bar { fill: var(--accent); }
+.wk-chart-line { stroke: var(--accent); fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.wk-chart-grid { stroke: var(--separator); stroke-width: 1; }
+.wk-chart-label { fill: var(--text-tertiary); font-size: 11px; font-variant-numeric: tabular-nums; }
+
+/* Reduced motion: the brief caps durations; nothing here translates. */
+@media (prefers-reduced-motion: reduce) {
+  .wk-check:active { transform: none; }
+}

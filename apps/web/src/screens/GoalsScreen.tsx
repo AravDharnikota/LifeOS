@@ -1,10 +1,18 @@
-import { Screen } from "@/ui/Screen";
-import { Empty } from "@/ui/Empty";
+import { Route, Routes, useParams } from "react-router";
+import { GoalsList } from "@/features/goals/GoalsList";
+import { GoalDetail } from "@/features/goals/GoalDetail";
+
+function DetailRoute() {
+  const { id = "" } = useParams();
+  return <GoalDetail key={id} id={id} />;
+}
 
 export default function GoalsScreen() {
   return (
-    <Screen title="Goals">
-      <Empty>Nothing here yet.</Empty>
-    </Screen>
+    <Routes>
+      <Route index element={<GoalsList />} />
+      <Route path="new" element={<GoalsList createOpen />} />
+      <Route path=":id" element={<DetailRoute />} />
+    </Routes>
   );
 }

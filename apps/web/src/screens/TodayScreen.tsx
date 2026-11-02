@@ -1,10 +1,5 @@
-import { Screen } from "@/ui/Screen";
-import { Empty } from "@/ui/Empty";
+import { Today } from "@/features/today/Today";
 
 export default function TodayScreen() {
-  return (
-    <Screen title="Today">
-      <Empty>Nothing here yet.</Empty>
-    </Screen>
-  );
+  return <Today />;
 }

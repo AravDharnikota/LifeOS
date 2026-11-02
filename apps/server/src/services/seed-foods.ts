@@ -34,7 +34,13 @@ export function loadBundledFoods(): BundledFood[] {
 export function seedFoods(db: Db): number {
   const existing = db.select({ n: count() }).from(schema.foods).get()?.n ?? 0;
   if (existing > 0) return 0;
-  const foods = loadBundledFoods();
+  let foods: BundledFood[];
+  try {
+    foods = loadBundledFoods();
+  } catch (err) {
+    console.warn(`Food database not seeded: ${err instanceof Error ? err.message : String(err)}. Rebuild it with scripts/build-foods.py (see docs/nutrition.md).`);
+    return 0;
+  }
   const createdAt = new Date().toISOString();
   const insert = db
     .insert(schema.foods)

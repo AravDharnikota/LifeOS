@@ -1,0 +1,14 @@
+/* Widget surfaces: hairline edge in dark mode only (light mode gets contrast from the canvas). */
+.widget-edge { box-shadow: none; }
+:root[data-theme="dark"] .widget-edge { box-shadow: 0 0 0 1px var(--separator); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .widget-edge { box-shadow: 0 0 0 1px var(--separator); }
+}
+/* Edit mode: a stronger outline, still a hairline, never a shadow. */
+.widget-editing,
+:root[data-theme="dark"] .widget-editing { box-shadow: 0 0 0 1.5px var(--border-focus); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .widget-editing { box-shadow: 0 0 0 1.5px var(--border-focus); }
+}
+/* Time boxes in the agenda: dashed outline in the event color. */
+.timebox-outline { border: 1px dashed color-mix(in oklab, var(--cal-color, var(--cal-gray)) 55%, var(--bg-surface)); }
