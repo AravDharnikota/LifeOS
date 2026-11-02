@@ -451,8 +451,8 @@ describe("template actions on finish", () => {
 
   it("stores and applies workout settings such as counting dumbbells twice", async () => {
     const defaults = await w.api<{ countDumbbellsTwice: boolean; oneRmFormula: string }>("GET", "/api/workouts/settings");
-    expect(defaults.data).toMatchObject({ countDumbbellsTwice: false, oneRmFormula: "hybrid" });
-    await w.api("PATCH", "/api/workouts/settings", { countDumbbellsTwice: true });
+    // Dumbbell weight is per hand, so both hands count by default.
+    expect(defaults.data).toMatchObject({ countDumbbellsTwice: true, oneRmFormula: "hybrid" });
     const curl = await findExercise(w, "Bicep Curl (Dumbbell)");
     const started = (await w.api<Workout>("POST", "/api/workouts/start", { name: "Arms" })).data;
     const we = await w.api<WorkoutExercise>("POST", `/api/workouts/${started.id}/exercises`, { exerciseId: curl.id });
@@ -460,6 +460,12 @@ describe("template actions on finish", () => {
     const finished = await w.api<WorkoutFinishResult>("POST", `/api/workouts/${started.id}/finish`, {});
     expect(finished.data.summary.totalVolume).toBe(240);
     await w.api("PATCH", "/api/workouts/settings", { countDumbbellsTwice: false });
+    const again = (await w.api<Workout>("POST", "/api/workouts/start", { name: "Arms 2" })).data;
+    const we2 = await w.api<WorkoutExercise>("POST", `/api/workouts/${again.id}/exercises`, { exerciseId: curl.id });
+    await completeSet(w, setAt(we2.data, 0).id, { weight: 12, reps: 10 });
+    const finished2 = await w.api<WorkoutFinishResult>("POST", `/api/workouts/${again.id}/finish`, {});
+    expect(finished2.data.summary.totalVolume).toBe(120);
+    await w.api("PATCH", "/api/workouts/settings", { countDumbbellsTwice: true });
   });
 });
 
