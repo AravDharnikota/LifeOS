@@ -11,7 +11,7 @@ apps/server/uploads/
 apps/web/ios/App/Pods/
 apps/web/ios/App/App.xcworkspace/xcuserdata/
 apps/web/ios/App/App.xcodeproj/xcuserdata/
-apps/web/ios/App/public/
+apps/web/ios/App/App/public/
 apps/web/test-results/
 apps/web/playwright-report/
 apps/web/e2e/__screenshots__/
