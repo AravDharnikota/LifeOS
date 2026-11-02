@@ -12,6 +12,7 @@ export default defineConfig({
   outputDir: "test-results",
   use: {
     baseURL: `http://localhost:${port}`,
+    timezoneId: process.env.E2E_TZ ?? "America/Los_Angeles",
     trace: "retain-on-failure",
     launchOptions: { executablePath: process.env.PW_CHROMIUM ?? "/opt/pw-browsers/chromium-1243/chrome-linux64/chrome" },
   },
