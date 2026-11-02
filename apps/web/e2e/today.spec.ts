@@ -21,6 +21,19 @@ async function resetLayout(request: APIRequestContext): Promise<void> {
   if (JSON.stringify(layout.spec) !== JSON.stringify(spec)) await request.put("/api/layout/today", { data: { spec, reason: "e2e reset" } });
 }
 
+/** Other specs share this server's database; clear today's tasks and events so the widgets are deterministic. */
+async function clearToday(request: APIRequestContext): Promise<void> {
+  const today = await serverToday(request);
+  const tasks = (await (await request.get("/api/tasks?view=today&date=" + today)).json()) as { id: string; status: string }[];
+  for (const t of tasks) if (t.status === "open") await request.delete(`/api/tasks/${t.id}`);
+  const overdue = (await (await request.get("/api/tasks?view=overdue&date=" + today)).json()) as { id: string }[];
+  for (const t of overdue) await request.delete(`/api/tasks/${t.id}`);
+  const from = new Date(today + "T00:00:00-08:00").toISOString();
+  const to = new Date(new Date(from).getTime() + 36 * 3600 * 1000).toISOString();
+  const events = (await (await request.get(`/api/events?from=${from}&to=${to}`)).json()) as { id: string; instanceOf?: string }[];
+  for (const e of events) await request.delete(`/api/events/${e.instanceOf ?? e.id}`);
+}
+
 async function openToday(page: Page): Promise<void> {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Today", level: 1 })).toBeVisible();
@@ -29,6 +42,7 @@ async function openToday(page: Page): Promise<void> {
 test.describe("Today dashboard", () => {
   test.beforeEach(async ({ request }) => {
     await resetLayout(request);
+    await clearToday(request);
   });
 
   test("renders the default sections and widgets", async ({ page, request }) => {
