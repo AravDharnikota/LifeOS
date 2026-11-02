@@ -289,13 +289,32 @@ function chunkSize(remaining: number, avail: number, grid: Grid): number {
   return Math.max(0, take);
 }
 
+/** A later slot on the same day that holds the whole remainder without crossing the deadline. */
+function wholeFitSameDay(p: Prepared, slots: Slot[], from: number, day: number, remaining: number, grid: Grid): Interval | null {
+  for (let j = from; j < slots.length && slots[j]!.day === day; j++) {
+    const s = slots[j]!;
+    const start = Math.max(s.start, snapUp(p.startFloor, s.day, grid.snap));
+    if (s.end - start < remaining) continue;
+    if (p.deadline !== null && start + remaining > p.deadline) return null;
+    return { start, end: start + remaining };
+  }
+  return null;
+}
+
+/** Earliest fit; a task that would be split but fits whole later the same day takes the later slot. */
 function firstFit(p: Prepared, slots: Slot[], remaining: number, grid: Grid): Interval | null {
-  for (const s of slots) {
+  for (let i = 0; i < slots.length; i++) {
+    const s = slots[i]!;
     const start = Math.max(s.start, snapUp(p.startFloor, s.day, grid.snap));
     const avail = s.end - start;
     if (avail < grid.snap) continue;
     const take = chunkSize(remaining, avail, grid);
-    if (take > 0) return { start, end: start + take };
+    if (take <= 0) continue;
+    if (take < remaining && remaining <= grid.maxBlock) {
+      const whole = wholeFitSameDay(p, slots, i + 1, s.day, remaining, grid);
+      if (whole) return whole;
+    }
+    return { start, end: start + take };
   }
   return null;
 }

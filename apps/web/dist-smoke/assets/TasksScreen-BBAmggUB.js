@@ -1,0 +1,1 @@
+import{t as e}from"./Screen-BhUFuuDs.js";import{c as t,y as n}from"./index-DX8E3yw5.js";var r=n();function i(){return(0,r.jsx)(e,{title:`Tasks`,children:(0,r.jsx)(t,{children:`Nothing here yet.`})})}export{i as default};

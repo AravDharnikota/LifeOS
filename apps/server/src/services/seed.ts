@@ -6,6 +6,7 @@ import type { Env } from "../lib/env.ts";
 import { newId } from "../lib/ids.ts";
 import { seedExercises } from "./exercise-library.ts";
 import { setSetting, getRawSetting } from "./settings.ts";
+import { seedFoods } from "./seed-foods.ts";
 
 /** Idempotent: creates defaults the app assumes exist. */
 export function seedDatabase(db: Db, env: Env): void {
@@ -30,4 +31,5 @@ export function seedDatabase(db: Db, env: Env): void {
   }
   if (!getRawSetting(db, "app")) setSetting(db, "app", { timezone: env.timezone });
   seedExercises(db);
+  seedFoods(db);
 }

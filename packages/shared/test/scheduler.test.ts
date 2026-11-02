@@ -61,7 +61,7 @@ describe("scheduleTasks", () => {
 
   it("keeps a buffer after meetings and between blocks", () => {
     const meeting = { start: iso(2, 10), end: iso(2, 11) };
-    const out = run([task({ id: "a", estimateMinutes: 45 }), task({ id: "b", estimateMinutes: 60 }), task({ id: "c", estimateMinutes: 30 })], { busy: [meeting] });
+    const out = run([task({ id: "a", estimateMinutes: 45, priority: 3 }), task({ id: "b", estimateMinutes: 60, priority: 2 }), task({ id: "c", estimateMinutes: 30 })], { busy: [meeting] });
     const a = blocksOf(out, "a")[0]!;
     const b = blocksOf(out, "b")[0]!;
     const c = blocksOf(out, "c")[0]!;
@@ -93,7 +93,7 @@ describe("scheduleTasks", () => {
   });
 
   it("snaps block edges to the grid", () => {
-    const busy = [{ start: iso(2, 9), end: iso(2, 10, 5) }];
+    const busy = [{ start: iso(2, 9), end: iso(2, 10, 7) }];
     const out = run([task({ id: "a", estimateMinutes: 40 })], { busy });
     const [b] = blocksOf(out, "a");
     expect(hm(b!.start)).toBe("10:30");
@@ -106,6 +106,24 @@ describe("scheduleTasks", () => {
     const [b] = blocksOf(out, "tiny");
     expect(minutes(b!.start, b!.end)).toBe(prefs.snapMinutes);
     expect(out.unplaced).toEqual([]);
+  });
+
+  it("prefers a whole block later the same day over splitting around a meeting", () => {
+    const busy = [{ start: iso(2, 9, 45), end: iso(2, 11) }];
+    const out = run([task({ id: "a", estimateMinutes: 60 })], { busy });
+    const bs = blocksOf(out, "a");
+    expect(bs).toHaveLength(1);
+    expect([hm(bs[0]!.start), hm(bs[0]!.end)]).toEqual(["11:15", "12:15"]);
+  });
+
+  it("still splits when a whole block later the same day would miss the deadline", () => {
+    const busy = [{ start: iso(2, 9, 45), end: iso(2, 11) }];
+    const out = run([task({ id: "a", estimateMinutes: 60, dueDate: "2026-11-02", dueTime: "12:00" })], { busy });
+    const bs = blocksOf(out, "a");
+    expect(bs).toHaveLength(2);
+    expect(hm(bs[0]!.start)).toBe("09:00");
+    for (const b of bs) expect(b.end.getTime()).toBeLessThanOrEqual(local(2, 12).getTime());
+    expect(out.atRisk).toEqual([]);
   });
 
   it("does not leave an orphan shorter than the minimum block when a slot is almost big enough", () => {
