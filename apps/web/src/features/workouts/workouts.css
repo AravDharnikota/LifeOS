@@ -37,7 +37,7 @@
 
 /* Superset bar: the only colored edge in the app; it carries grouping meaning (Strong pattern). */
 .wk-superset { position: relative; }
-.wk-superset::before { content: ""; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; border-radius: 2px; background: var(--wk-ss, var(--cal-gray)); }
+.wk-superset::before { content: ""; position: absolute; z-index: 1; left: 0; top: 8px; bottom: 8px; width: 3px; border-radius: 2px; background: var(--wk-ss, var(--cal-gray)); pointer-events: none; }
 
 .wk-swipe-bg { background: var(--danger); color: var(--on-accent); }
 

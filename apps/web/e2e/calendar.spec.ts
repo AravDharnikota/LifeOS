@@ -81,14 +81,16 @@ test("seeded events render at the right vertical position in the day timeline", 
   await expect(block).toContainText("09:00 to 10:00");
 });
 
-test("tapping an empty slot creates a one-hour draft that saves on Enter", async ({ page }) => {
+test("tapping an empty slot creates a one-hour draft that saves on Enter", async ({ page }, testInfo) => {
   const title = `Draft ${uid()}`;
   const today = await localToday(page);
+  // Both projects share one database, so each taps a different empty hour.
+  const hour = testInfo.project.name === "iphone" ? 14 : 7;
   await page.goto("/calendar");
   const col = todayColumn(page, today);
-  const h14 = col.locator('[data-hour="14"]');
-  await h14.scrollIntoViewIfNeeded();
-  const box = (await h14.boundingBox())!;
+  const line = col.locator(`[data-hour="${hour}"]`);
+  await line.scrollIntoViewIfNeeded();
+  const box = (await line.boundingBox())!;
   await page.mouse.click(box.x + box.width * 0.6, box.y + 8);
   const input = page.getByLabel("Event title");
   await expect(input).toBeVisible();
@@ -103,7 +105,7 @@ test("tapping an empty slot creates a one-hour draft that saves on Enter", async
       const ev = list.find((e) => e.title === title);
       return ev ? `${await localHm(page, ev.start)}-${await localHm(page, ev.end)}` : null;
     })
-    .toBe("14:00-15:00");
+    .toBe(`${String(hour).padStart(2, "0")}:00-${String(hour + 1).padStart(2, "0")}:00`);
 });
 
 test("dragging a block by 60px moves it one hour later", async ({ page }, testInfo) => {

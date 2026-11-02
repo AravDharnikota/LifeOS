@@ -80,7 +80,7 @@ function RailRow({ task, date, lists, onSchedule, draggable }: { task: Task; dat
   return (
     <div
       data-rail-task={task.id}
-      className={cn("relative flex items-center gap-3 min-h-[52px] pl-[var(--gutter)] pr-3 bg-surface row-sep group", draggable && "cursor-grab active:cursor-grabbing")}
+      className={cn("relative flex items-center gap-3 min-h-[52px] pl-[var(--gutter)] pr-3 bg-surface row-sep group", draggable && "cursor-grab active:cursor-grabbing select-none")}
       onPointerDown={onDown}
       onPointerMove={onMove}
       onPointerUp={onUp}

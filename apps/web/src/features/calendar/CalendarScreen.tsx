@@ -159,7 +159,7 @@ export function CalendarScreen() {
             {...gridProps}
             onDropTask={(task, start, end) => scheduleTask(task, start, end)}
             header={
-              <div className="sticky top-0 z-30 bg-canvas hairline-b">
+              <div className="bg-canvas hairline-b">
                 <DayHeader days={days} selected={date} onSelect={(d) => { setDate(d); if (view === "week") setView("day"); }} />
                 <AllDayRow days={days} events={data.events} calendars={data.calendars} onOpen={onOpen} className="hairline-t" />
               </div>

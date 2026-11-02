@@ -77,10 +77,10 @@ test("a task can be deleted from the row actions", async ({ page }, testInfo) =>
   if (testInfo.project.name === "iphone") {
     const box = (await row.boundingBox())!;
     await swipeLeft(page, box.x + box.width - 40, box.y + box.height / 2, 190);
-    await row.getByRole("button", { name: "Delete" }).click();
+    await row.getByRole("button", { name: "Delete", exact: true }).click();
   } else {
     await row.hover();
-    await row.getByRole("button", { name: "Delete" }).click();
+    await row.getByRole("button", { name: "Delete", exact: true }).click();
   }
   await expect(page.getByText("Task deleted.")).toBeVisible();
   await expect(row).toHaveCount(0);

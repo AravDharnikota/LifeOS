@@ -42,6 +42,10 @@ export default function WorkoutScreen({ mode }: { mode: Mode }) {
   const q = mode === "live" ? activeQ : editQ;
   const navigate = useNavigate();
   const { start, pending } = useStartFlow();
+  // Keeps the editor (and its summary sheet) mounted after the active workout is finished.
+  const [frozen, setFrozen] = useState<Workout | null>(null);
+  const workout = q.data ?? frozen;
+  if (workout) return <WorkoutEditor key={workout.id} workout={workout} mode={mode} queryKey={mode === "live" ? wk.active : wk.workout(workout.id)} onFreeze={setFrozen} />;
   if (q.isPending) return <ScreenFrame title={mode === "live" ? "Workout" : "Edit Workout"} onBack={() => navigate(WORKOUTS)}><div className="pt-6"><Skeleton rows={6} /></div></ScreenFrame>;
   if (q.isError) return <ScreenFrame title="Workout" onBack={() => navigate(WORKOUTS)}><InlineError onRetry={() => void q.refetch()}>Unable to load the workout.</InlineError></ScreenFrame>;
   if (!q.data) {
@@ -51,7 +55,7 @@ export default function WorkoutScreen({ mode }: { mode: Mode }) {
       </ScreenFrame>
     );
   }
-  return <WorkoutEditor key={q.data.id} workout={q.data} mode={mode} queryKey={mode === "live" ? wk.active : wk.workout(q.data.id)} />;
+  return null;
 }
 
 function TimerPill() {
@@ -80,7 +84,7 @@ interface FinishState {
   diff: TemplateDiff | null;
 }
 
-function WorkoutEditor({ workout: w, mode, queryKey }: { workout: Workout; mode: Mode; queryKey: QueryKey }) {
+function WorkoutEditor({ workout: w, mode, queryKey, onFreeze }: { workout: Workout; mode: Mode; queryKey: QueryKey; onFreeze: (w: Workout | null) => void }) {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const app = useAppSettings();
@@ -327,9 +331,10 @@ function WorkoutEditor({ workout: w, mode, queryKey }: { workout: Workout; mode:
       const res = await workoutApi.finish(w.id, { discardIncomplete: discard, templateAction: action, ...(newTemplateName ? { newTemplateName } : {}) });
       useRestTimer.getState().skip();
       void notify("success");
+      onFreeze(res.workout);
+      setResult(res);
       qc.setQueryData(wk.active, null);
       invalidateAll(qc, ["workouts", "summary", "layout"]);
-      setResult(res);
     } catch (e) {
       toast(e instanceof ApiError ? e.message : "Unable to finish the workout.");
     }
@@ -445,7 +450,7 @@ function WorkoutEditor({ workout: w, mode, queryKey }: { workout: Workout; mode:
       />
       <UpdateTemplateSheet open={finish.step === "template"} diff={finish.diff} onClose={() => setFinish({ step: null, discard: true, diff: null })} onChoose={(action) => void doFinish(finish.discard, action)} />
       <SaveAsTemplateSheet open={finish.step === "saveAs"} defaultName={w.name} onClose={() => setFinish({ step: null, discard: true, diff: null })} onSave={(n) => void doFinish(finish.discard, "save_as_template", n)} onSkip={() => void doFinish(finish.discard, "keep")} />
-      <SummarySheet result={result} onDone={() => { setResult(null); navigate(WORKOUTS); }} />
+      <SummarySheet result={result} onDone={() => { setResult(null); onFreeze(null); navigate(WORKOUTS); }} />
     </>
   );
 }

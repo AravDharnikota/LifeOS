@@ -51,7 +51,12 @@ export function TaskRow({ task, lists, actions, expanded, onExpand, hideDone, da
   const done = task.status === "done";
   const [checked, setChecked] = useState(done);
   const [leaving, setLeaving] = useState(false);
-  const [dx, setDx] = useState(0);
+  const [dx, setDxState] = useState(0);
+  const dxRef = useRef(0);
+  const setDx = (v: number) => {
+    dxRef.current = v;
+    setDxState(v);
+  };
   const [animated, setAnimated] = useState(true);
   const [committing, setCommitting] = useState<"complete" | "delete" | null>(null);
   const open = useRef(false);
@@ -101,7 +106,7 @@ export function TaskRow({ task, lists, actions, expanded, onExpand, hideDone, da
 
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (e.pointerType === "mouse") return;
-    if ((e.target as HTMLElement).closest("button,input,textarea,select,[data-task-editor]")) return;
+    if ((e.target as HTMLElement).closest("input,textarea,select,[data-task-editor],[data-swipe-action]")) return;
     const el = e.currentTarget;
     const g = { id: e.pointerId, x: e.clientX, y: e.clientY, swiping: false, lifted: false, moved: false, timer: null as number | null };
     gesture.current = g;
@@ -171,13 +176,14 @@ export function TaskRow({ task, lists, actions, expanded, onExpand, hideDone, da
     if (g.swiping) {
       suppressClick.current = true;
       const w = e.currentTarget.clientWidth;
-      if (dx > w * 0.6) {
+      const x = dxRef.current;
+      if (x > w * 0.6) {
         settle(0);
         onCheck(true);
-      } else if (dx < -w * 0.6) {
+      } else if (x < -w * 0.6) {
         settle(-w);
         timers.current.push(window.setTimeout(() => onDelete(task), 150));
-      } else if (dx < -ACTION_W) settle(-TRAILING_W);
+      } else if (x < -ACTION_W) settle(-TRAILING_W);
       else settle(0);
       setCommitting(null);
     }
@@ -222,11 +228,11 @@ export function TaskRow({ task, lists, actions, expanded, onExpand, hideDone, da
               </div>
             ) : (
               <div className="ml-auto flex h-full" style={{ width: Math.max(0, -dx) }}>
-                <button type="button" className={cn("bg-surface-2 text-primary flex flex-col items-center justify-center gap-0.5 text-footnote font-semibold overflow-hidden transition-[width] duration-150", committing === "delete" ? "w-0" : "flex-1")} onClick={(e) => { e.stopPropagation(); settle(0); onSchedule(task); }}>
+                <button type="button" data-swipe-action className={cn("bg-surface-2 text-primary flex flex-col items-center justify-center gap-0.5 text-footnote font-semibold overflow-hidden transition-[width] duration-150", committing === "delete" ? "w-0" : "flex-1")} onClick={(e) => { e.stopPropagation(); settle(0); onSchedule(task); }}>
                   <Icon name="calendar" size={20} />
                   Schedule
                 </button>
-                <button type="button" className={cn("bg-danger text-white flex flex-col items-center justify-center gap-0.5 text-footnote font-semibold overflow-hidden transition-[width] duration-150", committing === "delete" ? "w-full" : "flex-1")} onClick={(e) => { e.stopPropagation(); onDelete(task); }}>
+                <button type="button" data-swipe-action className={cn("bg-danger text-white flex flex-col items-center justify-center gap-0.5 text-footnote font-semibold overflow-hidden transition-[width] duration-150", committing === "delete" ? "w-full" : "flex-1")} onClick={(e) => { e.stopPropagation(); onDelete(task); }}>
                   <Icon name="trash" size={20} />
                   Delete
                 </button>
@@ -236,18 +242,18 @@ export function TaskRow({ task, lists, actions, expanded, onExpand, hideDone, da
         )}
         <div
           className={cn("relative bg-surface group", lifted && "shadow-drag rounded-md scale-[1.02] bg-elevated", expanded && "bg-elevated")}
-          style={{ transform: dx ? `translateX(${dx}px)` : undefined, transition: animated ? "transform 300ms var(--spring-snappy)" : "none", touchAction: "pan-y" }}
+          style={{ transform: dx ? `translateX(${dx}px)` : undefined, transition: animated ? "transform 300ms var(--spring-snappy)" : "none", touchAction: "pan-y", WebkitTouchCallout: "none", userSelect: "none", WebkitUserSelect: "none" }}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerCancel}
           onContextMenu={(e) => {
-            if (liftedRef.current) return;
             e.preventDefault();
+            if (gesture.current || liftedRef.current) return; // touch hold: handled on pointerup
             onContext(task, { x: e.clientX, y: e.clientY });
           }}
         >
-          <div className={cn("flex items-center gap-3 min-h-[44px] pl-[var(--gutter)] pr-2 cursor-pointer", !expanded && "row-hover active:bg-pressed transition-colors duration-100")} onClick={onClick} role="button" tabIndex={0} aria-expanded={expanded} onKeyDown={(e) => { if ((e.key === "Enter" || e.key === " ") && !expanded) { e.preventDefault(); onExpand(task.id); } }}>
+          <div className={cn("flex items-center gap-3 min-h-[44px] pl-[var(--gutter)] pr-2 cursor-pointer", !expanded && "row-hover active:bg-pressed transition-colors duration-100")} onClick={onClick} role="button" tabIndex={0} aria-expanded={expanded} aria-label={task.title} onKeyDown={(e) => { if ((e.key === "Enter" || e.key === " ") && !expanded) { e.preventDefault(); onExpand(task.id); } }}>
             {logbook ? (
               <span className="w-[22px] h-[22px] rounded-full bg-quaternary inline-flex items-center justify-center shrink-0">
                 <Icon name="check" size={13} strokeWidth={2.5} className="text-white" />

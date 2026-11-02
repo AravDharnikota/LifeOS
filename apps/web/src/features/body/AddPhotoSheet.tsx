@@ -2,15 +2,17 @@ import { useEffect, useState } from "react";
 import { todayString } from "@aravos/shared";
 import { Sheet } from "@/ui/Sheet";
 import { Button } from "@/ui/Button";
-import { Chip, FieldRow } from "@/ui/Field";
+import { FieldRow } from "@/ui/Field";
+import { TapChip } from "@/features/nutrition/TapChip";
 import { Group } from "@/ui/List";
 import { toast } from "@/ui/Toast";
 import { dataUrlToBlob, type PickedImage } from "@/lib/images";
 import { fmt1, fromDisplayWeight, toDisplayWeight } from "@/lib/format";
-import { impact, notify, selection } from "@/lib/haptics";
+import { impact, notify } from "@/lib/haptics";
 import { useAppSettings } from "@/data/queries";
 import { useWeight } from "@/features/nutrition/api";
 import { POSES, useAddBodyPhoto, type Pose } from "./api";
+import { DateRow } from "@/features/health/DateRow";
 
 /** After the camera: choose the pose, confirm the date and weight, add a note, save. */
 export function AddPhotoSheet({ image, pose: initialPose, open, onClose }: { image: PickedImage | null; pose: Pose; open: boolean; onClose: () => void }) {
@@ -60,16 +62,14 @@ export function AddPhotoSheet({ image, pose: initialPose, open, onClose }: { ima
           {image && <img src={image.dataUrl} alt="" className="w-[88px] h-[118px] rounded-sm object-cover bg-surface-2 shrink-0" />}
           <div className="flex gap-2 flex-wrap">
             {POSES.map((p) => (
-              <Chip key={p.value} selected={pose === p.value} onClick={() => { void selection(); setPose(p.value); }}>
+              <TapChip key={p.value} selected={pose === p.value} onSelect={() => setPose(p.value)}>
                 {p.label}
-              </Chip>
+              </TapChip>
             ))}
           </div>
         </div>
         <Group>
-          <FieldRow label="Date">
-            <input type="date" aria-label="Date" value={date} max={todayString()} onChange={(e) => e.target.value && setDate(e.target.value)} className="text-body text-right outline-none bg-transparent tabular" />
-          </FieldRow>
+          <DateRow value={date} max={todayString()} onChange={setDate} />
           <FieldRow label="Weight">
             <input inputMode="decimal" aria-label={`Weight in ${unit}`} placeholder="Optional" value={weight} onChange={(e) => setWeight(e.target.value)} className="w-24 text-right text-body outline-none bg-transparent tabular" />
             <span className="text-subhead text-secondary ml-1">{unit}</span>

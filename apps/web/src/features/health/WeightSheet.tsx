@@ -9,6 +9,7 @@ import { fmt1, fmtWeight, fromDisplayWeight, toDisplayWeight } from "@/lib/forma
 import { impact, notify } from "@/lib/haptics";
 import { useAppSettings } from "@/data/queries";
 import { useLogWeight, useWeight } from "@/features/nutrition/api";
+import { DateRow } from "./DateRow";
 
 /** Log a weigh-in: stepper in display units (0.1 steps), optional body fat, date defaults to today. */
 export function WeightSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -79,9 +80,7 @@ export function WeightSheet({ open, onClose }: { open: boolean; onClose: () => v
             <input inputMode="decimal" placeholder="Optional" aria-label="Body fat percent" value={bodyFat} onChange={(e) => setBodyFat(e.target.value)} className="w-24 text-right text-body outline-none bg-transparent tabular" />
             <span className="text-subhead text-secondary ml-1">%</span>
           </FieldRow>
-          <FieldRow label="Date">
-            <input type="date" aria-label="Date" value={date} max={todayString()} onChange={(e) => e.target.value && setDate(e.target.value)} className="text-body text-right outline-none bg-transparent tabular" />
-          </FieldRow>
+          <DateRow value={date} max={todayString()} onChange={setDate} />
         </Group>
       </div>
     </Sheet>

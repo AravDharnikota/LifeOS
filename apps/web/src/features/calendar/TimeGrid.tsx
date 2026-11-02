@@ -46,7 +46,7 @@ interface Draft {
 
 const TOUCH_HOLD_MS = 400;
 const MOVE_SLOP = 4;
-const EDGE = 48;
+const EDGE = 40;
 
 function timeRange(date: string, a: number, b: number): string {
   return `${fmtTime(isoAt(date, a))} to ${fmtTime(isoAt(date, b))}`;
@@ -125,12 +125,18 @@ export function TimeGrid({ days, events, calendars, now, pager, header, scrollRe
     raf.current = requestAnimationFrame(tickEdge);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  /** Scroll the grid while a lifted block is pushed past an edge, only once the pointer is heading that way. */
   const updateEdge = (clientY: number) => {
     const el = scroller.current;
-    if (!el) return;
+    const d = dragRef.current;
+    if (!el || !d || !d.active || d.kind !== "move") {
+      edgeDir.current = 0;
+      return;
+    }
     const r = el.getBoundingClientRect();
-    edgeDir.current = clientY < r.top + EDGE ? -1 : clientY > r.bottom - EDGE ? 1 : 0;
-    if (edgeDir.current !== 0 && raf.current === null) raf.current = requestAnimationFrame(tickEdge);
+    const dir = clientY < r.top + EDGE && clientY < d.y ? -1 : clientY > r.bottom - EDGE && clientY > d.y ? 1 : 0;
+    edgeDir.current = dir;
+    if (dir !== 0 && raf.current === null) raf.current = requestAnimationFrame(tickEdge);
   };
 
   const preventTouch = useCallback((e: TouchEvent) => {
@@ -372,8 +378,9 @@ export function TimeGrid({ days, events, calendars, now, pager, header, scrollRe
               onPointerCancel={onBlockPointerCancel}
               onHandlePointerDown={onHandlePointerDown(ev, item, dayIdx)}
               onContextMenu={(e) => {
+                // Always prevented: Chromium cancels the pointer on a touch hold otherwise.
                 e.preventDefault();
-                if (dragRef.current?.lifted) return; // touch long press already handled it
+                if (dragRef.current && dragRef.current.pointerId !== -1 && e.nativeEvent.button !== 2) return; // touch hold: handled on pointerup
                 clearHold();
                 setDragBoth(null);
                 h.onContext(ev, { x: e.clientX, y: e.clientY });
@@ -441,9 +448,20 @@ export function TimeGrid({ days, events, calendars, now, pager, header, scrollRe
     </div>
   );
 
+  // Sticky header height feeds scroll-padding so scrollIntoView never parks a block beneath it.
+  const headerRef = useRef<HTMLDivElement>(null);
+  const [headerH, setHeaderH] = useState(0);
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setHeaderH(el.offsetHeight));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [header]);
+
   return (
-    <div ref={scroller} className={cn("scroller flex-1 min-h-0 relative", className)} data-time-grid>
-      {header}
+    <div ref={scroller} className={cn("scroller flex-1 min-h-0 relative", className)} data-time-grid style={{ scrollPaddingTop: headerH ? headerH + 4 : undefined }}>
+      {header != null && <div ref={headerRef} className="sticky top-0 z-30">{header}</div>}
       <div className="relative" style={{ height: px(MINUTES_PER_DAY) + 24, paddingTop: 8 }}>
         <div className="absolute inset-x-0 top-2 bottom-4">
           {gutter}
@@ -514,8 +532,8 @@ function EventBlock({ item, startMin, endMin, col, cols, span, color, dense, dim
       role="button"
       tabIndex={0}
       aria-label={`${ev.title}, ${timeRange(date, startMin, endMin)}`}
-      className={cn("absolute rounded-xs cal-fill z-10 cursor-pointer", lifted && "shadow-drag scale-[1.02] z-20", dim && "opacity-40", done && "opacity-45", resizing && "z-20", !lifted && "transition-[opacity,transform] duration-150")}
-      style={style}
+      className={cn("absolute rounded-xs cal-fill z-10 cursor-pointer select-none", lifted && "shadow-drag scale-[1.02] z-20", dim && "opacity-40", done && "opacity-45", resizing && "z-20", !lifted && "transition-[opacity,transform] duration-150")}
+      style={{ ...style, WebkitTouchCallout: "none" } as CSSProperties}
       onKeyDown={(e) => {
         if (e.key === "Enter") {
           e.preventDefault();
@@ -524,9 +542,9 @@ function EventBlock({ item, startMin, endMin, col, cols, span, color, dense, dim
       }}
       {...rest}
     >
-      <div className={cn("flex items-start gap-1 h-full overflow-hidden", compact ? "px-1.5 py-0" : "px-1.5 py-[3px]", showCheckbox && "pl-1", dense && "px-1")}>
+      <div className={cn("flex items-start gap-1 h-full overflow-hidden", compact ? "px-1.5 py-0" : "px-1.5 py-[3px]", showCheckbox && "pl-[30px]", dense && "px-1", dense && showCheckbox && "pl-[26px]")}>
         {showCheckbox && (
-          <span data-grid-stop className="shrink-0 w-6 h-5 overflow-hidden flex items-center justify-center -ml-0.5" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+          <span data-grid-stop className="absolute left-0 top-0 bottom-0 w-8 overflow-hidden flex items-start justify-center pt-[5px]" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
             <Checkbox checked={done} onChange={onToggleTask} size={16} label={`Complete ${ev.title}`} tint={color} />
           </span>
         )}

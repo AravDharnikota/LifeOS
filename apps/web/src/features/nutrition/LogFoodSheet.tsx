@@ -6,7 +6,8 @@ import { Segmented } from "@/ui/Segmented";
 import { Button, IconButton } from "@/ui/Button";
 import { Icon } from "@/ui/Icon";
 import { Group, Row, SectionHeader, Footnote } from "@/ui/List";
-import { TextField, TextArea, Chip } from "@/ui/Field";
+import { TextField, TextArea } from "@/ui/Field";
+import { TapChip } from "./TapChip";
 import { Stepper } from "@/ui/Stepper";
 import { Spinner } from "@/ui/Spinner";
 import { Empty, Skeleton } from "@/ui/Empty";
@@ -14,7 +15,7 @@ import { toast } from "@/ui/Toast";
 import { cn } from "@/lib/cn";
 import { ApiError, imageUrl } from "@/lib/api";
 import { dataUrlToBlob, pickImage } from "@/lib/images";
-import { impact, notify, selection } from "@/lib/haptics";
+import { impact, notify } from "@/lib/haptics";
 import { fmtInt, plural } from "@/lib/format";
 import { useDebounced, useIsDesktop } from "@/lib/hooks";
 import { isNative } from "@/lib/platform";
@@ -265,9 +266,9 @@ function SearchPane({ draft, onPick, onCreate, onReview }: { draft: Draft | null
       <div className="px-[var(--gutter)]">
         <TextField placeholder="Search foods" aria-label="Search foods" value={q} onChange={(e) => setQ(e.target.value)} leading={<Icon name="search" size={18} className="text-tertiary" />} enterKeyHint="search" autoCapitalize="none" autoCorrect="off" autoFocus={isDesktop} data-testid="food-search" />
       </div>
-      {items > 0 && (
+      {draft && items > 0 && (
         <Group>
-          <Row title={`${plural(items, "item")} in this meal`} subtitle={fmtKcal(draftTotals(draft!).calories)} chevron onPress={onReview} trailing={<span className="text-accent-text font-medium">Review</span>} />
+          <Row title={`${plural(items, "item")} in this meal`} subtitle={fmtKcal(draftTotals(draft).calories)} chevron onPress={onReview} trailing={<span className="text-accent-text font-medium">Review</span>} />
         </Group>
       )}
       <div>
@@ -399,7 +400,6 @@ function PortionPane({ food, onAdd }: { food: Food; onAdd: (item: DraftItem) => 
   const n = scaleNutrients(food.per100, grams);
 
   const chooseServing = (s: { label: string; grams: number } | null) => {
-    void selection();
     setServing(s);
     setQuantity(1);
     setGrams(s ? s.grams : 100);
@@ -422,13 +422,13 @@ function PortionPane({ food, onAdd }: { food: Food; onAdd: (item: DraftItem) => 
       </div>
       <div className="flex gap-2 flex-wrap">
         {servings.map((s) => (
-          <Chip key={s.label} selected={serving?.label === s.label} onClick={() => chooseServing(s)}>
+          <TapChip key={s.label} selected={serving?.label === s.label} onSelect={() => chooseServing(s)}>
             {s.label}
-          </Chip>
+          </TapChip>
         ))}
-        <Chip selected={serving === null} onClick={() => chooseServing(null)}>
+        <TapChip selected={serving === null} onSelect={() => chooseServing(null)}>
           Grams
-        </Chip>
+        </TapChip>
       </div>
       <div className="py-1">
         <Stepper value={grams} onChange={setG} step={5} min={5} max={5000} unit="g" size="lg" label="Grams" />
@@ -441,7 +441,7 @@ function PortionPane({ food, onAdd }: { food: Food; onAdd: (item: DraftItem) => 
         </div>
       )}
       <NutrientSummary n={n} />
-      <Button variant="primary" size="lg" full onClick={() => onAdd(draftItemFromFood(food, grams, serving ? quantity : grams, serving ? serving.label : "g", serving ? `${Number(quantity.toFixed(1))} ${serving.label}` : `${fmtInt(grams)} g`))} data-testid="add-to-meal">
+      <Button variant="primary" size="lg" full onClick={() => onAdd(draftItemFromFood(food, grams, serving ? quantity : grams, serving ? serving.label : "g", serving ? (quantity === 1 ? serving.label : `${Number(quantity.toFixed(1))} × ${serving.label}`) : `${fmtInt(grams)} g`))} data-testid="add-to-meal">
         Add to Meal
       </Button>
     </div>
@@ -497,14 +497,14 @@ function CreateFoodPane({ onCreated }: { onCreated: (food: Food) => void }) {
     <div className="flex flex-col gap-4 pt-2">
       <TextField label="Name" placeholder="Overnight oats" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
       <TextField label="Brand" placeholder="Optional" value={brand} onChange={(e) => setBrand(e.target.value)} />
-      <SectionHeader title="Per 100 g" className="px-0 pb-0 pt-1" />
+      <h3 className="text-footnote text-secondary pt-1 -mb-1">Per 100 g</h3>
       <div className="grid grid-cols-2 gap-3">
         {field("calories", "Calories", "kcal")}
         {field("proteinG", "Protein", "g")}
         {field("carbsG", "Carbs", "g")}
         {field("fatG", "Fat", "g")}
       </div>
-      <SectionHeader title="Serving" className="px-0 pb-0 pt-1" />
+      <h3 className="text-footnote text-secondary pt-1 -mb-1">Serving</h3>
       <div className="grid grid-cols-2 gap-3">
         <TextField label="Label" placeholder="1 cup" value={servingLabel} onChange={(e) => setServingLabel(e.target.value)} />
         <TextField label="Weight" placeholder="240" inputMode="decimal" value={servingGrams} onChange={(e) => setServingGrams(e.target.value)} trailing={<span className="text-subhead text-secondary">g</span>} />
@@ -544,9 +544,9 @@ function ResultsPane({ draft, setDraft, preview, busy, error, onFix, onLog, onAd
       </div>
       <div className="px-[var(--gutter)] flex gap-2">
         {MEAL_TYPES.map((m) => (
-          <Chip key={m.value} selected={draft.mealType === m.value} onClick={() => { void selection(); setDraft((d) => (d ? { ...d, mealType: m.value } : d)); }}>
+          <TapChip key={m.value} selected={draft.mealType === m.value} onSelect={() => setDraft((d) => (d ? { ...d, mealType: m.value } : d))}>
             {m.label}
-          </Chip>
+          </TapChip>
         ))}
       </div>
       <div>
@@ -558,7 +558,13 @@ function ResultsPane({ draft, setDraft, preview, busy, error, onFix, onLog, onAd
               <Fragment key={it.key}>
                 <Row
                   title={it.name}
-                  subtitle={`${it.portion} · ${fmtInt(it.grams)} g · ${fmtMacros(it.nutrients)}`}
+                  subtitle={
+                    <>
+                      {it.portion === `${fmtInt(it.grams)} g` ? it.portion : `${it.portion} · ${fmtInt(it.grams)} g`}
+                      <br />
+                      {fmtMacros(it.nutrients)}
+                    </>
+                  }
                   trailing={
                     <>
                       <span>{fmtKcal(it.nutrients.calories)}</span>

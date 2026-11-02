@@ -2,14 +2,14 @@ import { useEffect, useState } from "react";
 import { todayString } from "@aravos/shared";
 import { Sheet } from "@/ui/Sheet";
 import { Stepper } from "@/ui/Stepper";
-import { Chip } from "@/ui/Field";
+import { TapChip } from "./TapChip";
 import { Button, IconButton } from "@/ui/Button";
 import { Icon } from "@/ui/Icon";
 import { Group, Row, SectionHeader } from "@/ui/List";
 import { Skeleton, InlineError } from "@/ui/Empty";
 import { toast } from "@/ui/Toast";
 import { fmtInt, fmtTime } from "@/lib/format";
-import { impact, notify, selection } from "@/lib/haptics";
+import { impact, notify } from "@/lib/haptics";
 import { useAppSettings } from "@/data/queries";
 import { useAddWater, useDeleteWater, useWater } from "./api";
 import { WATER_CHIPS, WATER_STEP, celebrateOnce, fromDisplayWater, toDisplayWater, waterUnit } from "./model";
@@ -68,9 +68,9 @@ export function WaterSheet({ open, onClose, date }: { open: boolean; onClose: ()
           <Stepper value={amount} onChange={setAmount} step={WATER_STEP[units]} min={WATER_STEP[units]} max={units === "imperial" ? 170 : 5000} unit={unit} size="lg" label="Amount" />
           <div className="flex gap-2 justify-center mt-4">
             {chips.map((c) => (
-              <Chip key={c} selected={amount === c} onClick={() => { void selection(); setAmount(c); }}>
+              <TapChip key={c} selected={amount === c} onSelect={() => setAmount(c)}>
                 {c} {unit}
-              </Chip>
+              </TapChip>
             ))}
           </div>
           {error && <p className="text-footnote text-danger-text text-center mt-3">{error}</p>}

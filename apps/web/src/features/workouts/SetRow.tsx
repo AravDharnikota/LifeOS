@@ -86,7 +86,7 @@ export function SetRow({ set, index, sets, columns, grid, previous, category, un
           <span className="truncate">{prevText || "–"}</span>
         </button>
         {columns.map((c) => (
-          <ValueCell key={c.kind} setId={set.id} kind={c.kind} value={set} units={units} placeholder={previous ? fieldText(previous, c.kind, units) : c.kind === "seconds" ? "0:00" : "0"} onChange={(v) => onChangeValue(c.kind, v)} onCommit={onCommit} />
+          <ValueCell key={c.kind} setId={set.id} kind={c.kind} value={set} units={units} placeholder={previous ? fieldText(previous, c.kind, units) : ""} onChange={(v) => onChangeValue(c.kind, v)} onCommit={onCommit} />
         ))}
         {checkable ? (
           <button type="button" tabIndex={-1} role="checkbox" aria-checked={set.completed} aria-label={set.completed ? "Mark set incomplete" : "Complete set"} className="relative h-11 w-11 -mr-1 inline-flex items-center justify-center" onClick={onToggleComplete} data-testid="set-check">

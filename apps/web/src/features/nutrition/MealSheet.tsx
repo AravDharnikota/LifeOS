@@ -3,7 +3,7 @@ import type { MealItem, MealType } from "@aravos/shared";
 import { Sheet, ActionSheet } from "@/ui/Sheet";
 import { Button } from "@/ui/Button";
 import { Group, Row, SectionHeader, Footnote } from "@/ui/List";
-import { Chip } from "@/ui/Field";
+import { TapChip } from "./TapChip";
 import { Stepper } from "@/ui/Stepper";
 import { Spinner } from "@/ui/Spinner";
 import { Skeleton, InlineError } from "@/ui/Empty";
@@ -11,7 +11,7 @@ import { toast } from "@/ui/Toast";
 import { cn } from "@/lib/cn";
 import { imageUrl } from "@/lib/api";
 import { fmtInt, fmtTime, plural } from "@/lib/format";
-import { selection, notify } from "@/lib/haptics";
+import { notify } from "@/lib/haptics";
 import { useDebounced } from "@/lib/hooks";
 import { useAppSettings } from "@/data/queries";
 import { useDeleteMeal, useDeleteMealItem, useMeal, useUpdateMeal, useUpdateMealItem } from "./api";
@@ -31,7 +31,6 @@ export function MealSheet({ mealId, open, onClose }: { mealId: string | null; op
 
   const setType = (t: MealType) => {
     if (!m || m.mealType === t) return;
-    void selection();
     updateMeal.mutate({ id: m.id, mealType: t });
   };
   const remove = async () => {
@@ -66,9 +65,9 @@ export function MealSheet({ mealId, open, onClose }: { mealId: string | null; op
           </div>
           <div className="px-[var(--gutter)] flex gap-2">
             {MEAL_TYPES.map((t) => (
-              <Chip key={t.value} selected={m.mealType === t.value} onClick={() => setType(t.value)}>
+              <TapChip key={t.value} selected={m.mealType === t.value} onSelect={() => setType(t.value)}>
                 {t.label}
-              </Chip>
+              </TapChip>
             ))}
           </div>
           <div>

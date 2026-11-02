@@ -20,7 +20,7 @@ import { useAppSettings } from "@/data/queries";
 import { useDeleteExercise, useExerciseDetail, useUpdateExercise } from "./api";
 import { BODY_PARTS, CATEGORIES, bodyPartLabel, categoryLabel } from "./ExercisePicker";
 import { BarChart, LineChart } from "./charts";
-import { displayWeight, fmtDate, fmtDistanceValue, fmtPrValue, fmtSeconds, fmtSetValues, fmtVolume, fmtWeightValue, isWeighted, plural, prLabel, setLabel, type Units } from "./lib";
+import { displayWeight, fmtDate, fmtDistanceValue, fmtPrValue, fmtSeconds, fmtSetValues, fmtVolume, fmtWeightValue, isWeighted, plural, prLabel, setLabel, WORKOUTS, type Units } from "./lib";
 
 type Tab = "about" | "history" | "records" | "charts";
 type Period = "1M" | "3M" | "1Y" | "All";
