@@ -54,6 +54,14 @@ export function resolveUrl(path: string): string {
   return `${serverUrl}${path}`;
 }
 
+/** URL for a server-stored photo (`/uploads/...`); carries the token since <img> cannot send headers. */
+export function imageUrl(path: string | null | undefined): string {
+  if (!path) return "";
+  const base = resolveUrl(path);
+  if (!token) return base;
+  return `${base}${base.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}`;
+}
+
 export function authHeaders(): Record<string, string> {
   return token ? { authorization: `Bearer ${token}` } : {};
 }
