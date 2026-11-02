@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const port = process.env.E2E_PORT ?? "8790";
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "aravos-e2e-"));
-const env = { ...process.env, PORT: port, ARAVOS_DATA_DIR: dataDir, ARAVOS_TOKEN: "", NODE_ENV: "test", ARAVOS_TIMEZONE: process.env.E2E_TZ ?? "America/Los_Angeles", ARAVOS_E2E: "1", ANTHROPIC_API_KEY: "" };
+const env = { ...process.env, PORT: port, ARAVOS_DATA_DIR: dataDir, ARAVOS_TOKEN: "", NODE_ENV: "test", ARAVOS_TIMEZONE: process.env.E2E_TZ ?? "America/Los_Angeles", ARAVOS_E2E: "1", ANTHROPIC_API_KEY: "", ARAVOS_WEB_DIST: process.env.E2E_WEB_DIST ?? path.join(root, "apps/web/dist") };
 const child = spawn("node", ["--import", "tsx", "src/index.ts"], { cwd: path.join(root, "apps/server"), env, stdio: "inherit" });
 const stop = () => {
   child.kill();

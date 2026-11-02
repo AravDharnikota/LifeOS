@@ -36,7 +36,7 @@ export function Stepper({ value, onChange, step = 1, min = -Infinity, max = Infi
   latest.current = value;
   const timers = useRef<{ t?: number; i?: number; start?: number }>({});
   const prec = precisionOf(step);
-  const show = format ?? ((v: number) => v.toFixed(prec));
+  const show = format ?? ((v: number) => Number(v.toFixed(prec)).toLocaleString("en-US", { maximumFractionDigits: prec }));
 
   const clamp = (v: number) => Math.min(max, Math.max(min, Number(v.toFixed(prec))));
   const bump = (dir: 1 | -1, mult = 1) => {

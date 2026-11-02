@@ -100,6 +100,7 @@ export function createApp(opts: CreateAppOptions = {}): { app: App; ctx: AppCont
 }
 
 function findWebDist(): string | null {
+  if (process.env.ARAVOS_WEB_DIST) return fs.existsSync(path.join(process.env.ARAVOS_WEB_DIST, "index.html")) ? process.env.ARAVOS_WEB_DIST : null;
   const candidates = [path.resolve(process.cwd(), "apps/web/dist"), path.resolve(process.cwd(), "../web/dist"), path.resolve(process.cwd(), "web")];
   for (const c of candidates) if (fs.existsSync(path.join(c, "index.html"))) return c;
   return null;

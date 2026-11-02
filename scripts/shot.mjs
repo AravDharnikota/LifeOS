@@ -7,6 +7,8 @@ import path from "node:path";
 const [, , urlPath = "/", name = "shot", which = "both", ...flags] = process.argv;
 const dark = flags.includes("--dark");
 const full = flags.includes("--full");
+const scroll = Number((flags.find((f) => f.startsWith("--scroll=")) ?? "--scroll=0").split("=")[1]);
+const waitFor = (flags.find((f) => f.startsWith("--wait=")) ?? "").split("=")[1];
 const base = process.env.SHOT_BASE ?? "http://localhost:8791";
 const outDir = process.env.SHOTS_DIR ?? "/tmp/claude-0/-home-user-LifeOS/eee1fa17-d032-5cc4-bbdb-fc531ee86f0f/scratchpad/shots";
 const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium-1243/chrome-linux64/chrome" });
@@ -22,8 +24,13 @@ for (const t of targets) {
   page.on("pageerror", (e) => errors.push(String(e)));
   page.on("console", (m) => { if (m.type() === "error") errors.push(m.text()); });
   await page.goto(base + urlPath, { waitUntil: "networkidle" });
+  if (waitFor) await page.waitForSelector(waitFor, { timeout: 10000 }).catch(() => undefined);
   await page.waitForTimeout(600);
-  const file = path.join(outDir, `${name}-${t}${dark ? "-dark" : ""}.png`);
+  if (scroll) {
+    await page.evaluate((y) => { const el = document.querySelector("main .scroller") ?? document.scrollingElement; if (el) el.scrollTo({ top: y }); }, scroll);
+    await page.waitForTimeout(400);
+  }
+  const file = path.join(outDir, `${name}-${t}${dark ? "-dark" : ""}${scroll ? "-s" + scroll : ""}.png`);
   await page.screenshot({ path: file, fullPage: full });
   console.log(file, errors.length ? "ERRORS: " + errors.join(" | ") : "");
   await ctx.close();
