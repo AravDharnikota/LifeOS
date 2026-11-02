@@ -7,6 +7,7 @@ import { parseBody, parseQuery } from "../lib/http.ts";
 import { newId, nowIso } from "../lib/ids.ts";
 import { notFound } from "../lib/errors.ts";
 import { createEvent, deleteEvent, getEvent, listEvents, overrideInstance, updateEvent } from "../services/calendar.ts";
+import { requestReplan } from "../services/replan.ts";
 
 const RangeQuery = z.object({ from: z.string(), to: z.string(), calendarIds: z.string().optional(), includeCancelled: z.enum(["true", "false"]).optional() });
 
@@ -51,7 +52,9 @@ export function calendarRoutes(app: App): void {
   });
   app.post("/api/events", async (c) => {
     const body = await parseBody(c, EventCreate);
-    return c.json(createEvent(c.get("ctx").db, body, c.get("actor")), 201);
+    const ev = createEvent(c.get("ctx").db, body, c.get("actor"));
+    if (ev.kind !== "timebox") requestReplan(c.get("ctx"));
+    return c.json(ev, 201);
   });
   app.get("/api/events/:id", (c) => c.json(getEvent(c.get("ctx").db, c.req.param("id"))));
   app.patch("/api/events/:id", async (c) => {
@@ -63,7 +66,9 @@ export function calendarRoutes(app: App): void {
       const res = overrideInstance(db, id, originalStart, patch, c.get("actor"));
       return c.json(res ?? { ok: true });
     }
-    return c.json(updateEvent(db, id, patch, c.get("actor")));
+    const ev = updateEvent(db, id, patch, c.get("actor"));
+    if (ev.kind !== "timebox" || ev.locked) requestReplan(c.get("ctx"));
+    return c.json(ev);
   });
   app.delete("/api/events/:id", async (c) => {
     const { db } = c.get("ctx");
@@ -74,6 +79,7 @@ export function calendarRoutes(app: App): void {
       return c.json({ ok: true });
     }
     deleteEvent(db, id, c.get("actor"));
+    requestReplan(c.get("ctx"));
     return c.json({ ok: true });
   });
 }

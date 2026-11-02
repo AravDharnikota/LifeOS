@@ -7,6 +7,7 @@ import { parseBody, parseQuery } from "../lib/http.ts";
 import { newId, nowIso } from "../lib/ids.ts";
 import { notFound } from "../lib/errors.ts";
 import { completeTask, createTask, deleteTask, getSubtasks, getTask, listTasks, quickAddTask, reorderTasks, searchTasks, updateTask, type TaskView } from "../services/tasks.ts";
+import { requestReplan } from "../services/replan.ts";
 
 const ListQuery = z.object({
   view: z.enum(["today", "upcoming", "inbox", "all", "done", "overdue", "anytime", "list"]).optional(),
@@ -28,12 +29,16 @@ export function tasksRoutes(app: App): void {
 
   app.post("/api/tasks", async (c) => {
     const body = await parseBody(c, TaskCreate);
-    return c.json(createTask(c.get("ctx").db, body, c.get("actor")), 201);
+    const task = createTask(c.get("ctx").db, body, c.get("actor"));
+    if (task.dueDate || task.startDate) requestReplan(c.get("ctx"));
+    return c.json(task, 201);
   });
 
   app.post("/api/tasks/quick", async (c) => {
     const body = await parseBody(c, z.object({ text: z.string().trim().min(1).max(500), listId: z.string().nullable().optional() }));
-    return c.json(quickAddTask(c.get("ctx").db, body.text, body.listId !== undefined ? { listId: body.listId } : {}, c.get("actor")), 201);
+    const task = quickAddTask(c.get("ctx").db, body.text, body.listId !== undefined ? { listId: body.listId } : {}, c.get("actor"));
+    if (task.dueDate || task.startDate) requestReplan(c.get("ctx"));
+    return c.json(task, 201);
   });
 
   app.post("/api/tasks/reorder", async (c) => {
@@ -50,12 +55,16 @@ export function tasksRoutes(app: App): void {
 
   app.patch("/api/tasks/:id", async (c) => {
     const body = await parseBody(c, TaskUpdate);
-    return c.json(updateTask(c.get("ctx").db, c.req.param("id"), body, c.get("actor")));
+    const task = updateTask(c.get("ctx").db, c.req.param("id"), body, c.get("actor"));
+    if (body.dueDate !== undefined || body.startDate !== undefined || body.estimateMinutes !== undefined || body.priority !== undefined || body.status !== undefined) requestReplan(c.get("ctx"));
+    return c.json(task);
   });
 
   app.post("/api/tasks/:id/complete", async (c) => {
     const body = await parseBody(c, z.object({ actualMinutes: z.number().int().min(0).optional() }).optional()).catch(() => ({}) as { actualMinutes?: number });
-    return c.json(completeTask(c.get("ctx").db, c.req.param("id"), { actualMinutes: body?.actualMinutes }, c.get("actor")));
+    const task = completeTask(c.get("ctx").db, c.req.param("id"), { actualMinutes: body?.actualMinutes }, c.get("actor"));
+    requestReplan(c.get("ctx"));
+    return c.json(task);
   });
 
   app.post("/api/tasks/:id/reopen", (c) => c.json(updateTask(c.get("ctx").db, c.req.param("id"), { status: "open" }, c.get("actor"))));
