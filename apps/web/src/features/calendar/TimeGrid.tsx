@@ -8,7 +8,7 @@ import { fmtTime, fmtMinutes } from "@/lib/format";
 import { Checkbox } from "@/ui/Checkbox";
 import { Icon } from "@/ui/Icon";
 import { SnapPager } from "./SnapPager";
-import { GUTTER_WIDTH, HOUR_HEIGHT, MINUTES_PER_DAY, SNAP_MINUTES, clampMinutes, eventColor, isoAt, itemsForDay, minutesAt, minutesOfDate, packColumns, px, snap, type DayItem } from "./model";
+import { GUTTER_WIDTH, HOUR_HEIGHT, MINUTES_PER_DAY, SNAP_MINUTES, clampMinutes, eventColor, isoAt, itemsForDay, minutesAt, minutesOfDate, packColumns, px, snap, swallowNextClick, type DayItem } from "./model";
 import { useTaskDrag } from "./taskDrag";
 
 export interface GridHandlers {
@@ -188,10 +188,8 @@ export function TimeGrid({ days, events, calendars, now, pager, header, scrollRe
     }
     setDragBoth(base);
     clearHold();
-    console.log("DBG down touch", e.pointerId);
     holdTimer.current = window.setTimeout(() => {
       const d = dragRef.current;
-      console.log("DBG hold fired", JSON.stringify({ has: Boolean(d), pid: d?.pointerId, epid: e.pointerId }));
       if (!d || d.pointerId !== e.pointerId) return;
       try {
         el.setPointerCapture(e.pointerId);
@@ -220,12 +218,12 @@ export function TimeGrid({ days, events, calendars, now, pager, header, scrollRe
 
   const onBlockPointerUp = (e: ReactPointerEvent<HTMLDivElement>) => {
     const d = dragRef.current;
-    console.log("DBG up", JSON.stringify({ has: Boolean(d), pid: d?.pointerId, epid: e.pointerId, lifted: d?.lifted, active: d?.active, type: e.pointerType }));
     clearHold();
     stopEdgeScroll();
     if (!d || d.pointerId !== e.pointerId) return;
     setDragBoth(null);
     if (e.pointerType !== "mouse" && d.lifted && !d.active) {
+      swallowNextClick();
       h.onContext(d.ev, { x: e.clientX, y: e.clientY });
       return;
     }

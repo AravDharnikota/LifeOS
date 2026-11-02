@@ -7,6 +7,7 @@ import { Icon } from "@/ui/Icon";
 import { IconButton } from "@/ui/Button";
 import { TaskEditor, TaskTitleInput } from "./TaskEditor";
 import { taskMeta, type ListMap } from "./model";
+import { swallowNextClick } from "@/features/calendar/model";
 import type { TaskActions } from "./useTaskActions";
 
 export interface ReorderProps {
@@ -111,7 +112,7 @@ export function TaskRow({ task, lists, actions, expanded, onExpand, hideDone, da
     const g = { id: e.pointerId, x: e.clientX, y: e.clientY, swiping: false, lifted: false, moved: false, timer: null as number | null };
     gesture.current = g;
     document.addEventListener("touchmove", preventTouch, { passive: false });
-    if (reorder && !expanded) {
+    if (!expanded) {
       g.timer = window.setTimeout(() => {
         const cur = gesture.current;
         if (!cur || cur.id !== e.pointerId || cur.swiping) return;
@@ -123,7 +124,7 @@ export function TaskRow({ task, lists, actions, expanded, onExpand, hideDone, da
           /* ignore */
         }
         void impact("medium");
-        reorder.onLift(task.id, e.clientY);
+        reorder?.onLift(task.id, e.clientY);
       }, HOLD_MS);
     }
   };
@@ -133,7 +134,7 @@ export function TaskRow({ task, lists, actions, expanded, onExpand, hideDone, da
     const mx = e.clientX - g.x;
     const my = e.clientY - g.y;
     if (g.lifted) {
-      if (Math.abs(my) > 2) g.moved = true;
+      if (reorder && Math.abs(my) > 2) g.moved = true;
       reorder?.onMove(e.clientY);
       return;
     }
@@ -164,9 +165,10 @@ export function TaskRow({ task, lists, actions, expanded, onExpand, hideDone, da
     const g = gesture.current;
     if (!g || g.id !== e.pointerId) return;
     if (g.lifted) {
-      if (g.moved) reorder?.onDrop();
+      if (g.moved && reorder) reorder.onDrop();
       else {
         reorder?.onCancel();
+        swallowNextClick();
         onContext(task, { x: e.clientX, y: e.clientY });
       }
       suppressClick.current = true;

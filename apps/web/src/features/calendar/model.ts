@@ -188,3 +188,20 @@ export function rruleLabel(rrule: string | null): string {
   const key = rrule.replace(/^RRULE:/, "");
   return RRULE_PRESETS.find((p) => p.value === key)?.label ?? "Custom";
 }
+
+/** Ignore the click the browser synthesizes right after a touch gesture ends (it would land on whatever opened). */
+export function swallowNextClick(ms = 400): void {
+  if (typeof document === "undefined") return;
+  let timer = 0;
+  const handler = (e: MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    cleanup();
+  };
+  const cleanup = () => {
+    document.removeEventListener("click", handler, true);
+    window.clearTimeout(timer);
+  };
+  document.addEventListener("click", handler, true);
+  timer = window.setTimeout(cleanup, ms);
+}
