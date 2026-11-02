@@ -637,5 +637,7 @@ export const AppSettings = z.object({
   haptics: z.boolean().default(true),
   theme: z.enum(["system", "light", "dark"]).default("system"),
   accent: z.string().default("ink"),
+  mirrorTimeboxes: z.boolean().default(false),
+  hour12: z.boolean().default(false),
 });
 export type AppSettings = z.infer<typeof AppSettings>;

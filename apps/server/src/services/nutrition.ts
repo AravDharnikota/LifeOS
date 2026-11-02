@@ -103,18 +103,20 @@ function gramsFromServing(food: Food, quantity: number, unit: string): number | 
   return null;
 }
 
-function nutrientsFromInput(i: MealItemInputLoose, calories: number): Nutrients {
+type ItemNutrients = Pick<ItemRow, "calories" | "proteinG" | "carbsG" | "fatG" | "fiberG" | "sugarG" | "sodiumMg" | "saturatedFatG" | "cholesterolMg" | "potassiumMg">;
+
+function fillNutrients(n: Partial<Nutrients>, calories: number): ItemNutrients {
   return {
     calories,
-    proteinG: i.proteinG ?? 0,
-    carbsG: i.carbsG ?? 0,
-    fatG: i.fatG ?? 0,
-    fiberG: i.fiberG ?? null,
-    sugarG: i.sugarG ?? null,
-    sodiumMg: i.sodiumMg ?? null,
-    saturatedFatG: i.saturatedFatG ?? null,
-    cholesterolMg: i.cholesterolMg ?? null,
-    potassiumMg: i.potassiumMg ?? null,
+    proteinG: n.proteinG ?? 0,
+    carbsG: n.carbsG ?? 0,
+    fatG: n.fatG ?? 0,
+    fiberG: n.fiberG ?? null,
+    sugarG: n.sugarG ?? null,
+    sodiumMg: n.sodiumMg ?? null,
+    saturatedFatG: n.saturatedFatG ?? null,
+    cholesterolMg: n.cholesterolMg ?? null,
+    potassiumMg: n.potassiumMg ?? null,
   };
 }
 
@@ -128,12 +130,13 @@ function resolveItem(db: Db, input: MealItemInputLoose, mealId: string, sortOrde
   const unit = input.unit ?? "serving";
   let grams = input.grams ?? null;
   if (grams == null && food) grams = gramsFromServing(food, quantity, unit);
-  let nutrients: Nutrients;
+  let nutrients: ItemNutrients;
   if (input.calories == null) {
     if (!food || grams == null) throw badRequest(`Item "${name}" needs calories, or a foodId with grams or a known serving.`);
-    nutrients = scaleNutrients(food.per100, grams);
+    const scaled = scaleNutrients(food.per100, grams);
+    nutrients = fillNutrients(scaled, scaled.calories);
   } else {
-    nutrients = nutrientsFromInput(input, input.calories);
+    nutrients = fillNutrients(input, input.calories);
   }
   return { id, mealId, foodId: input.foodId ?? null, name, quantity, unit, grams, ...nutrients, confidence: input.confidence ?? null, sortOrder };
 }

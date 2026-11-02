@@ -62,23 +62,27 @@ function scoreRow(row: SearchRow, query: string, tokens: string[]): number {
   const text = row.brand ? `${name} ${normalize(row.brand)}` : name;
   const words = text.split(" ");
   let wordStarts = 0;
+  let wholeWords = 0;
   for (const t of tokens) {
+    if (words.includes(t)) wholeWords++;
     if (words.some((w) => w.startsWith(t))) wordStarts++;
     else if (!text.includes(t)) return 0;
   }
-  let score = 1;
-  if (name === query) score = 400;
-  else if (name.startsWith(query)) score = 300;
-  else if (wordStarts === tokens.length) score = 200;
-  else if (wordStarts > 0) score = 100;
+  let score = 100;
+  if (name === query) score = 500;
+  else if (name.startsWith(query)) score = 400;
+  else if (wordStarts === tokens.length) score = 300;
+  else if (wordStarts > 0) score = 200;
+  score += 20 * wholeWords;
   if (row.source === "custom") score += 10;
   return score - Math.min(40, name.length / 4);
 }
 
+/** Search bundled and custom foods. An empty query returns the most popular bundled foods. */
 export function searchFoods(db: Db, q: string, limit = 25): Food[] {
   const query = normalize(q);
   const tokens = tokenize(q);
-  if (!tokens.length) return [];
+  if (!tokens.length) return db.select().from(schema.foods).orderBy(sql`rowid`).limit(limit).all().map(serializeFood);
   const rows: SearchRow[] = db.select({ id: schema.foods.id, name: schema.foods.name, brand: schema.foods.brand, source: schema.foods.source, rowid: sql<number>`rowid` }).from(schema.foods).all();
   const ranked = rows
     .map((row) => ({ row, score: scoreRow(row, query, tokens) }))

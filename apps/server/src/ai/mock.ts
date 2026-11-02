@@ -25,7 +25,8 @@ export class MockAiProvider implements AiProvider {
   durationHandler: (req: DurationEstimateRequest) => Promise<Record<string, number>> = async (req) => Object.fromEntries(req.tasks.map((t) => [t.id, 30]));
   agentHandler: (req: AgentTurnRequest) => Promise<AgentTurnResult> = async (req) => {
     const last = req.messages[req.messages.length - 1];
-    const text = typeof last?.content === "string" ? last.content : (last?.content.find((b) => b.type === "text") as { text?: string } | undefined)?.text ?? "";
+    const content = last?.content;
+    const text = typeof content === "string" ? content : Array.isArray(content) ? ((content.find((b) => b.type === "text") as { text?: string } | undefined)?.text ?? "") : "";
     return { text: `Mock reply to: ${text}`, content: [{ type: "text", text: `Mock reply to: ${text}`, citations: null }], newMessages: [{ role: "assistant", content: `Mock reply to: ${text}` }], toolCalls: [], stopReason: "end_turn" };
   };
 
