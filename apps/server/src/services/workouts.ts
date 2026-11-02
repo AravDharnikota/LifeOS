@@ -341,6 +341,12 @@ export function listExercises(db: Db, opts: { q?: string; bodyPart?: string; cat
   if (opts.bodyPart) conds.push(eq(ex.bodyPart, opts.bodyPart));
   if (opts.category) conds.push(eq(ex.category, opts.category));
   const rows = db.select().from(ex).where(and(...conds)).orderBy(asc(ex.name)).all();
+  const q = opts.q?.trim().toLowerCase();
+  if (q) {
+    // Name starts with the query first, then word starts, then substrings; shorter (plainer) names before variants.
+    const tier = (name: string) => (name.toLowerCase().startsWith(q) ? 0 : name.toLowerCase().split(/[\s(]+/).some((w) => w.startsWith(q)) ? 1 : 2);
+    rows.sort((a, b) => tier(a.name) - tier(b.name) || a.name.length - b.name.length || a.name.localeCompare(b.name));
+  }
   const last = new Map(
     db
       .select({ exerciseId: wex.exerciseId, at: sql<string | null>`max(${wk.finishedAt})` })
