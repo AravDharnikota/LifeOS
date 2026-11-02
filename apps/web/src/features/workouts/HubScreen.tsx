@@ -11,7 +11,8 @@ import { Empty, InlineError, Skeleton } from "@/ui/Empty";
 import { TextField, Chip } from "@/ui/Field";
 import { toast } from "@/ui/Toast";
 import { cn } from "@/lib/cn";
-import { fmtDate, fmtRelativeDate } from "@/lib/format";
+import { fmtRelativeDate } from "@/lib/format";
+import { fmtDate } from "./lib";
 import { impact } from "@/lib/haptics";
 import { useIsDesktop, useLongPress } from "@/lib/hooks";
 import { useAppSettings } from "@/data/queries";
@@ -298,7 +299,7 @@ function StatsSection() {
   if (q.isError) return <Section title="Stats"><InlineError onRetry={() => void q.refetch()}>Unable to load stats.</InlineError></Section>;
   const s = q.data;
   const circles = Math.max(s.weeklyTarget, s.thisWeek, 1);
-  const weeks = s.volumeByWeek.map((w) => ({ label: fmtDate(w.weekStart).slice(4), value: units === "imperial" ? w.volume / 0.45359237 : w.volume, title: fmtDate(w.weekStart) }));
+  const weeks = s.volumeByWeek.map((w) => ({ label: fmtDate(w.weekStart, true), value: units === "imperial" ? w.volume / 0.45359237 : w.volume, title: fmtDate(w.weekStart) }));
   const shown = sel != null ? weeks[sel] : weeks[weeks.length - 1];
   const delta = s.thisWeek - s.lastWeek;
   return (

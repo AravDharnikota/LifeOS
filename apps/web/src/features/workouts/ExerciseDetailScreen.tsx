@@ -14,13 +14,13 @@ import { TextField, Chip, TextArea } from "@/ui/Field";
 import { Empty, InlineError, Skeleton } from "@/ui/Empty";
 import { toast } from "@/ui/Toast";
 import { cn } from "@/lib/cn";
-import { fmtDate, fmtRelativeDate } from "@/lib/format";
+import { fmtRelativeDate } from "@/lib/format";
 import { useIsDesktop } from "@/lib/hooks";
 import { useAppSettings } from "@/data/queries";
 import { useDeleteExercise, useExerciseDetail, useUpdateExercise } from "./api";
 import { BODY_PARTS, CATEGORIES, bodyPartLabel, categoryLabel } from "./ExercisePicker";
 import { BarChart, LineChart } from "./charts";
-import { displayWeight, fmtDistanceValue, fmtPrValue, fmtSeconds, fmtSetValues, fmtVolume, fmtWeightValue, isWeighted, plural, prLabel, setLabel, WORKOUTS, type Units } from "./lib";
+import { displayWeight, fmtDate, fmtDistanceValue, fmtPrValue, fmtSeconds, fmtSetValues, fmtVolume, fmtWeightValue, isWeighted, plural, prLabel, setLabel, type Units } from "./lib";
 
 type Tab = "about" | "history" | "records" | "charts";
 type Period = "1M" | "3M" | "1Y" | "All";
@@ -239,7 +239,7 @@ function Charts({ d, units }: { d: ExerciseDetail; units: Units }) {
 /** Summary row above the plot carries the message; scrubbing swaps it (brief 4.12). */
 function ChartBlock({ def, points }: { def: ChartDef; points: ChartPoint[] }) {
   const [sel, setSel] = useState<number | null>(null);
-  const data = points.map((p) => ({ label: fmtDate(p.date).slice(4), value: def.toDisplay(p.value), title: fmtDate(p.date) }));
+  const data = points.map((p) => ({ label: fmtDate(p.date, true), value: def.toDisplay(p.value), title: fmtDate(p.date) }));
   const idx = sel ?? points.length - 1;
   const shown = points[idx];
   if (!points.length) return null;

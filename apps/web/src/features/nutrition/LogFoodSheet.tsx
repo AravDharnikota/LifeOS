@@ -192,7 +192,6 @@ function PhotoPane({ preview, busy, error, onPicked, onRetry, onClear, onSwitch 
         </div>
       ) : (
         <>
-          <TextField label="Note" placeholder="Home-made, big bowl" value={note} onChange={(e) => setNote(e.target.value)} enterKeyHint="done" />
           <div className="flex flex-col gap-2 pt-2">
             <Button variant="primary" size="lg" full leading={<Icon name="camera" size={20} />} onClick={() => void pick("camera")} data-testid="take-photo">
               Take Photo
@@ -203,6 +202,7 @@ function PhotoPane({ preview, busy, error, onPicked, onRetry, onClear, onSwitch 
           </div>
           {pickError && <p className="text-footnote text-danger-text text-center">{pickError}</p>}
           <p className="text-footnote text-tertiary text-center">Fit the whole plate in the frame.</p>
+          <TextField label="Note" placeholder="Home-made, big bowl" value={note} onChange={(e) => setNote(e.target.value)} enterKeyHint="done" className="pt-2" />
         </>
       )}
     </div>
@@ -237,7 +237,7 @@ function DescribePane({ busy, error, onAnalyze, onSwitch }: { busy: boolean; err
   return (
     <div className="flex flex-col gap-4">
       <TextArea label="Meal" placeholder="2 eggs, toast with butter, black coffee" value={text} onChange={(e) => setText(e.target.value)} rows={4} disabled={busy} />
-      {busy ? <Analyzing /> : error ? <AiError text={error} onRetry={() => onAnalyze(text)} onSwitch={onSwitch} /> : null}
+      {busy ? <Analyzing /> : error ? <AiError text={error} onSwitch={onSwitch} /> : null}
       {!busy && (
         <Button variant="primary" size="lg" full disabled={!ready} onClick={() => onAnalyze(text)}>
           Analyze

@@ -138,7 +138,6 @@ export function useChat(open: boolean) {
               patch((m) => ({ ...m, streaming: false, text: msg?.displayText ?? m.text, tools: m.tools.map((t) => ({ ...t, pending: false })) }));
               const changed = Array.isArray(d.changed) ? (d.changed as string[]) : [];
               if (changed.length || d.layoutChanged) invalidateAll(qc);
-              else if (d.layoutChanged) invalidateAll(qc, ["layout"]);
             } else if (event === "error") throw new Error(String(d.message ?? "The assistant could not answer."));
           },
           controller.signal,

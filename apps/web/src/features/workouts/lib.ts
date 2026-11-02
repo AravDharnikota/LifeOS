@@ -1,6 +1,8 @@
 import type { ExerciseCategory, PrType, SetType, Workout, WorkoutExercise, WorkoutSet, WorkoutSettings, WorkoutTemplate, AppSettings } from "@aravos/shared";
 import { bestSet as pickBestSet, isEmptySet, kgToLb, lbToKg, round2 } from "@aravos/shared";
-import { fmt1, fmtInt } from "@/lib/format";
+import { fmt1, fmtInt, fmtDate as fmtDateFull } from "@/lib/format";
+import { format, parseISO } from "date-fns";
+import { parseDateString } from "@aravos/shared";
 
 export type Units = AppSettings["units"];
 export const WORKOUTS = "/health/workouts";
@@ -30,6 +32,14 @@ export const fmtNum = trim;
 export const fmtWeightValue = (kg: number, units: Units): string => `${trim(displayWeight(kg, units))} ${weightUnit(units)}`;
 export const fmtVolume = (kg: number, units: Units): string => `${fmtInt(units === "imperial" ? kgToLb(kg) : kg)} ${weightUnit(units)}`;
 export const fmtDistanceValue = (km: number, units: Units): string => `${trim(displayDistance(km, units), 2)} ${distanceUnit(units)}`;
+
+// ---------- dates ----------
+/** "Mon 2 Nov", or "2 Nov" when short. */
+export function fmtDate(d: string, short = false): string {
+  if (!short) return fmtDateFull(d);
+  const date = d.length === 10 ? parseDateString(d) : parseISO(d);
+  return format(date, "d MMM");
+}
 
 // ---------- time ----------
 /** "45m", "1h 5m", "9s" (Strong shows seconds for very short workouts). */
