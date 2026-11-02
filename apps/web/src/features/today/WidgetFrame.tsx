@@ -52,7 +52,7 @@ export function WidgetFrame({ widget, editing, actions, children }: { widget: Wi
           <button
             type="button"
             aria-label="Remove widget"
-            className="absolute -top-1.5 -right-1.5 z-30 w-11 h-11 flex items-start justify-end p-0 pt-1.5 pr-1.5"
+            className="absolute -top-[14px] -right-[14px] z-30 w-11 h-11 flex items-start justify-end p-0 pt-[2px] pr-[2px]"
             onClick={(e) => {
               e.stopPropagation();
               actions.remove();

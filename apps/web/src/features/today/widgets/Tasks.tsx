@@ -19,6 +19,7 @@ export function TasksWidget({ widget, sectionTitle, editing }: WidgetProps<Widge
   const navigate = useNavigate();
   const qc = useQueryClient();
   const lists = useLists();
+  const today = todayString();
   const params = { view: widget.filter, listId: widget.filter === "list" ? widget.listId : undefined, limit: widget.limit + 20 };
   const query = useTasks(params);
   const [local, setLocal] = useState<Record<string, "done" | "open">>({});
@@ -114,7 +115,7 @@ export function TasksWidget({ widget, sectionTitle, editing }: WidgetProps<Widge
                 >
                   <Checkbox checked={isDone} onChange={(v) => void toggle(t, v)} label={t.title} tint={t.priority >= 3 ? "var(--danger)" : undefined} />
                   <span className={cn("flex-1 min-w-0 text-subhead truncate", isDone ? "text-secondary" : "text-primary")}>{t.title}</span>
-                  {!isDone && t.dueDate && widget.filter !== "today" && <span className="text-caption-1 text-tertiary tabular shrink-0">{fmtRelativeDate(t.dueDate)}</span>}
+                  {!isDone && t.dueDate && (widget.filter !== "today" || t.dueDate < today) && <span className={cn("text-caption-1 tabular shrink-0", t.dueDate < today ? "text-danger-text" : "text-tertiary")}>{fmtRelativeDate(t.dueDate)}</span>}
                   {!isDone && t.dueTime && <span className="text-caption-1 text-tertiary tabular shrink-0">{t.dueTime}</span>}
                 </div>
               </li>

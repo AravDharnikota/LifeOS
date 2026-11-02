@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router";
+import { useIsDesktop } from "@/lib/hooks";
 import { useDaySummary } from "@/data/queries";
 import { fmtInt } from "@/lib/format";
 import { Bar, Ring } from "@/ui/Ring";
@@ -14,6 +15,7 @@ const MACROS = [
 /** One hero ring for calories left, three bars for the macros. */
 export function NutritionWidget({ widget }: WidgetProps<WidgetOf<"nutrition_rings">>) {
   const navigate = useNavigate();
+  const isDesktop = useIsDesktop();
   const summary = useDaySummary();
   const n = summary.data?.nutrition;
   const eaten = n?.totals.calories ?? 0;
@@ -23,7 +25,7 @@ export function NutritionWidget({ widget }: WidgetProps<WidgetOf<"nutrition_ring
 
   return (
     <Pressable label="Open nutrition" onPress={() => navigate("/health")}>
-      <WidgetLabel trailing={n && target > 0 ? `${fmtInt(eaten)} of ${fmtInt(target)} kcal` : undefined}>{widget.title ?? "Calories"}</WidgetLabel>
+      <WidgetLabel trailing={isDesktop && n && target > 0 ? `${fmtInt(eaten)} of ${fmtInt(target)} kcal` : undefined}>{widget.title ?? "Calories"}</WidgetLabel>
       {summary.isPending ? (
         <WidgetSkeleton hero lines={3} />
       ) : summary.isError || !n ? (
@@ -31,11 +33,12 @@ export function NutritionWidget({ widget }: WidgetProps<WidgetOf<"nutrition_ring
       ) : target === 0 ? (
         <WidgetEmpty action="Set Targets" onAction={() => navigate("/health")}>No calorie target yet.</WidgetEmpty>
       ) : (
-        <div className="flex-1 flex flex-col lg:flex-row lg:items-center gap-4 lg:gap-6">
+        <div className="flex-1 flex flex-col justify-center lg:flex-row lg:items-center gap-5 lg:gap-6">
           <div className="flex items-center justify-center py-1">
             <Ring progress={target > 0 ? eaten / target : 0} size={108} stroke={10} color="var(--energy)" label={`Calories, ${fmtInt(eaten)} of ${fmtInt(target)}`}>
               <span className="num text-title-1 text-primary">{fmtInt(Math.abs(left))}</span>
               <span className="text-caption-1 text-secondary mt-0.5">{over ? "over" : "left"}</span>
+              {!isDesktop && <span className="sr-only">{`${fmtInt(eaten)} of ${fmtInt(target)} kcal`}</span>}
             </Ring>
           </div>
           <div className="flex-1 min-w-0 flex flex-col gap-2.5">

@@ -42,7 +42,7 @@ export function AgendaWidget({ widget, sectionTitle }: WidgetProps<WidgetOf<"age
 
   return (
     <Pressable label="Open calendar" onPress={open}>
-      {label && <WidgetLabel trailing={total > 0 ? `${total - past} of ${total}` : undefined}>{label}</WidgetLabel>}
+      {label && <WidgetLabel trailing={past > 0 && total - past > 0 ? `${total - past} left` : undefined}>{label}</WidgetLabel>}
       {summary.isPending ? (
         <WidgetSkeleton lines={3} />
       ) : summary.isError ? (

@@ -65,3 +65,8 @@
 @media (prefers-reduced-motion: reduce) {
   .wk-check:active { transform: none; }
 }
+
+/* Template card: surface on canvas in light; a hairline edge only in dark (brief 4.11). */
+.wk-card { background: var(--bg-surface); }
+:root[data-theme="dark"] .wk-card { box-shadow: 0 0 0 1px var(--separator); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .wk-card { box-shadow: 0 0 0 1px var(--separator); } }

@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
+import { useIsDesktop } from "@/lib/hooks";
 import type { Goal } from "@aravos/shared";
 import { keys, useDaySummary, useGoals } from "@/data/queries";
 import { api } from "@/lib/api";
@@ -115,6 +116,7 @@ export function GoalsOverviewWidget({ widget, sectionTitle }: WidgetProps<Widget
 export function HabitGridWidget({ widget, editing }: WidgetProps<WidgetOf<"habit_grid">>) {
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const isDesktop = useIsDesktop();
   const goal = useGoal(widget.goalId);
   const g = goal.data;
   const weeks = widget.weeks;
@@ -155,14 +157,20 @@ export function HabitGridWidget({ widget, editing }: WidgetProps<WidgetOf<"habit
   const count = cells.filter((c) => done.has(c.date)).length;
   return (
     <Pressable label="Open goal" onPress={() => navigate(`/goals/${widget.goalId}`)}>
-      <WidgetLabel trailing={g ? `${count} in ${weeks} weeks` : undefined}>{widget.title ?? g?.title ?? "Habit"}</WidgetLabel>
+      <WidgetLabel trailing={g && isDesktop ? `${count} in ${weeks} weeks` : undefined}>{widget.title ?? g?.title ?? "Habit"}</WidgetLabel>
       {goal.isPending ? (
         <WidgetSkeleton lines={3} />
       ) : goal.isError ? (
         <WidgetError onRetry={() => void goal.refetch()}>{"This habit is gone."}</WidgetError>
       ) : (
         <>
-          <div className="grid gap-[3px] flex-1 content-start" style={{ gridTemplateColumns: `repeat(${weeks}, minmax(0, 1fr))`, gridTemplateRows: "repeat(7, auto)", gridAutoFlow: "column" }} role="img" aria-label={`${count} check-ins in the last ${weeks} weeks`}>
+          {/* Phone: seven columns (one row per week). Desktop: one column per week, cells capped at 16px. */}
+          <div
+            className="grid gap-1 content-start"
+            style={isDesktop ? { gridTemplateColumns: `repeat(${weeks}, 16px)`, gridTemplateRows: "repeat(7, 16px)", gridAutoFlow: "column" } : { gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gridAutoFlow: "row" }}
+            role="img"
+            aria-label={`${count} check-ins in the last ${weeks} weeks`}
+          >
             {cells.map((c) => {
               const isToday = c.date === todayStr;
               const on = done.has(c.date);
@@ -187,7 +195,7 @@ export function HabitGridWidget({ widget, editing }: WidgetProps<WidgetOf<"habit
           </div>
           <div className="mt-auto pt-3 flex items-center justify-between gap-2">
             <Sub className="mt-0">{g?.streak ? `${g.streak} day streak` : "No streak yet"}</Sub>
-            <button type="button" disabled={editing} onClick={() => void toggle()} className={cn("pointer-events-auto h-8 px-3 rounded-sm text-footnote font-medium pressable", doneToday ? "bg-surface-2 text-secondary" : "bg-surface-2 text-primary", editing && "opacity-40")}>
+            <button type="button" disabled={editing} onClick={() => void toggle()} className={cn("pointer-events-auto h-8 px-3 rounded-sm text-footnote font-medium whitespace-nowrap shrink-0 pressable", doneToday ? "bg-surface-2 text-secondary" : "bg-surface-2 text-primary", editing && "opacity-40")}>
               {doneToday ? "Done Today" : "Check In"}
             </button>
           </div>

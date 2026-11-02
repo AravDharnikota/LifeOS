@@ -99,7 +99,7 @@ export function GoalDetail({ id }: { id: string }) {
 
       <Menu open={Boolean(menu)} onClose={() => setMenu(null)} anchor={menu} items={goalMenuItems(goal, { update: (patch) => update.mutate({ id: goal.id, ...patch }), del: () => setConfirm(true) })} />
       <ActionSheet open={confirm} onClose={() => setConfirm(false)} title="Delete this goal?" message={goal.title} actions={[{ label: "Delete Goal", destructive: true, onPress: () => { del.mutate(goal.id); navigate("/goals", { replace: true }); } }]} />
-      <GoalSheet open={edit} onClose={() => setEdit(false)} goal={goal} onSubmit={(input) => update.mutateAsync({ id: goal.id, ...input })} pending={update.isPending} />
+      <GoalSheet open={edit} onClose={() => setEdit(false)} goal={goal} onSubmit={async (input) => { await update.mutateAsync({ id: goal.id, ...input }); setEdit(false); }} pending={update.isPending} />
       {goal.kind === "number" && <LogSheet goal={goal} open={logOpen} onClose={() => setLogOpen(false)} onLog={(input) => log.mutateAsync({ id: goal.id, ...input })} pending={log.isPending} />}
     </Screen>
   );

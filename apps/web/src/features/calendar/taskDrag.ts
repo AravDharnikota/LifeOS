@@ -3,7 +3,7 @@ import type { Task } from "@aravos/shared";
 
 export interface GridApi {
   locate: (x: number, y: number) => { date: string; dayIdx: number; startMin: number } | null;
-  drop: (taskId: string, date: string, startMin: number, duration: number) => void;
+  drop: (task: Task, date: string, startMin: number, duration: number) => void;
 }
 
 export interface DragHover {
@@ -56,7 +56,7 @@ export const useTaskDrag = create<TaskDragState>((set, get) => ({
     const { hover, api, task } = get();
     set({ task: null, point: null, hover: null });
     if (hover && api && task) {
-      api.drop(task.id, hover.date, hover.startMin, hover.duration);
+      api.drop(task, hover.date, hover.startMin, hover.duration);
       return true;
     }
     return false;

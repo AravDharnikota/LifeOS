@@ -57,7 +57,7 @@ export function TrackerWidget({ widget, editing }: WidgetProps<WidgetOf<"tracker
       ) : (
         <>
           <Hero value={num(value)} unit={tracker?.unit ?? undefined} pending={delta !== 0} />
-          <Sub>{tracker?.target != null ? (value >= tracker.target ? "Target reached" : `${num(tracker.target - value)} to ${num(tracker.target)}`) : tracker?.reset === "daily" ? "today" : tracker?.reset === "weekly" ? "this week" : "all time"}</Sub>
+          <Sub>{tracker?.target != null ? (value >= tracker.target ? `Target of ${num(tracker.target)} reached` : `${num(tracker.target - value)} to go, target ${num(tracker.target)}`) : tracker?.reset === "daily" ? "today" : tracker?.reset === "weekly" ? "this week" : "all time"}</Sub>
           <div className="mt-auto pt-3 flex items-center gap-2">
             <button type="button" aria-label="Decrease" className={btn} disabled={editing || value - step < 0} onClick={() => void log(-step)}>
               <Icon name="minus" size={20} />

@@ -88,7 +88,7 @@ function TrackerRow({ tracker: t, onMenu }: { tracker: Tracker; onMenu: (anchor:
   };
   useEffect(() => () => { if (timer.current) { window.clearTimeout(timer.current); flush(); } }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const sub = t.target != null ? `of ${fmtNum(t.target)}${t.unit ? ` ${t.unit}` : ""} ${resetWord(t.reset)}`.trim() : resetWord(t.reset) ? `Resets ${t.reset}` : null;
+  const sub = t.target != null ? `of ${fmtNum(t.target)}${t.unit ? ` ${t.unit}` : ""} ${resetWord(t.reset)}`.trim() : [t.unit, resetWord(t.reset)].filter(Boolean).join(" ") || null;
   const reached = t.target != null && local >= t.target;
 
   return (
@@ -106,7 +106,7 @@ function TrackerRow({ tracker: t, onMenu }: { tracker: Tracker; onMenu: (anchor:
         <div className="text-body text-primary truncate">{t.name}</div>
         {sub && <div className={cn("text-footnote tabular mt-0.5", reached ? "text-success-text" : "text-secondary")}>{sub}</div>}
       </div>
-      <Stepper value={local} onChange={change} step={t.step || 1} min={0} unit={t.unit ?? undefined} className="w-[176px] shrink-0" label={t.name} />
+      <Stepper value={local} onChange={change} step={t.step || 1} min={0} className="w-[168px] shrink-0" label={t.name} />
     </div>
   );
 }

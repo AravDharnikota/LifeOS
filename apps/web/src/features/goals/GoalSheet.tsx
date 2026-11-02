@@ -60,6 +60,7 @@ export interface GoalSheetProps {
   /** Present to edit; absent to create. */
   goal?: Goal;
   initialKind?: Kind;
+  /** Resolves once saved; the parent closes the sheet or navigates. Reject to show the message inline. */
   onSubmit: (input: GoalCreate, milestones: string[]) => Promise<unknown>;
   pending?: boolean;
 }
@@ -116,7 +117,6 @@ export function GoalSheet({ open, onClose, goal, initialKind = "number", onSubmi
     }
     try {
       await onSubmit(input, d.milestones);
-      onClose();
     } catch (e) {
       void notify("error");
       setErrors({ submit: e instanceof Error ? e.message : "Unable to save" });

@@ -151,7 +151,7 @@ function Body({ goal, card }: { goal: Goal; card?: boolean }) {
       return (
         <div className={cn("flex items-baseline gap-x-3 gap-y-0 flex-wrap", card ? "" : "mt-0.5")}>
           <span className="flex items-baseline gap-1.5">
-            <span className="num text-title-1 text-primary">{fmtInt(s.n)}</span>
+            <span className="num text-title-1 text-primary" data-testid="streak-value">{fmtInt(s.n)}</span>
             <span className="text-subhead text-secondary">{s.unit}</span>
           </span>
           <span className="text-footnote text-secondary tabular">{periodLabel(goal)}</span>

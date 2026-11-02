@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { format } from "date-fns";
-import type { CalEvent, Calendar } from "@aravos/shared";
+import type { CalEvent, Calendar, Task } from "@aravos/shared";
 import { parseDateString, todayString } from "@aravos/shared";
 import { cn } from "@/lib/cn";
 import { impact, selection } from "@/lib/haptics";
@@ -18,7 +18,7 @@ export interface GridHandlers {
   onCreate: (start: string, end: string, title: string) => void;
   onContext: (ev: CalEvent, point: { x: number; y: number }) => void;
   onToggleTask: (ev: CalEvent, done: boolean) => void;
-  onDropTask?: (taskId: string, start: string, end: string) => void;
+  onDropTask?: (task: Task, start: string, end: string) => void;
 }
 
 export interface TimeGridProps extends GridHandlers {
@@ -304,9 +304,9 @@ export function TimeGrid({ days, events, calendars, now, pager, header, scrollRe
         const startMin = clampMinutes(snap(minutesAt(y - r.top), SNAP_MINUTES, "floor"));
         return { date: days[dayIdx]!, dayIdx, startMin };
       },
-      drop: (taskId, date, startMin, duration) => {
+      drop: (task, date, startMin, duration) => {
         const endMin = Math.min(MINUTES_PER_DAY, startMin + duration);
-        h.onDropTask?.(taskId, isoAt(date, startMin), isoAt(date, endMin));
+        h.onDropTask?.(task, isoAt(date, startMin), isoAt(date, endMin));
       },
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps

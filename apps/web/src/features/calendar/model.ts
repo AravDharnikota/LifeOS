@@ -72,18 +72,20 @@ export interface DayItem {
 }
 
 export function itemsForDay(events: CalEvent[], date: string): DayItem[] {
-  const ds = dayMs(date);
-  const de = dayMs(shiftDate(date, 1));
   const out: DayItem[] = [];
   for (const ev of events) {
     if (ev.allDay || ev.status === "cancelled") continue;
-    const s = Date.parse(ev.start);
-    const e = Date.parse(ev.end);
-    if (Number.isNaN(s) || Number.isNaN(e) || s >= de || e <= ds) continue;
-    const startMin = Math.max(0, (s - ds) / 60000);
-    const endMin = Math.min(MINUTES_PER_DAY, (e - ds) / 60000);
+    const s = new Date(ev.start);
+    const e = new Date(ev.end);
+    if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) continue;
+    // Wall-clock minutes, so a block sits where the clock says even on a DST day.
+    const sd = toDateString(s);
+    const ed = toDateString(e);
+    if (sd > date || ed < date) continue;
+    const startMin = sd < date ? 0 : minutesOfDate(s);
+    const endMin = ed > date ? MINUTES_PER_DAY : minutesOfDate(e);
     if (endMin <= startMin) continue;
-    out.push({ ev, startMin, endMin, continuesBefore: s < ds, continuesAfter: e > de });
+    out.push({ ev, startMin, endMin, continuesBefore: sd < date, continuesAfter: ed > date });
   }
   return out;
 }

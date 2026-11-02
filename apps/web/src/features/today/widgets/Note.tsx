@@ -62,7 +62,7 @@ export function NoteWidget({ widget, editing }: WidgetProps<WidgetOf<"note">>) {
           className="flex-1 w-full resize-none bg-transparent text-body text-primary outline-none leading-[22px] min-h-[66px]"
         />
       ) : (
-        <button type="button" disabled={editing} onClick={() => setOpen(true)} className={cn("flex-1 text-left rounded-sm -m-1 p-1 min-h-[44px] active:bg-pressed transition-colors duration-100", editing && "pointer-events-none")} aria-label="Edit note">
+        <button type="button" disabled={editing} onClick={() => setOpen(true)} className={cn("flex-1 flex flex-col items-stretch justify-start text-left rounded-sm -m-1 p-1 min-h-[44px] active:bg-pressed transition-colors duration-100", editing && "pointer-events-none")} aria-label="Edit note">
           {widget.text.trim() ? (
             <div className="text-body text-primary whitespace-pre-wrap break-words">{lines.join("\n")}</div>
           ) : (

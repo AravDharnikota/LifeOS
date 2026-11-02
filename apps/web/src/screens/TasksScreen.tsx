@@ -1,10 +1,3 @@
-import { Screen } from "@/ui/Screen";
-import { Empty } from "@/ui/Empty";
+import { TasksScreen } from "@/features/tasks/TasksScreen";
 
-export default function TasksScreen() {
-  return (
-    <Screen title="Tasks">
-      <Empty>Nothing here yet.</Empty>
-    </Screen>
-  );
-}
+export default TasksScreen;

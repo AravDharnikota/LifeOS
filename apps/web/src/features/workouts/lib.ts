@@ -3,6 +3,7 @@ import { bestSet as pickBestSet, isEmptySet, kgToLb, lbToKg, round2 } from "@ara
 import { fmt1, fmtInt } from "@/lib/format";
 
 export type Units = AppSettings["units"];
+export const WORKOUTS = "/health/workouts";
 
 // ---------- units ----------
 export const weightUnit = (units: Units): string => (units === "imperial" ? "lb" : "kg");
