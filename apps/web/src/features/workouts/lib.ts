@@ -103,6 +103,8 @@ export function columnsFor(category: ExerciseCategory, units: Units): ColumnSpec
       return [{ kind: "weight", label: `+${w}` }, { kind: "reps", label: "Reps" }];
     case "assisted_bodyweight":
       return [{ kind: "weight", label: `-${w}` }, { kind: "reps", label: "Reps" }];
+    case "dumbbell":
+      return [{ kind: "weight", label: `${w} each` }, { kind: "reps", label: "Reps" }];
     default:
       return [{ kind: "weight", label: w }, { kind: "reps", label: "Reps" }];
   }

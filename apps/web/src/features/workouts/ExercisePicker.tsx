@@ -23,18 +23,19 @@ export const BODY_PARTS: { value: Exercise["bodyPart"]; label: string }[] = [
   { value: "cardio", label: "Cardio" },
   { value: "other", label: "Other" },
 ];
-export const CATEGORIES: { value: ExerciseCategory; label: string }[] = [
-  { value: "barbell", label: "Barbell" },
-  { value: "dumbbell", label: "Dumbbell" },
-  { value: "machine", label: "Machine" },
-  { value: "cable", label: "Cable" },
-  { value: "bodyweight", label: "Bodyweight" },
-  { value: "weighted_bodyweight", label: "Weighted bodyweight" },
-  { value: "assisted_bodyweight", label: "Assisted bodyweight" },
-  { value: "reps_only", label: "Reps only" },
-  { value: "cardio", label: "Cardio" },
-  { value: "duration", label: "Duration" },
+export const CATEGORIES: { value: ExerciseCategory; label: string; hint: string }[] = [
+  { value: "barbell", label: "Barbell", hint: "Weight and reps" },
+  { value: "dumbbell", label: "Dumbbell", hint: "Weight per hand and reps" },
+  { value: "machine", label: "Machine or other", hint: "Weight and reps" },
+  { value: "cable", label: "Cable", hint: "Weight and reps" },
+  { value: "bodyweight", label: "Bodyweight", hint: "Reps only, no weight" },
+  { value: "weighted_bodyweight", label: "Weighted bodyweight", hint: "Added weight and reps" },
+  { value: "assisted_bodyweight", label: "Assisted bodyweight", hint: "Assistance weight and reps" },
+  { value: "reps_only", label: "Reps only", hint: "Just a rep count" },
+  { value: "cardio", label: "Cardio", hint: "Distance and time" },
+  { value: "duration", label: "Timed", hint: "Time only, like a plank" },
 ];
+export const categoryHint = (v: ExerciseCategory): string => CATEGORIES.find((c) => c.value === v)?.hint ?? "";
 export const bodyPartLabel = (v: Exercise["bodyPart"]): string => BODY_PARTS.find((b) => b.value === v)?.label ?? v;
 export const categoryLabel = (v: ExerciseCategory): string => CATEGORIES.find((c) => c.value === v)?.label ?? v;
 
@@ -197,12 +198,13 @@ export function NewExerciseSheet({ open, onClose, onCreated, initial }: { open: 
           </div>
         </div>
         <div>
-          <div className="text-footnote text-secondary mb-2">Category</div>
+          <div className="text-footnote text-secondary mb-2">Tracks</div>
           <div className="flex flex-wrap gap-2">
             {CATEGORIES.map((c) => (
               <Chip key={c.value} selected={category === c.value} onClick={() => setCategory(c.value)}>{c.label}</Chip>
             ))}
           </div>
+          <p className="text-footnote text-tertiary mt-2">{categoryHint(category)}</p>
         </div>
         <TextArea label="Instructions" placeholder="Optional" value={instructions} onChange={(e) => setInstructions(e.target.value)} />
       </div>

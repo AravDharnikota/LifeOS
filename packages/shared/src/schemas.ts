@@ -357,7 +357,7 @@ export const WorkoutExerciseUpdate = z.object({ restSeconds: z.number().int().mi
 export type WorkoutExerciseUpdate = z.infer<typeof WorkoutExerciseUpdate>;
 export const WorkoutSettings = z.object({
   oneRmFormula: z.enum(["hybrid", "brzycki", "epley"]).default("hybrid"),
-  countDumbbellsTwice: z.boolean().default(false),
+  countDumbbellsTwice: z.boolean().default(true),
   includeWeightedBodyweightVolume: z.boolean().default(true),
   includeAssistedBodyweightVolume: z.boolean().default(true),
   previousSetSource: z.enum(["any", "same_template"]).default("any"),

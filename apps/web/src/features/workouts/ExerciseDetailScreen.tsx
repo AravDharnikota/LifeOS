@@ -18,7 +18,7 @@ import { fmtRelativeDate } from "@/lib/format";
 import { useIsDesktop } from "@/lib/hooks";
 import { useAppSettings } from "@/data/queries";
 import { useDeleteExercise, useExerciseDetail, useUpdateExercise } from "./api";
-import { BODY_PARTS, CATEGORIES, bodyPartLabel, categoryLabel } from "./ExercisePicker";
+import { BODY_PARTS, CATEGORIES, bodyPartLabel, categoryHint, categoryLabel } from "./ExercisePicker";
 import { BarChart, LineChart } from "./charts";
 import { displayWeight, fmtDate, fmtDistanceValue, fmtPrValue, fmtSeconds, fmtSetValues, fmtVolume, fmtWeightValue, isWeighted, plural, prLabel, setLabel, WORKOUTS, type Units } from "./lib";
 
@@ -258,7 +258,7 @@ function ChartBlock({ def, points }: { def: ChartDef; points: ChartPoint[] }) {
   );
 }
 
-/** Built-ins keep their name and category locked, as in Strong. */
+/** Built-ins keep their name; the tracking type (category) can be changed on any exercise. */
 function EditExerciseSheet({ open, onClose, exercise }: { open: boolean; onClose: () => void; exercise: Exercise }) {
   const update = useUpdateExercise();
   const [name, setName] = useState(exercise.name);
@@ -273,13 +273,13 @@ function EditExerciseSheet({ open, onClose, exercise }: { open: boolean; onClose
     setInstructions(exercise.instructions ?? "");
   }, [open, exercise]);
   const save = () => {
-    const patch = exercise.isCustom ? { name: name.trim(), bodyPart, category, instructions: instructions.trim() || null } : { bodyPart, instructions: instructions.trim() || null };
+    const patch = exercise.isCustom ? { name: name.trim(), bodyPart, category, instructions: instructions.trim() || null } : { bodyPart, category, instructions: instructions.trim() || null };
     update.mutate({ id: exercise.id, ...patch }, { onSuccess: () => { toast("Exercise saved."); onClose(); }, onError: (e) => toast(e instanceof Error ? e.message : "Unable to save the exercise.") });
   };
   return (
     <Sheet open={open} onClose={onClose} title="Edit Exercise" detent="large" trailing={<button type="button" className="text-headline text-accent-text px-2 h-11 disabled:opacity-40" disabled={!name.trim() || update.isPending} onClick={save}>Save</button>}>
       <div className="flex flex-col gap-5 pt-2 pb-6">
-        <TextField label="Name" value={name} onChange={(e) => setName(e.target.value)} disabled={!exercise.isCustom} hint={exercise.isCustom ? undefined : "Built-in exercises keep their name and category."} />
+        <TextField label="Name" value={name} onChange={(e) => setName(e.target.value)} disabled={!exercise.isCustom} hint={exercise.isCustom ? undefined : "Built-in exercises keep their name."} />
         <div>
           <div className="text-footnote text-secondary mb-2">Body part</div>
           <div className="flex flex-wrap gap-2">
@@ -288,16 +288,15 @@ function EditExerciseSheet({ open, onClose, exercise }: { open: boolean; onClose
             ))}
           </div>
         </div>
-        {exercise.isCustom && (
-          <div>
-            <div className="text-footnote text-secondary mb-2">Category</div>
-            <div className="flex flex-wrap gap-2">
-              {CATEGORIES.map((c) => (
-                <Chip key={c.value} selected={category === c.value} onClick={() => setCategory(c.value)}>{c.label}</Chip>
-              ))}
-            </div>
+        <div>
+          <div className="text-footnote text-secondary mb-2">Tracks</div>
+          <div className="flex flex-wrap gap-2">
+            {CATEGORIES.map((c) => (
+              <Chip key={c.value} selected={category === c.value} onClick={() => setCategory(c.value)}>{c.label}</Chip>
+            ))}
           </div>
-        )}
+          <p className="text-footnote text-tertiary mt-2">{categoryHint(category)}</p>
+        </div>
         <TextArea label="Instructions" value={instructions} onChange={(e) => setInstructions(e.target.value)} placeholder="One step per line" />
       </div>
     </Sheet>

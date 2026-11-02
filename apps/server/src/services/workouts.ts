@@ -374,9 +374,7 @@ export function createExercise(db: Db, input: { name: string; category: Exercise
 
 export function updateExercise(db: Db, id: string, input: { name?: string; category?: ExerciseCategory; bodyPart?: Exercise["bodyPart"]; instructions?: string | null }, actor = "user"): Exercise {
   const existing = requireExercise(db, id);
-  if (!existing.isCustom && ((input.name !== undefined && input.name !== existing.name) || (input.category !== undefined && input.category !== existing.category))) {
-    throw badRequest("Built-in exercises cannot be renamed or change category");
-  }
+  if (!existing.isCustom && input.name !== undefined && input.name !== existing.name) throw badRequest("Built-in exercises cannot be renamed");
   const set: Partial<ExerciseRow> = {};
   if (input.name !== undefined) set.name = input.name;
   if (input.category !== undefined) set.category = input.category;

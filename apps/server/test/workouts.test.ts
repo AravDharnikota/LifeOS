@@ -462,3 +462,17 @@ describe("template actions on finish", () => {
     await w.api("PATCH", "/api/workouts/settings", { countDumbbellsTwice: false });
   });
 });
+
+describe("exercise tracking type", () => {
+  it("lets a built-in exercise change its tracking type but not its name", async () => {
+    const t = makeTestApp();
+    const list = await t.api<{ id: string; name: string; category: string; isCustom: boolean }[]>("GET", "/api/exercises?q=plank");
+    const plank = list.data.find((e) => e.name === "Plank")!;
+    expect(plank.category).toBe("duration");
+    const changed = await t.api<{ category: string }>("PATCH", `/api/exercises/${plank.id}`, { category: "weighted_bodyweight" });
+    expect(changed.data.category).toBe("weighted_bodyweight");
+    const renamed = await t.api("PATCH", `/api/exercises/${plank.id}`, { name: "Board" }, { allowError: true });
+    expect(renamed.status).toBe(400);
+    t.cleanup();
+  });
+});

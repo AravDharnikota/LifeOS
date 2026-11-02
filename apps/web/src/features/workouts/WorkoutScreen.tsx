@@ -7,6 +7,8 @@ import { Icon } from "@/ui/Icon";
 import { Group, Row } from "@/ui/List";
 import { Sheet, ActionSheet } from "@/ui/Sheet";
 import { Menu, type MenuItem } from "@/ui/Menu";
+import { OptionSheet } from "@/features/settings/sheets";
+import { CATEGORIES, categoryHint, categoryLabel } from "./ExercisePicker";
 import { Empty, InlineError, Skeleton } from "@/ui/Empty";
 import { toast } from "@/ui/Toast";
 import { cn } from "@/lib/cn";
@@ -16,7 +18,7 @@ import { impact, notify } from "@/lib/haptics";
 import { useNow } from "@/lib/hooks";
 import { hasFinePointer } from "@/lib/platform";
 import { invalidateAll, useAppSettings } from "@/data/queries";
-import { useAddWorkoutExercise, useAddWorkoutSet, useDeleteWorkoutSet, useDiscardWorkout, useRemoveWorkoutExercise, useReorderWorkoutExercises, useReplaceWorkoutExercise, useSetWorkoutSetType, useTemplate, useUpdateWorkout, useUpdateWorkoutExercise, useUpdateWorkoutSet, useWorkout, useActiveWorkout, useWorkoutSettings, wk, workoutApi } from "./api";
+import { useAddWorkoutExercise, useAddWorkoutSet, useDeleteWorkoutSet, useDiscardWorkout, useRemoveWorkoutExercise, useReorderWorkoutExercises, useReplaceWorkoutExercise, useSetWorkoutSetType, useTemplate, useUpdateExercise, useUpdateWorkout, useUpdateWorkoutExercise, useUpdateWorkoutSet, useWorkout, useActiveWorkout, useWorkoutSettings, wk, workoutApi } from "./api";
 import { columnsFor, fmtSeconds, gridTemplate, hasValues, restFor, SET_TYPES, setLabel, supersetColor, templateDiff, weightStep, WORKOUTS, type ColumnKind, type SetValues, type TemplateDiff } from "./lib";
 import { SetRow } from "./SetRow";
 import { KeypadAccessory } from "./KeypadAccessory";
@@ -505,11 +507,14 @@ function ExerciseBlock({ exercise: e, index, count, units, mode, all, onChangeVa
   const [restOpen, setRestOpen] = useState(false);
   const [ssOpen, setSsOpen] = useState(false);
   const [removeOpen, setRemoveOpen] = useState(false);
+  const [trackOpen, setTrackOpen] = useState(false);
+  const updateExercise = useUpdateExercise();
   const noteRef = useRef<HTMLTextAreaElement>(null);
 
   const items: MenuItem[] = [
     { label: noteOpen ? "Edit Note" : "Add Note", icon: "note", onPress: () => { setNoteOpen(true); window.setTimeout(() => noteRef.current?.focus(), 50); } },
     { label: `Rest Timer (${e.restSeconds ? fmtSeconds(e.restSeconds) : "Off"})`, icon: "timer", onPress: () => setRestOpen(true) },
+    { label: `Track As (${categoryLabel(category)})`, icon: "bars", onPress: () => setTrackOpen(true) },
     { label: "Replace Exercise", icon: "swap", onPress: onReplace },
     { label: e.supersetGroup != null ? "Edit Superset" : "Superset With", icon: "link", onPress: () => setSsOpen(true), disabled: all.length < 2 },
     { label: "Move Up", icon: "arrow-up", onPress: () => onMove(-1), disabled: index === 0 },
@@ -575,6 +580,17 @@ function ExerciseBlock({ exercise: e, index, count, units, mode, all, onChangeVa
       />
       <RestSheet open={restOpen} onClose={() => setRestOpen(false)} value={e.restSeconds} onPick={(v) => { onPatch({ restSeconds: v }); setRestOpen(false); }} />
       <SupersetSheet open={ssOpen} onClose={() => setSsOpen(false)} current={{ id: e.id, name: e.exercise?.name ?? "Exercise", supersetGroup: e.supersetGroup }} all={all.map((x) => ({ id: x.id, name: x.exercise?.name ?? "Exercise", supersetGroup: x.supersetGroup }))} onSave={onSuperset} />
+      <OptionSheet
+        open={trackOpen}
+        onClose={() => setTrackOpen(false)}
+        title="Track As"
+        value={category}
+        options={CATEGORIES.map((c) => ({ value: c.value, label: c.label, hint: c.hint }))}
+        onSelect={(v) => {
+          if (v === category) return;
+          updateExercise.mutate({ id: e.exerciseId, category: v }, { onSuccess: () => toast(`${e.exercise?.name ?? "Exercise"} now tracks ${categoryHint(v).toLowerCase()}.`), onError: (err) => toast(err instanceof Error ? err.message : "Unable to change the type.") });
+        }}
+      />
       <ActionSheet open={removeOpen} onClose={() => setRemoveOpen(false)} title="Remove exercise?" message={`This removes ${e.exercise?.name ?? "the exercise"} and all of its sets from the workout.`} actions={[{ label: "Remove Exercise", destructive: true, onPress: onRemove }]} />
     </Group>
   );
