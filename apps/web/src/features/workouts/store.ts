@@ -51,16 +51,15 @@ export const useRestTimer = create<RestTimerState>()(
 /** Seconds left on the rest timer (0 when idle), ticking four times a second while running. */
 export function useRestRemaining(): number {
   const endsAt = useRestTimer((s) => s.endsAt);
-  const calc = () => (endsAt ? Math.max(0, Math.ceil((endsAt - Date.now()) / 1000)) : 0);
-  const [remaining, setRemaining] = useState(calc);
+  const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
-    setRemaining(calc());
     if (!endsAt) return;
-    const id = window.setInterval(() => setRemaining(calc()), 250);
+    setNow(Date.now());
+    const id = window.setInterval(() => setNow(Date.now()), 250);
     return () => window.clearInterval(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [endsAt]);
-  return remaining;
+  // Derived during render so the first paint after start() already shows the full countdown.
+  return endsAt ? Math.max(0, Math.ceil((endsAt - Math.max(now, Date.now() - 300)) / 1000)) : 0;
 }
 
 /** Which set input has focus, shared between the set table and the keyboard accessory. */

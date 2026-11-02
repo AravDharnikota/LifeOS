@@ -13,7 +13,7 @@ import { cn } from "@/lib/cn";
 import { fmtDate, fmtTime } from "@/lib/format";
 import { useAppSettings } from "@/data/queries";
 import { useCreateTemplate, useDeleteWorkout, useWorkout } from "./api";
-import { columnsFor, fmtDuration, fmtSetValues, fmtVolume, gridTemplate, plural, setLabel, supersetColor, WORKOUTS } from "./lib";
+import { fmtDuration, fmtSetValues, fmtVolume, plural, prLabel, setLabel, supersetColor, WORKOUTS } from "./lib";
 
 export default function WorkoutDetailScreen() {
   const { id } = useParams();
@@ -45,7 +45,7 @@ export default function WorkoutDetailScreen() {
   return (
     <Screen
       title={w?.name ?? "Workout"}
-      subtitle={w ? `${fmtDate(w.finishedAt ?? w.startedAt)}, ${fmtTime(w.startedAt, app.hour12)}${w.templateName ? ` · ${w.templateName}` : ""}` : undefined}
+      compact
       back={`${WORKOUTS}/history`}
       actions={
         <IconButton label="Workout menu" onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setMenu({ x: r.left + r.width / 2, y: r.bottom }); }} disabled={!w}>
@@ -61,6 +61,10 @@ export default function WorkoutDetailScreen() {
         <Empty>Workout not found.</Empty>
       ) : (
         <div className="lg:max-w-[640px]">
+          <div className="px-[var(--gutter)] pt-3 pb-3">
+            <h1 className="text-title-2 text-primary">{w.name}</h1>
+            <p className="text-footnote text-secondary mt-0.5 tabular">{fmtDate(w.finishedAt ?? w.startedAt)}, {fmtTime(w.startedAt, app.hour12)}{w.templateName ? ` · ${w.templateName}` : ""}</p>
+          </div>
           <div className="px-[var(--gutter)] grid grid-cols-3 pb-2">
             <Stat value={fmtDuration(w.durationSeconds ?? 0)} label="Duration" />
             <Stat value={fmtVolume(w.totalVolume ?? 0, units)} label="Volume" />
@@ -70,7 +74,6 @@ export default function WorkoutDetailScreen() {
           <div className="flex flex-col gap-4 pt-2">
             {(w.exercises ?? []).map((e) => {
               const category = e.exercise?.category ?? "barbell";
-              const columns = columnsFor(category, units);
               const sets = e.sets ?? [];
               return (
                 <Group key={e.id} className={cn(e.supersetGroup != null && "wk-superset")} style={e.supersetGroup != null ? ({ "--wk-ss": supersetColor(e.supersetGroup) } as CSSProperties) : undefined} data-testid="detail-exercise">
@@ -78,21 +81,12 @@ export default function WorkoutDetailScreen() {
                     {sets.length} × {e.exercise?.name ?? "Exercise"}
                   </button>
                   {e.notes && <p className="px-[var(--gutter)] pb-2 -mt-1 text-footnote text-secondary">{e.notes}</p>}
-                  <div className="wk-grid wk-grid-head px-[var(--gutter)] text-caption-1 font-medium text-secondary" style={{ gridTemplateColumns: gridTemplate(columns) }}>
-                    <span className="pl-1">Set</span>
-                    <span />
-                    {columns.map((c) => <span key={c.kind} className="text-center">{c.label}</span>)}
-                    <span />
-                  </div>
-                  <div className="hairline-t">
+                  <div className="hairline-t px-[var(--gutter)] py-1.5">
                     {sets.map((s, i) => (
-                      <div key={s.id} className="wk-grid px-[var(--gutter)] text-subhead tabular" style={{ gridTemplateColumns: gridTemplate(columns) }}>
-                        <span className={cn("wk-tag text-footnote pl-2", `wk-tag-${s.setType}`)}>{setLabel(sets, i)}</span>
-                        <span className="text-secondary truncate">{fmtSetValues(s, category, units)}</span>
-                        {columns.map((c) => (
-                          <span key={c.kind} className="text-center text-primary num">{cellText(s, c.kind, category, units)}</span>
-                        ))}
-                        <span className="flex justify-center">{s.prs.length > 0 && <Icon name="trophy" size={16} className="text-warning-text" data-testid="pr-badge" />}</span>
+                      <div key={s.id} className="flex items-center h-9 gap-3 text-subhead tabular">
+                        <span className={cn("wk-tag text-footnote inline-flex items-center justify-center min-w-[28px] h-7 rounded-sm bg-surface-2", `wk-tag-${s.setType}`)}>{setLabel(sets, i)}</span>
+                        <span className="text-primary num flex-1 min-w-0 truncate">{fmtSetValues(s, category, units)}</span>
+                        {s.prs.length > 0 && <span className="inline-flex items-center gap-1 text-footnote text-warning-text"><Icon name="trophy" size={16} data-testid="pr-badge" />{s.prs.map((t) => prLabel(t)).join(", ")}</span>}
                       </div>
                     ))}
                   </div>
@@ -110,16 +104,6 @@ export default function WorkoutDetailScreen() {
       <ActionSheet open={confirm} onClose={() => setConfirm(false)} title="Delete this workout?" message="Records from this workout are recalculated." actions={[{ label: "Delete Workout", destructive: true, onPress: () => { if (id) del.mutate(id, { onSuccess: () => { toast("Workout deleted."); navigate(`${WORKOUTS}/history`); }, onError: () => toast("Unable to delete the workout.") }); } }]} />
     </Screen>
   );
-}
-
-function cellText(s: { weight: number | null; reps: number | null; seconds: number | null; distance: number | null }, kind: "weight" | "reps" | "distance" | "seconds", category: Parameters<typeof columnsFor>[0], units: Parameters<typeof columnsFor>[1]): string {
-  const one = fmtSetValues({ weight: kind === "weight" ? s.weight : null, reps: kind === "reps" ? s.reps : null, seconds: kind === "seconds" ? s.seconds : null, distance: kind === "distance" ? s.distance : null }, category, units);
-  // fmtSetValues formats pairs; for a single column show the raw field instead.
-  if (kind === "reps") return s.reps == null ? "" : String(s.reps);
-  if (kind === "weight") return s.weight == null ? "" : fmtSetValues({ weight: s.weight, reps: 0, seconds: null, distance: null }, "barbell", units).replace(/ × 0$/, "");
-  if (kind === "seconds") return s.seconds == null ? "" : fmtSetValues({ weight: null, reps: null, seconds: s.seconds, distance: null }, "duration", units);
-  if (kind === "distance") return s.distance == null ? "" : fmtSetValues({ weight: null, reps: null, seconds: null, distance: s.distance }, "cardio", units);
-  return one;
 }
 
 function Stat({ value, label }: { value: React.ReactNode; label: string }) {

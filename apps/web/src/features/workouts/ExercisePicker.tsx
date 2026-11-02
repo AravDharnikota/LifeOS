@@ -99,7 +99,7 @@ export function ExercisePicker({ open, onClose, mode = "multi", onPick, title }:
             ))}
           </div>
         </div>
-        <div className="pb-20">
+        <div className="pb-24">
           {list.isPending ? (
             <Skeleton rows={6} className="mx-0" />
           ) : list.isError ? (
@@ -128,7 +128,7 @@ export function ExercisePicker({ open, onClose, mode = "multi", onPick, title }:
           )}
         </div>
         {mode === "multi" && (
-          <div className="sticky bottom-0 -mx-[var(--gutter)] px-[var(--gutter)] pt-2 pb-[max(8px,var(--safe-bottom))] bg-elevated">
+          <div className="absolute left-0 right-0 bottom-0 px-[var(--gutter)] pt-2 pb-[max(12px,var(--safe-bottom))] bg-elevated hairline-t">
             <Button variant="primary" size="lg" full disabled={!selected.length} onClick={submit} data-testid="picker-add">
               {selected.length ? `Add ${selected.length} ${selected.length === 1 ? "Exercise" : "Exercises"}` : "Add Exercises"}
             </Button>

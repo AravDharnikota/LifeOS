@@ -38,13 +38,13 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () =>
       {!draft ? (
         <Skeleton rows={4} className="mx-0 mt-2" />
       ) : (
-        <div className="pb-4">
-          <Section title="Records" footer="Hybrid uses Brzycki below 10 reps and Epley from 10 reps.">
+        <div className="pb-4 wk-flush">
+          <Section title="Estimated 1RM" footer="Hybrid uses Brzycki below 10 reps and Epley from 10 reps.">
             <div className="px-0">
               <Segmented options={[{ value: "hybrid", label: "Hybrid" }, { value: "brzycki", label: "Brzycki" }, { value: "epley", label: "Epley" }]} value={draft.oneRmFormula} onChange={(v) => save({ oneRmFormula: v })} />
             </div>
           </Section>
-          <Section title="Volume" footer="Doubles the volume of dumbbell exercises.">
+          <Section title="Volume" footer="Counting dumbbells twice doubles the volume of dumbbell exercises.">
             <Group inset={false}>
               <FieldRow label="Count dumbbells twice">
                 <Switch checked={draft.countDumbbellsTwice} onChange={(v) => save({ countDumbbellsTwice: v })} label="Count dumbbells twice" />

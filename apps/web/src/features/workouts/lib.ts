@@ -161,7 +161,8 @@ export function fmtSetValues(values: SetValues | null | undefined, category: Exe
     }
     default:
       if (values.weight == null && values.reps == null) return "";
-      return `${fmtWeightValue(values.weight ?? 0, units)} × ${values.reps ?? 0}`;
+      if (values.weight == null) return `${values.reps} reps`;
+      return `${fmtWeightValue(values.weight, units)} × ${values.reps ?? 0}`;
   }
 }
 

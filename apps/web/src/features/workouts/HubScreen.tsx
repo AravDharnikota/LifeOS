@@ -169,8 +169,8 @@ function TemplateCard({ template, onOpen, onStart }: { template: WorkoutTemplate
         onPointerDown={(e) => { lastPoint.current = { x: e.clientX, y: e.clientY }; lp.onPointerDown(e); }}
       >
         <div className="text-headline text-primary truncate-2">{template.name}</div>
-        <div className="text-footnote text-secondary mt-1 truncate-2 flex-1">{exerciseSummary(names)}</div>
-        {template.lastPerformedAt && <div className="text-caption-1 text-tertiary mt-2">{fmtRelativeDate(template.lastPerformedAt)}</div>}
+        <div className="text-footnote text-secondary mt-1 truncate-2">{exerciseSummary(names)}</div>
+        {template.lastPerformedAt && <div className="text-caption-1 text-tertiary mt-auto pt-2">{fmtRelativeDate(template.lastPerformedAt)}</div>}
         <button type="button" aria-label="Template menu" className="absolute top-1 right-1 hit-44 inline-flex items-center justify-center text-tertiary rounded-md active:bg-pressed" onClick={(e) => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); setMenu({ x: r.left + r.width / 2, y: r.bottom }); }} onPointerDown={(e) => e.stopPropagation()}>
           <Icon name="more" size={20} />
         </button>
@@ -227,7 +227,7 @@ function TemplatePreviewSheet({ template, onClose, onStart, pending }: { templat
         open={Boolean(t)}
         onClose={onClose}
         title={t?.name ?? ""}
-        detent="large"
+        detent="auto"
         trailing={
           <IconButton label="Template menu" onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setMenu({ x: r.left + r.width / 2, y: r.bottom }); }}>
             <Icon name="more" />

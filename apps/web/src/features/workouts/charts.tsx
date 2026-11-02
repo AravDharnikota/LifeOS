@@ -121,12 +121,16 @@ export function LineChart({ points, height = 140, format, selected, onSelect, cl
             </g>
           ))}
           {points.length > 1 && <path d={path} className="wk-chart-line" />}
-          {points.length === 1 && <circle cx={x(0)} cy={y(points[0]!.value)} r={3} fill="var(--accent)" />}
-          {points.map((p, i) => (i % labelEvery === 0 || i === points.length - 1) && points.length > 1 ? <text key={i} x={x(i)} y={height - 4} textAnchor={i === 0 ? "start" : i === points.length - 1 ? "end" : "middle"} className="wk-chart-label">{p.label}</text> : null)}
+          {points.length === 1 && <circle cx={x(0)} cy={y(points[0]!.value)} r={3} fill="var(--activity)" />}
+          {points.map((p, i) => {
+            const last = i === points.length - 1;
+            const show = points.length > 1 && (i % labelEvery === 0 ? !last || labelEvery === 1 || (points.length - 1) % labelEvery === 0 : last && (points.length - 1) % labelEvery >= Math.ceil(labelEvery / 2));
+            return show ? <text key={i} x={x(i)} y={height - 4} textAnchor={i === 0 ? "start" : last ? "end" : "middle"} className="wk-chart-label">{p.label}</text> : null;
+          })}
           {selected != null && points[selected] && (
             <g>
               <line x1={x(selected)} x2={x(selected)} y1={PAD_T} y2={y(lo)} stroke="var(--text-primary)" strokeWidth={1} />
-              <circle cx={x(selected)} cy={y(points[selected]!.value)} r={4} fill="var(--accent)" stroke="var(--bg-surface)" strokeWidth={2} />
+              <circle cx={x(selected)} cy={y(points[selected]!.value)} r={4} fill="var(--activity)" stroke="var(--bg-surface)" strokeWidth={2} />
             </g>
           )}
         </svg>
