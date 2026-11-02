@@ -1,3 +1,4 @@
+import { POPULAR_EXERCISES } from "./exercise-library.ts";
 import { and, asc, desc, eq, inArray, isNull, like, ne, notInArray, sql } from "drizzle-orm";
 import { format } from "date-fns";
 import {
@@ -345,7 +346,8 @@ export function listExercises(db: Db, opts: { q?: string; bodyPart?: string; cat
   if (q) {
     // Name starts with the query first, then word starts, then substrings; shorter (plainer) names before variants.
     const tier = (name: string) => (name.toLowerCase().startsWith(q) ? 0 : name.toLowerCase().split(/[\s(]+/).some((w) => w.startsWith(q)) ? 1 : 2);
-    rows.sort((a, b) => tier(a.name) - tier(b.name) || a.name.length - b.name.length || a.name.localeCompare(b.name));
+    const popular = (name: string) => (POPULAR_EXERCISES.has(name) ? 0 : 1);
+    rows.sort((a, b) => tier(a.name) - tier(b.name) || popular(a.name) - popular(b.name) || a.name.length - b.name.length || a.name.localeCompare(b.name));
   }
   const last = new Map(
     db

@@ -151,6 +151,13 @@ function seedExampleTemplates(db: Db): void {
 }
 
 /** Idempotent: seeds the exercise library and the example templates. */
+/** Lifts most people reach for; they rank first in search ties. */
+export const POPULAR_EXERCISES = new Set([
+  "Bench Press (Barbell)", "Bench Press (Dumbbell)", "Incline Bench Press (Barbell)", "Incline Bench Press (Dumbbell)", "Squat (Barbell)", "Front Squat (Barbell)", "Deadlift (Barbell)", "Romanian Deadlift (Barbell)",
+  "Overhead Press (Barbell)", "Shoulder Press (Dumbbell)", "Bent Over Row (Barbell)", "Pull Up", "Chin Up", "Lat Pulldown (Cable)", "Seated Row (Cable)", "Leg Press", "Leg Extension (Machine)", "Leg Curl (Machine)",
+  "Lateral Raise (Dumbbell)", "Bicep Curl (Dumbbell)", "Bicep Curl (Barbell)", "Hammer Curl (Dumbbell)", "Triceps Pushdown (Cable)", "Skullcrusher (Barbell)", "Dip", "Push Up", "Plank", "Hip Thrust (Barbell)", "Lunge (Dumbbell)", "Face Pull (Cable)", "Running", "Cycling",
+]);
+
 export function seedExercises(db: Db): void {
   db.transaction((tx) => {
     seedLibrary(tx);
