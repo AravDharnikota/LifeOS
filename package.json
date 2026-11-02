@@ -8,7 +8,7 @@
     "node": ">=22.13"
   },
   "scripts": {
-    "dev": "pnpm -r --parallel --filter ./apps/* dev",
+    "dev": "pnpm --filter @aravos/server --filter @aravos/web --parallel dev",
     "dev:server": "pnpm --filter @aravos/server dev",
     "dev:web": "pnpm --filter @aravos/web dev",
     "build": "pnpm --filter @aravos/shared build && pnpm --filter @aravos/web build && pnpm --filter @aravos/server build",
