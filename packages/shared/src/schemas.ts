@@ -241,7 +241,7 @@ export type ExerciseCategory = z.infer<typeof ExerciseCategory>;
 export const BodyPart = z.enum(["chest", "back", "legs", "shoulders", "arms", "core", "full_body", "cardio", "other"]);
 export const SetType = z.enum(["normal", "warmup", "drop", "failure"]);
 export type SetType = z.infer<typeof SetType>;
-export const PrType = z.enum(["weight", "one_rm", "volume", "reps"]);
+export const PrType = z.enum(["weight", "one_rm", "volume", "reps", "distance", "duration"]);
 export type PrType = z.infer<typeof PrType>;
 
 export const Exercise = z.object({
@@ -253,6 +253,9 @@ export const Exercise = z.object({
   isCustom: z.boolean(),
   createdAt: z.string(),
   deletedAt: z.string().nullable(),
+  // derived
+  lastPerformedAt: z.string().nullable().optional(),
+  recordOneRm: z.number().nullable().optional(),
 });
 export type Exercise = z.infer<typeof Exercise>;
 export const ExerciseCreate = z.object({ name: z.string().trim().min(1).max(120), category: ExerciseCategory, bodyPart: BodyPart, instructions: z.string().max(5000).nullable().optional() });
@@ -313,6 +316,7 @@ export const Workout = z.object({
   createdAt: z.string(),
   updatedAt: z.string(),
   exercises: z.array(WorkoutExercise).optional(),
+  templateName: z.string().nullable().optional(),
 });
 export type Workout = z.infer<typeof Workout>;
 
@@ -328,11 +332,76 @@ export const WorkoutSetInput = z.object({
 export type WorkoutSetInput = z.infer<typeof WorkoutSetInput>;
 export const WorkoutExerciseInput = z.object({ exerciseId: id, supersetGroup: z.number().int().nullable().optional(), restSeconds: z.number().int().nullable().optional(), notes: z.string().max(2000).nullable().optional(), sets: z.array(WorkoutSetInput).optional() });
 export const WorkoutStart = z.object({ templateId: id.nullable().optional(), name: z.string().max(120).optional() });
-export const WorkoutUpdate = z.object({ name: z.string().trim().min(1).max(120).optional(), notes: z.string().max(5000).nullable().optional(), startedAt: isoDateTime.optional() });
-export const WorkoutFinish = z.object({ updateTemplate: z.boolean().optional(), durationSeconds: z.number().int().min(0).optional() });
+export const WorkoutUpdate = z.object({ name: z.string().trim().min(1).max(120).optional(), notes: z.string().max(5000).nullable().optional(), startedAt: isoDateTime.optional(), finishedAt: isoDateTime.optional(), durationSeconds: z.number().int().min(0).optional() });
+export type WorkoutUpdate = z.infer<typeof WorkoutUpdate>;
+export const TemplateAction = z.enum(["keep", "update_template", "update_values", "update_both", "save_as_template"]);
+export type TemplateAction = z.infer<typeof TemplateAction>;
+export const WorkoutFinish = z.object({
+  updateTemplate: z.boolean().optional(),
+  durationSeconds: z.number().int().min(0).optional(),
+  discardIncomplete: z.boolean().optional(),
+  templateAction: TemplateAction.optional(),
+  newTemplateName: z.string().trim().min(1).max(120).optional(),
+  newTemplateFolder: z.string().max(100).nullable().optional(),
+});
+export type WorkoutFinish = z.infer<typeof WorkoutFinish>;
 
-export const PersonalRecord = z.object({ id, exerciseId: id, type: PrType, value: z.number(), weight: z.number().nullable(), reps: z.number().int().nullable(), workoutId: id.nullable(), workoutSetId: id.nullable(), achievedAt: z.string() });
+export const PersonalRecord = z.object({ id, exerciseId: id, type: PrType, value: z.number(), weight: z.number().nullable(), reps: z.number().int().nullable(), workoutId: id.nullable(), workoutSetId: id.nullable(), achievedAt: z.string(), exerciseName: z.string().optional() });
 export type PersonalRecord = z.infer<typeof PersonalRecord>;
+
+export const TemplatePatch = z.object({ name: z.string().trim().min(1).max(120).optional(), notes: z.string().max(5000).nullable().optional(), folder: z.string().max(100).nullable().optional(), sortOrder: z.number().int().optional() });
+export type TemplatePatch = z.infer<typeof TemplatePatch>;
+export const WorkoutExerciseAdd = z.object({ exerciseId: id, supersetGroup: z.number().int().nullable().optional(), restSeconds: z.number().int().min(0).max(3600).nullable().optional() });
+export type WorkoutExerciseAdd = z.infer<typeof WorkoutExerciseAdd>;
+export const WorkoutExerciseUpdate = z.object({ restSeconds: z.number().int().min(0).max(3600).nullable().optional(), notes: z.string().max(2000).nullable().optional(), supersetGroup: z.number().int().nullable().optional() });
+export type WorkoutExerciseUpdate = z.infer<typeof WorkoutExerciseUpdate>;
+export const WorkoutSettings = z.object({
+  oneRmFormula: z.enum(["hybrid", "brzycki", "epley"]).default("hybrid"),
+  countDumbbellsTwice: z.boolean().default(false),
+  includeWeightedBodyweightVolume: z.boolean().default(true),
+  includeAssistedBodyweightVolume: z.boolean().default(true),
+  previousSetSource: z.enum(["any", "same_template"]).default("any"),
+  warmupRestSeconds: z.number().int().min(0).max(3600).nullable().default(null),
+  dropSetRestSeconds: z.number().int().min(0).max(3600).nullable().default(null),
+  timerIncrementSeconds: z.number().int().min(5).max(60).default(10),
+});
+export type WorkoutSettings = z.infer<typeof WorkoutSettings>;
+
+export const WorkoutSetSummary = z.object({ setType: SetType, weight: z.number().nullable(), reps: z.number().int().nullable(), seconds: z.number().int().nullable(), distance: z.number().nullable() });
+export const WorkoutExerciseSummary = z.object({ workoutExerciseId: id, exerciseId: id, name: z.string(), category: ExerciseCategory, supersetGroup: z.number().int().nullable(), setCount: z.number().int(), bestSet: WorkoutSetSummary.nullable(), prCount: z.number().int() });
+export const WorkoutListItem = Workout.omit({ exercises: true }).extend({ exerciseSummary: z.array(WorkoutExerciseSummary) });
+export type WorkoutListItem = z.infer<typeof WorkoutListItem>;
+
+export const WorkoutPrSummary = z.object({ exerciseId: id, exerciseName: z.string(), type: PrType, value: z.number(), weight: z.number().nullable(), reps: z.number().int().nullable(), workoutSetId: id.nullable() });
+export const WorkoutFinishResult = z.object({ workout: Workout, summary: z.object({ durationSeconds: z.number().int(), totalVolume: z.number(), totalSets: z.number().int(), prs: z.array(WorkoutPrSummary), templateChanged: z.boolean(), templateId: id.nullable() }) });
+export type WorkoutFinishResult = z.infer<typeof WorkoutFinishResult>;
+
+export const ChartPoint = z.object({ date: z.string(), value: z.number(), workoutId: id });
+export const ExerciseHistoryEntry = z.object({ workoutId: id, workoutExerciseId: id, name: z.string(), startedAt: z.string(), finishedAt: z.string().nullable(), notes: z.string().nullable(), sets: z.array(WorkoutSet) });
+export type ExerciseHistoryEntry = z.infer<typeof ExerciseHistoryEntry>;
+export const ExerciseDetail = z.object({
+  exercise: Exercise,
+  records: z.array(PersonalRecord),
+  bestByReps: z.array(z.object({ reps: z.number().int(), best: z.number().nullable(), predicted: z.number().nullable() })),
+  history: z.array(ExerciseHistoryEntry),
+  charts: z.object({ oneRm: z.array(ChartPoint), maxWeight: z.array(ChartPoint), volume: z.array(ChartPoint), maxReps: z.array(ChartPoint), totalReps: z.array(ChartPoint), distance: z.array(ChartPoint), duration: z.array(ChartPoint) }),
+  workoutCount: z.number().int(),
+});
+export type ExerciseDetail = z.infer<typeof ExerciseDetail>;
+
+export const WorkoutStats = z.object({
+  thisWeek: z.number().int(),
+  lastWeek: z.number().int(),
+  weeklyTarget: z.number().int(),
+  streakWeeks: z.number().int(),
+  totalWorkouts: z.number().int(),
+  last: z.object({ id, name: z.string(), finishedAt: z.string() }).nullable(),
+  volumeByWeek: z.array(z.object({ weekStart: z.string(), volume: z.number(), count: z.number().int() })),
+  recentPrs: z.array(PersonalRecord),
+});
+export type WorkoutStats = z.infer<typeof WorkoutStats>;
+export const WorkoutCalendarDay = z.object({ date: z.string(), workouts: z.array(z.object({ id, name: z.string(), finishedAt: z.string().nullable() })) });
+export type WorkoutCalendarDay = z.infer<typeof WorkoutCalendarDay>;
 
 // ---------- nutrition ----------
 export const Nutrients = z.object({
@@ -479,7 +548,7 @@ export const HealthProfile = z.object({
       fiberG: z.number().int().positive().default(30),
       sugarMaxG: z.number().int().positive().default(50),
       sodiumMaxMg: z.number().int().positive().default(2300),
-      waterMl: z.number().int().positive().default(3000),
+      waterMl: z.number().int().positive().default(2500),
       workoutsPerWeek: z.number().int().min(0).max(14).default(4),
       stepsPerDay: z.number().int().positive().nullable().default(null),
     })

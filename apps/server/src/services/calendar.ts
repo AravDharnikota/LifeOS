@@ -1,5 +1,7 @@
 import { and, asc, eq, gte, isNull, lte, or, sql } from "drizzle-orm";
-import { RRule, rrulestr } from "rrule";
+import rrulePkg from "rrule";
+import type { RRule as RRuleType } from "rrule";
+const { RRule, rrulestr } = rrulePkg;
 import type { CalEvent, EventCreate, EventUpdate } from "@aravos/shared";
 import type { Db } from "../db/client.ts";
 import { schema } from "../db/client.ts";
@@ -216,11 +218,11 @@ export function listEvents(db: Db, opts: RangeOptions): CalEvent[] {
       continue;
     }
     const durMs = r.allDay ? 0 : new Date(r.end).getTime() - new Date(r.start).getTime();
-    let rule: RRule;
+    let rule: RRuleType;
     try {
       const dtstart = r.allDay ? new Date(r.start + "T00:00:00Z") : new Date(r.start);
       const parsed = rrulestr(r.rrule.startsWith("RRULE:") ? r.rrule : `RRULE:${r.rrule}`, { dtstart });
-      rule = parsed instanceof RRule ? parsed : new RRule({ ...(parsed as RRule).origOptions, dtstart });
+      rule = parsed instanceof RRule ? parsed : new RRule({ ...(parsed as RRuleType).origOptions, dtstart });
     } catch {
       out.push(serializeEvent(r, extra));
       continue;

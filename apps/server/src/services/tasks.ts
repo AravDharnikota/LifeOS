@@ -1,5 +1,6 @@
 import { and, asc, desc, eq, gte, inArray, isNull, lte, or, sql } from "drizzle-orm";
-import { RRule } from "rrule";
+import rrulePkg from "rrule";
+const { RRule } = rrulePkg;
 import { addDaysString, parseDateString, parseTaskInput, toDateString, todayString, type Task, type TaskCreate, type TaskUpdate } from "@aravos/shared";
 import type { Db } from "../db/client.ts";
 import { schema } from "../db/client.ts";

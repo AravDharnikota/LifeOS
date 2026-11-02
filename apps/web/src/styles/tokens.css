@@ -1,0 +1,150 @@
+/* AravOS design tokens. Source of truth: docs/research/design-brief.md section 3. */
+:root {
+  color-scheme: light dark;
+
+  --font-ui: -apple-system, BlinkMacSystemFont, system-ui, "Host Grotesk", "Segoe UI", Roboto, sans-serif;
+  --font-num: ui-rounded, -apple-system, system-ui, "Host Grotesk", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* neutrals (Radix Sand) */
+  --bg-canvas: #f9f9f8;
+  --bg-surface: #ffffff;
+  --bg-elevated: #ffffff;
+  --bg-surface-2: #f1f0ef;
+  --bg-pressed: #e9e8e6;
+  --bg-selected: #e2e1de;
+  --separator: rgba(33, 32, 28, 0.1);
+  --separator-strong: rgba(33, 32, 28, 0.16);
+  --border-interactive: #cfceca;
+  --border-focus: #bcbbb5;
+  --text-primary: #21201c;
+  --text-secondary: #63635e;
+  --text-tertiary: #8d8d86;
+  --text-quaternary: #bcbbb5;
+  --backdrop: rgba(0, 0, 0, 0.3);
+
+  /* accent (system blue) */
+  --accent: #0088ff;
+  --accent-text: #1e6ef4;
+  --accent-soft: #e5f2ff;
+  --on-accent: #ffffff;
+
+  /* health metrics: solid / text / soft */
+  --energy: #ff8d28; --energy-text: #c55300; --energy-soft: #fff1e6;
+  --protein: #34c759; --protein-text: #008932; --protein-soft: #e6f7ea;
+  --carbs: #ffcc00; --carbs-text: #a16a00; --carbs-soft: #fff6d6;
+  --fat: #ff2d55; --fat-text: #e7124d; --fat-soft: #ffe8ee;
+  --water: #00c0e8; --water-text: #007eae; --water-soft: #e2f5fb;
+  --activity: #00c8b3; --activity-text: #008575; --activity-soft: #e0f7f4;
+
+  /* status */
+  --danger: #ff383c; --danger-text: #e9152d; --danger-soft: #ffe9ea;
+  --success: #34c759; --success-text: #008932;
+  --warning: #ff8d28; --warning-text: #c55300;
+
+  /* calendar palette */
+  --cal-blue: #2383e2;
+  --cal-green: #0f7b6c;
+  --cal-yellow: #cb912f;
+  --cal-orange: #d9730d;
+  --cal-red: #d44c47;
+  --cal-pink: #c14c8a;
+  --cal-purple: #9065b0;
+  --cal-gray: #787774;
+  --cal-graphite: #5f5e5a;
+  --cal-mix: 16%;
+  --cal-text-mix: 100%;
+
+  /* radius */
+  --r-xs: 4px; --r-sm: 6px; --r-md: 10px; --r-lg: 12px; --r-full: 9999px;
+
+  /* motion */
+  --dur-press: 100ms; --dur-micro: 150ms; --dur-enter: 200ms; --dur-exit: 160ms; --dur-page: 300ms; --dur-sheet: 500ms; --dur-ring: 600ms;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
+  --spring-snappy: linear(0, 0.038 4%, 0.129 8%, 0.244 12%, 0.367 17%, 0.485 21%, 0.592 25%, 0.685 29%, 0.763 33%, 0.826 38%, 0.876 42%, 0.915 46%, 0.944 50%, 0.966 54%, 0.981 58%, 0.992 62%, 0.998 67%, 1.003 71%, 1.005 75%, 1.006 79%, 1.006 83%, 1.006 88%, 1.005 92%, 1.005 96%, 1);
+  --spring-pop: linear(0, 0.039 4%, 0.133 8%, 0.256 12%, 0.388 17%, 0.516 21%, 0.633 25%, 0.734 29%, 0.817 33%, 0.884 38%, 0.934 42%, 0.971 46%, 0.997 50%, 1.014 54%, 1.023 58%, 1.028 62%, 1.028 67%, 1.027 71%, 1.024 75%, 1.020 79%, 1.017 83%, 1.013 88%, 1.010 92%, 1.007 96%, 1);
+
+  /* shadows: only popovers, dragged rows, segmented thumb */
+  --shadow-popover: 0 4px 12px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(33, 32, 28, 0.06);
+  --shadow-drag: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --shadow-thumb: 0 1px 2px rgba(0, 0, 0, 0.08), 0 0 0 0.5px rgba(0, 0, 0, 0.04);
+
+  /* layout */
+  --gutter: 16px;
+  --tabbar-h: 49px;
+  --topbar-h: 44px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --sidebar-w: 232px;
+}
+
+@media (min-width: 430px) {
+  :root { --gutter: 20px; }
+}
+
+:root[data-theme="dark"],
+:root:not([data-theme="light"]) {
+  @media (prefers-color-scheme: dark) {
+    --bg-canvas: #111110;
+    --bg-surface: #191918;
+    --bg-elevated: #222221;
+    --bg-surface-2: #2a2a28;
+    --bg-pressed: #31312e;
+    --bg-selected: #3b3a37;
+    --separator: rgba(238, 238, 236, 0.12);
+    --separator-strong: rgba(238, 238, 236, 0.2);
+    --border-interactive: #494844;
+    --border-focus: #62605b;
+    --text-primary: #eeeeec;
+    --text-secondary: #b5b3ad;
+    --text-tertiary: #7c7b74;
+    --text-quaternary: #6f6d66;
+    --backdrop: rgba(0, 0, 0, 0.5);
+    --accent: #0091ff; --accent-text: #5cb8ff; --accent-soft: #0e2238;
+    --energy: #ff9230; --energy-text: #ffa056; --energy-soft: #2a1c10;
+    --protein: #30d158; --protein-text: #4ad968; --protein-soft: #0f2416;
+    --carbs: #ffd600; --carbs-text: #fedf43; --carbs-soft: #27220f;
+    --fat: #ff375f; --fat-text: #ff8ac4; --fat-soft: #2b141b;
+    --water: #3cd3fe; --water-text: #6dd9ff; --water-soft: #0e2230;
+    --activity: #00dac3; --activity-text: #54dfcb; --activity-soft: #0e2622;
+    --danger: #ff4245; --danger-text: #ff6165; --danger-soft: #2b1516;
+    --success: #30d158; --success-text: #4ad968;
+    --warning: #ff9230; --warning-text: #ffa056;
+    --cal-mix: 22%;
+    --shadow-popover: 0 4px 16px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(238, 238, 236, 0.08);
+    --shadow-thumb: 0 1px 2px rgba(0, 0, 0, 0.3), 0 0 0 0.5px rgba(255, 255, 255, 0.06);
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg-canvas: #111110;
+  --bg-surface: #191918;
+  --bg-elevated: #222221;
+  --bg-surface-2: #2a2a28;
+  --bg-pressed: #31312e;
+  --bg-selected: #3b3a37;
+  --separator: rgba(238, 238, 236, 0.12);
+  --separator-strong: rgba(238, 238, 236, 0.2);
+  --border-interactive: #494844;
+  --border-focus: #62605b;
+  --text-primary: #eeeeec;
+  --text-secondary: #b5b3ad;
+  --text-tertiary: #7c7b74;
+  --text-quaternary: #6f6d66;
+  --backdrop: rgba(0, 0, 0, 0.5);
+  --accent: #0091ff; --accent-text: #5cb8ff; --accent-soft: #0e2238;
+  --energy: #ff9230; --energy-text: #ffa056; --energy-soft: #2a1c10;
+  --protein: #30d158; --protein-text: #4ad968; --protein-soft: #0f2416;
+  --carbs: #ffd600; --carbs-text: #fedf43; --carbs-soft: #27220f;
+  --fat: #ff375f; --fat-text: #ff8ac4; --fat-soft: #2b141b;
+  --water: #3cd3fe; --water-text: #6dd9ff; --water-soft: #0e2230;
+  --activity: #00dac3; --activity-text: #54dfcb; --activity-soft: #0e2622;
+  --danger: #ff4245; --danger-text: #ff6165; --danger-soft: #2b1516;
+  --success: #30d158; --success-text: #4ad968;
+  --warning: #ff9230; --warning-text: #ffa056;
+  --cal-mix: 22%;
+  --shadow-popover: 0 4px 16px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(238, 238, 236, 0.08);
+  --shadow-thumb: 0 1px 2px rgba(0, 0, 0, 0.3), 0 0 0 0.5px rgba(255, 255, 255, 0.06);
+}

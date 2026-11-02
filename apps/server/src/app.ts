@@ -32,6 +32,8 @@ export interface CreateAppOptions {
 
 export function createApp(opts: CreateAppOptions = {}): { app: App; ctx: AppContext } {
   const env = loadEnv(opts.env);
+  // All Date math on the server happens in the user's timezone (dates are YYYY-MM-DD local strings).
+  if (process.env.TZ !== env.timezone) process.env.TZ = env.timezone;
   const db = opts.db ?? openDb(env.dbFile);
   seedDatabase(db, env);
   const ai = opts.ai ?? createAiProvider(env);
