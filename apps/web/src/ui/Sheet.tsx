@@ -86,7 +86,7 @@ export function Sheet({ open, onClose, title, detent = "auto", leading, trailing
             transition={isDesktop ? { duration: 0.2, ease: [0.23, 1, 0.32, 1] } : { duration: 0.5, ease: [0.32, 0.72, 0, 1] }}
             className={cn(
               "relative flex flex-col bg-elevated text-primary w-full",
-              isDesktop && desktop === "dialog" && "max-w-[520px] rounded-lg max-h-[86vh] shadow-popover",
+              isDesktop && desktop === "dialog" && "max-w-[520px] rounded-lg max-h-[90vh] shadow-popover",
               isDesktop && desktop === "panel" && "max-w-[440px] h-full",
               !isDesktop && "rounded-t-lg max-h-[calc(100dvh-var(--safe-top)-8px)]",
               className,

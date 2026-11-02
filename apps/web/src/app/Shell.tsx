@@ -6,6 +6,7 @@ import { useIsDesktop } from "@/lib/hooks";
 import { useUi } from "@/state/ui";
 import { AgentSheet } from "@/features/agent/AgentSheet";
 import { RestTimerHost } from "@/features/workouts/WorkoutsRoutes";
+import { QuickAdd } from "@/features/tasks/QuickAdd";
 import { Skeleton } from "@/ui/Empty";
 
 const tabs: { to: string; label: string; icon: IconName; fill: IconName }[] = [
@@ -63,6 +64,7 @@ export function Shell() {
       {!isDesktop && <TabBar path={location.pathname} />}
       <AgentSheet />
       <RestTimerHost />
+      <QuickAdd />
     </div>
   );
 }

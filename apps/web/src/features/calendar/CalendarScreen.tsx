@@ -118,7 +118,6 @@ export function CalendarScreen() {
             : [{ label: confirm?.kind === "timebox" ? "Remove Time Box" : "Delete Event", destructive: true, onPress: () => confirm && void m.remove.mutateAsync({ ev: confirm }) }]
         }
       />
-      <QuickAdd />
     </>
   );
 

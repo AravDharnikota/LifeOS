@@ -15,8 +15,10 @@ export interface MenuItem {
 /** Context menu anchored to a point (long press) or an element (more button). Popover shadow is permitted here. */
 export function Menu({ open, onClose, anchor, items, children }: { open: boolean; onClose: () => void; anchor: { x: number; y: number } | null; items: MenuItem[]; children?: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
+  const openedAt = useRef(0);
   useEffect(() => {
     if (!open) return;
+    openedAt.current = performance.now();
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -32,7 +34,7 @@ export function Menu({ open, onClose, anchor, items, children }: { open: boolean
   return createPortal(
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-[65]" onClick={onClose} onContextMenu={(e) => e.preventDefault()}>
+        <div className="fixed inset-0 z-[65]" onClick={() => { if (performance.now() - openedAt.current > 300) onClose(); }} onContextMenu={(e) => e.preventDefault()}>
           <motion.div ref={ref} role="menu" initial={{ opacity: 0, scale: 0.96, y: below ? -4 : 4 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.98, transition: { duration: 0.12 } }} transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }} style={{ left: x, top: y, width: w, transformOrigin: below ? "top center" : "bottom center" }} className="absolute bg-elevated rounded-lg shadow-popover overflow-hidden py-1" onClick={(e) => e.stopPropagation()}>
             {children}
             {items.map((it) => (

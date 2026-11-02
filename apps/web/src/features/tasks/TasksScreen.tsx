@@ -10,7 +10,7 @@ import { IconButton } from "@/ui/Button";
 import { Icon } from "@/ui/Icon";
 import { Segmented } from "@/ui/Segmented";
 import { Menu } from "@/ui/Menu";
-import { QuickAdd, useQuickAddPrefs } from "./QuickAdd";
+import { useQuickAddPrefs } from "./QuickAdd";
 import { AnytimeView, ListTasksView, ListsView, LogbookView, TodayView, UpcomingView } from "./views";
 
 type Tab = "today" | "upcoming" | "anytime" | "lists" | "logbook";
@@ -65,7 +65,6 @@ function Home() {
       {current === "lists" && <ListsView />}
       {current === "logbook" && <LogbookView />}
       <Menu open={Boolean(more)} onClose={() => setMore(null)} anchor={more} items={[{ label: "Logbook", icon: "book", onPress: () => navigate("logbook") }]} />
-      <QuickAdd />
     </Screen>
   );
 }
@@ -94,7 +93,6 @@ function ListScreen() {
       }
     >
       <ListTasksView listId={id} listName={name} />
-      <QuickAdd />
     </Screen>
   );
 }
@@ -104,7 +102,6 @@ function LogbookScreen() {
   return (
     <Screen title="Logbook" back="/tasks">
       <LogbookView />
-      <QuickAdd />
     </Screen>
   );
 }
