@@ -28,6 +28,18 @@ pnpm dev                        # server on :8787, web on :5173
 ```
 Open http://localhost:5173. Production: `pnpm build && pnpm start` serves the web app from the server.
 
+## Connect your agents
+AravOS exposes everything through an MCP server at `https://<your-server>/mcp` (bearer token = `ARAVOS_TOKEN`).
+
+```bash
+# Claude Code
+claude mcp add --transport http aravos https://<your-server>/mcp --header "Authorization: Bearer <ARAVOS_TOKEN>"
+
+# Claude Desktop, Cursor, and other stdio-only clients
+npx mcp-remote https://<your-server>/mcp --header "Authorization:Bearer <ARAVOS_TOKEN>"
+```
+Any agent that connects can read the day summary, add and complete tasks, move events, log water, weight and meals, update goals, run the scheduler, and change the dashboard. Pass an `X-Actor: mcp:<agent name>` header so the activity log shows who changed what. Full tool list and a suggested assistant routine: [docs/mcp.md](docs/mcp.md).
+
 ## Docs
 - [Setup and environment](docs/deploy.md)
 - [iPhone app](docs/ios.md)
