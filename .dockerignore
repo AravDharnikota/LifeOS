@@ -1,0 +1,13 @@
+node_modules
+**/node_modules
+**/dist
+**/dist-*
+apps/web/ios
+apps/web/test-results
+apps/web/playwright-report
+data
+**/data/*.db*
+.git
+docs/research
+*.log
+.env
