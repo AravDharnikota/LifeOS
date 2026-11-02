@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { todayString } from "@aravos/shared";
 import { useAppSettings, useDaySummary } from "@/data/queries";
@@ -39,9 +39,12 @@ export function WaterWidget({ widget, editing }: WidgetProps<WidgetOf<"water">>)
   const target = summary.data?.water.target ?? 0;
   const ml = server + pending;
 
+  // As the server catches up, retire only the part of the optimistic delta it now reflects.
+  const lastServer = useRef(server);
   useEffect(() => {
-    // Once the server catches up, drop the optimistic delta.
-    setPending(0);
+    const change = server - lastServer.current;
+    lastServer.current = server;
+    if (change) setPending((p) => Math.max(0, p - change));
   }, [server]);
 
   const add = async (amount: number) => {
@@ -88,7 +91,7 @@ export function WaterWidget({ widget, editing }: WidgetProps<WidgetOf<"water">>)
                 aria-label={`Add ${c} millilitres`}
                 onClick={() => void add(c)}
                 disabled={editing}
-                className={cn("h-9 flex-1 rounded-sm bg-surface-2 text-footnote font-medium text-primary tabular active:bg-pressed pressable", editing && "opacity-40")}
+                className={cn("h-9 flex-1 rounded-md bg-surface-2 text-footnote font-medium text-primary tabular active:bg-pressed pressable", editing && "opacity-40")}
               >
                 +{imperial ? `${show(c)} ${unit}` : `${c} ${unit}`}
               </button>

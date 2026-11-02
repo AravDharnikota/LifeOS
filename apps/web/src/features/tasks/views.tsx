@@ -17,7 +17,13 @@ import { useTaskActions } from "./useTaskActions";
 export function TodayView() {
   const today = todayString();
   const q = useTasks({ view: "today" });
-  const groups = useMemo(() => groupToday(q.data ?? [], today), [q.data, today]);
+  // Done today comes from the done view so it follows the local day, not the server's date string.
+  const doneQ = useTasks({ view: "done", limit: 100 });
+  const groups = useMemo(() => {
+    const seen = new Set<string>();
+    const merged = [...(q.data ?? []), ...(doneQ.data ?? [])].filter((t) => (seen.has(t.id) ? false : (seen.add(t.id), true)));
+    return groupToday(merged, today);
+  }, [q.data, doneQ.data, today]);
   return <TaskBoard groups={groups} loading={q.isLoading} error={q.error} onRetry={() => void q.refetch()} empty="Nothing due today." date={today} />;
 }
 
@@ -44,7 +50,7 @@ export function ListTasksView({ listId, listName }: { listId: string; listName: 
   const q = useTasks({ view: "list", listId });
   const groups = useMemo(() => {
     const open = (q.data ?? []).filter((t) => t.status === "open").sort((a, b) => a.sortOrder - b.sortOrder);
-    return open.length ? [{ key: listId, title: listName, tasks: open, hideDone: true, reorderable: true }] : [];
+    return open.length ? [{ key: listId, title: "", tasks: open, hideDone: true, reorderable: true, showList: false }] : [];
   }, [q.data, listId, listName]);
   return <TaskBoard groups={groups} loading={q.isLoading} error={q.error} onRetry={() => void q.refetch()} empty={`No tasks in ${listName}.`} />;
 }

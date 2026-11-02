@@ -171,7 +171,7 @@ export function LineChart({ points, height = 190, target, format, selected, onSe
         </g>
       ))}
       {target != null && target >= lo && target <= hi && <line x1={0} x2={plotW} y1={y(target)} y2={y(target)} stroke="var(--text-quaternary)" strokeWidth={1} strokeDasharray="3 3" />}
-      {points.map((p, i) => p.raw != null && <circle key={p.key} cx={x(i)} cy={y(p.raw)} r={2.5} fill="var(--text-quaternary)" />)}
+      {points.map((p, i) => p.raw != null && <circle key={p.key} cx={x(i)} cy={y(p.raw)} r={2.5} fill="var(--text-tertiary)" />)}
       {n > 1 && <path d={path} fill="none" stroke="var(--text-primary)" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />}
       {n === 1 && points[0] && <circle cx={x(0)} cy={y(points[0].value)} r={3} fill="var(--text-primary)" />}
       {points.map((p, i) =>

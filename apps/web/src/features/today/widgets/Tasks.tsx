@@ -40,7 +40,8 @@ export function TasksWidget({ widget, sectionTitle, editing }: WidgetProps<Widge
     });
   }, [query.data]);
 
-  const tasks = [...added, ...(query.data ?? [])].filter((t) => t.status !== "cancelled" && !t.parentId);
+  const server = query.data ?? [];
+  const tasks = [...added.filter((a) => !server.some((s) => s.id === a.id)), ...server].filter((t) => t.status !== "cancelled" && !t.parentId);
   const statusOf = (t: Task) => local[t.id] ?? t.status;
   const open = tasks.filter((t) => statusOf(t) === "open");
   const done = tasks.filter((t) => statusOf(t) === "done");
@@ -111,7 +112,7 @@ export function TasksWidget({ widget, sectionTitle, editing }: WidgetProps<Widge
                   tabIndex={editing ? -1 : 0}
                   onClick={() => navigate("/tasks")}
                   onKeyDown={(e) => { if (e.key === "Enter") navigate("/tasks"); }}
-                  className={cn("flex items-center gap-3 min-h-[44px] px-1 rounded-sm cursor-pointer row-hover active:bg-pressed transition-[background-color,opacity] duration-150", isDone && "opacity-50")}
+                  className={cn("flex items-center gap-3 min-h-[44px] px-1 rounded-md cursor-pointer row-hover active:bg-pressed transition-[background-color,opacity] duration-150", isDone && "opacity-50")}
                 >
                   <Checkbox checked={isDone} onChange={(v) => void toggle(t, v)} label={t.title} tint={t.priority >= 3 ? "var(--danger)" : undefined} />
                   <span className={cn("flex-1 min-w-0 text-subhead truncate", isDone ? "text-secondary" : "text-primary")}>{t.title}</span>

@@ -9,6 +9,7 @@ import { Icon } from "@/ui/Icon";
 import { Empty, InlineError, Skeleton } from "@/ui/Empty";
 import { cn } from "@/lib/cn";
 import { useAppSettings } from "@/data/queries";
+import { useIsDesktop } from "@/lib/hooks";
 import { useWorkoutCalendar, useWorkouts } from "./api";
 import { WORKOUTS } from "./lib";
 import { WorkoutRow } from "./common";
@@ -24,8 +25,9 @@ export default function HistoryScreen() {
     }
     return Array.from(map.entries());
   }, [q.data]);
-  return (
-    <Screen title="History" back={WORKOUTS} header={<CalendarStrip />}>
+  const isDesktop = useIsDesktop();
+  const list = (
+    <>
       {q.isPending ? (
         <Skeleton rows={5} />
       ) : q.isError ? (
@@ -43,6 +45,21 @@ export default function HistoryScreen() {
           </Section>
         ))
       )}
+    </>
+  );
+  if (isDesktop) {
+    return (
+      <Screen title="History" back={WORKOUTS}>
+        <div className="grid grid-cols-[360px_minmax(0,1fr)] gap-6 pr-[var(--gutter)] max-w-[1100px]">
+          <div className="pl-[var(--gutter)]"><div className="sticky top-0"><CalendarStrip /></div></div>
+          <div className="[&_.mx-\\[var\\(--gutter\\)\\]]:mx-0 [&_h2]:px-0 [&_section>div:first-child]:px-0">{list}</div>
+        </div>
+      </Screen>
+    );
+  }
+  return (
+    <Screen title="History" back={WORKOUTS} header={<CalendarStrip />}>
+      {list}
     </Screen>
   );
 }
@@ -87,7 +104,7 @@ export function CalendarStrip() {
           const has = list.length > 0;
           const isToday = key === today;
           return (
-            <button key={i} type="button" disabled={!has} onClick={() => has && navigate(`${WORKOUTS}/history/${list[0]!.id}`)} className={cn("h-9 flex flex-col items-center justify-center rounded-sm text-footnote tabular", has ? "text-primary font-semibold active:bg-pressed" : "text-secondary", isToday && "text-accent-text")} aria-label={`${format(d, "d MMM")}${has ? `, ${list.length} workout${list.length === 1 ? "" : "s"}` : ""}`}>
+            <button key={i} type="button" disabled={!has} onClick={() => has && navigate(`${WORKOUTS}/history/${list[0]!.id}`)} className={cn("h-8 flex flex-col items-center justify-center rounded-sm text-footnote tabular", isToday ? "text-accent-text font-semibold" : has ? "text-primary font-semibold" : "text-secondary", has && "active:bg-pressed")} aria-label={`${format(d, "d MMM")}${has ? `, ${list.length} workout${list.length === 1 ? "" : "s"}` : ""}`}>
               <span>{d.getDate()}</span>
               <span className={cn("w-1 h-1 rounded-full mt-0.5", has ? "bg-success" : "bg-transparent")} />
             </button>

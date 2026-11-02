@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Route, Routes, useParams } from "react-router";
+import { Route, Routes, useNavigate, useParams } from "react-router";
 import { create } from "zustand";
 import { useLists } from "@/data/queries";
 import { useHotkey, useIsDesktop } from "@/lib/hooks";
@@ -36,14 +36,14 @@ function Home() {
   const setQuickAdd = useUi((s) => s.setQuickAdd);
   const setListId = useQuickAddPrefs((s) => s.setListId);
   const [more, setMore] = useState<{ x: number; y: number } | null>(null);
+  const navigate = useNavigate();
   useQuickAddHotkeys();
   useEffect(() => setListId(null), [setListId]);
   const options = isDesktop ? [...TABS, { value: "logbook" as Tab, label: "Logbook" }] : TABS;
-  const subtitle = tab === "logbook" ? "Logbook" : undefined;
+  const current: Tab = tab === "logbook" && !isDesktop ? "today" : tab;
   return (
     <Screen
       title="Tasks"
-      subtitle={subtitle}
       actions={
         <>
           {!isDesktop && (
@@ -56,15 +56,15 @@ function Home() {
           </IconButton>
         </>
       }
-      header={<Segmented options={options} value={tab === "logbook" && !isDesktop ? "today" : tab} onChange={setTab} className={isDesktop ? "max-w-[560px]" : undefined} />}
+      header={<Segmented options={options} value={current} onChange={setTab} className={isDesktop ? "max-w-[560px]" : undefined} />}
       contentClassName={isDesktop ? "[&>*]:max-w-[760px]" : undefined}
     >
-      {tab === "today" && <TodayView />}
-      {tab === "upcoming" && <UpcomingView />}
-      {tab === "anytime" && <AnytimeView />}
-      {tab === "lists" && <ListsView />}
-      {tab === "logbook" && <LogbookView />}
-      <Menu open={Boolean(more)} onClose={() => setMore(null)} anchor={more} items={[{ label: "Logbook", icon: "book", onPress: () => setTab("logbook") }]} />
+      {current === "today" && <TodayView />}
+      {current === "upcoming" && <UpcomingView />}
+      {current === "anytime" && <AnytimeView />}
+      {current === "lists" && <ListsView />}
+      {current === "logbook" && <LogbookView />}
+      <Menu open={Boolean(more)} onClose={() => setMore(null)} anchor={more} items={[{ label: "Logbook", icon: "book", onPress: () => navigate("logbook") }]} />
       <QuickAdd />
     </Screen>
   );
@@ -99,11 +99,22 @@ function ListScreen() {
   );
 }
 
+function LogbookScreen() {
+  useQuickAddHotkeys();
+  return (
+    <Screen title="Logbook" back="/tasks">
+      <LogbookView />
+      <QuickAdd />
+    </Screen>
+  );
+}
+
 export function TasksScreen() {
   return (
     <Routes>
       <Route index element={<Home />} />
       <Route path="list/:id" element={<ListScreen />} />
+      <Route path="logbook" element={<LogbookScreen />} />
     </Routes>
   );
 }

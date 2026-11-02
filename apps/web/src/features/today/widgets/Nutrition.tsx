@@ -33,7 +33,7 @@ export function NutritionWidget({ widget }: WidgetProps<WidgetOf<"nutrition_ring
       ) : target === 0 ? (
         <WidgetEmpty action="Set Targets" onAction={() => navigate("/health")}>No calorie target yet.</WidgetEmpty>
       ) : (
-        <div className="flex-1 flex flex-col justify-center lg:flex-row lg:items-center gap-5 lg:gap-6">
+        <div className="flex-1 flex flex-col justify-evenly lg:flex-row lg:items-center gap-5 lg:gap-6">
           <div className="flex items-center justify-center py-1">
             <Ring progress={target > 0 ? eaten / target : 0} size={108} stroke={10} color="var(--energy)" label={`Calories, ${fmtInt(eaten)} of ${fmtInt(target)}`}>
               <span className="num text-title-1 text-primary">{fmtInt(Math.abs(left))}</span>

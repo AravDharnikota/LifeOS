@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Tracker } from "@aravos/shared";
 import { useDaySummary, useTrackers } from "@/data/queries";
@@ -21,7 +21,12 @@ export function TrackerWidget({ widget, editing }: WidgetProps<WidgetOf<"tracker
   const serverValue = tracker?.todayValue ?? 0;
   const [delta, setDelta] = useState(0);
   const [error, setError] = useState<number | null>(null);
-  useEffect(() => setDelta(0), [serverValue]);
+  const lastServer = useRef(serverValue);
+  useEffect(() => {
+    const change = serverValue - lastServer.current;
+    lastServer.current = serverValue;
+    if (change) setDelta((d) => d - change);
+  }, [serverValue]);
 
   const value = serverValue + delta;
   const step = tracker?.step ?? 1;

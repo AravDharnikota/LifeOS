@@ -134,7 +134,7 @@ export function CalendarScreen() {
         <section className="flex-1 min-w-0 h-full flex flex-col">
           <header className="shrink-0 flex items-center gap-2 pl-5 pr-3 h-14 hairline-b">
             <h1 className="text-title-3 text-primary whitespace-nowrap">Calendar</h1>
-            <span className="text-subhead text-secondary whitespace-nowrap truncate min-w-0">{view === "day" ? format(parseDateString(date), "EEE d MMM") : monthLabel}</span>
+            <span className="text-subhead text-secondary whitespace-nowrap hidden min-[1440px]:inline">{view === "day" ? format(parseDateString(date), "EEE d MMM") : monthLabel}</span>
             <div className="flex-1" />
             <div className="flex items-center -mr-1">
               <IconButton label="Previous" onClick={goPrev} className="w-9">
@@ -198,7 +198,7 @@ export function CalendarScreen() {
         </div>
         {view === "day" ? <WeekStrip date={date} weekStartsOn={data.weekStartsOn} events={data.events} calendars={data.calendars} onSelect={setDate} /> : <DayHeader days={days} selected={date} onSelect={(d) => { setDate(d); setView("day"); }} />}
         <div className={cn("hairline-b", view === "day" ? "mt-1" : "")} />
-        {view === "day" && <AllDayRow days={[date]} events={data.events} calendars={data.calendars} onOpen={onOpen} />}
+        <AllDayRow days={view === "day" ? [date] : days} events={data.events} calendars={data.calendars} onOpen={onOpen} />
       </div>
       {data.error && <InlineError onRetry={data.refetch}>Unable to load events.</InlineError>}
       <TimeGrid key={view} days={days} pager={pager} {...gridProps} />

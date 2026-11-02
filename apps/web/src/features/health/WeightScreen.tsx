@@ -4,7 +4,7 @@ import type { WeightLog } from "@aravos/shared";
 import { addDaysString, parseDateString } from "@aravos/shared";
 import { Screen } from "@/ui/Screen";
 import { Segmented } from "@/ui/Segmented";
-import { Button } from "@/ui/Button";
+import { Button, IconButton } from "@/ui/Button";
 import { Icon } from "@/ui/Icon";
 import { Group, Row, Section, ValueRow } from "@/ui/List";
 import { ActionSheet } from "@/ui/Sheet";
@@ -15,6 +15,7 @@ import { fmt1, fmtRelativeDate, fmtWeight, toDisplayWeight } from "@/lib/format"
 import { useIsDesktop } from "@/lib/hooks";
 import { useAppSettings, useSettings } from "@/data/queries";
 import { useDeleteWeight, useWeight } from "@/features/nutrition/api";
+import { signOf } from "@/features/nutrition/model";
 import { LineChart } from "./charts";
 import { WeightSheet } from "./WeightSheet";
 
@@ -59,8 +60,8 @@ export default function WeightScreen() {
   const good = (delta: number | null) => (delta == null || Math.abs(delta) < 0.05 ? null : goal === "lose" ? delta < 0 : goal === "gain" ? delta > 0 : null);
   const deltaText = (kg: number | null) => {
     if (kg == null) return "Not enough data";
-    const v = toDisplayWeight(Math.abs(kg), units) * Math.sign(kg);
-    return `${v > 0 ? "+" : ""}${fmt1(v)} ${unit}`;
+    const v = toDisplayWeight(Math.abs(kg), units);
+    return `${signOf(kg)}${fmt1(v)} ${unit}`;
   };
   const deltaClass = (kg: number | null) => {
     const g = good(kg);
@@ -81,11 +82,8 @@ export default function WeightScreen() {
           </p>
         </>
       ) : (
-        <Empty className="pt-4 pb-2">No weight logged yet.</Empty>
+        <Empty className="pt-4 pb-2" action={<Button variant="plain" onClick={() => setLogOpen(true)}>Log Weight</Button>}>No weight logged yet.</Empty>
       )}
-      <Button variant="primary" size="lg" full className="mt-4" onClick={() => setLogOpen(true)} data-testid="open-log-weight">
-        Log Weight
-      </Button>
     </div>
   );
 
@@ -104,7 +102,7 @@ export default function WeightScreen() {
             <span className="text-callout text-secondary">Two weigh-ins show a trend.</span>
           ) : (
             <>
-              <span className={cn("num text-title-1", deltaClass(periodChange))}>{`${periodChange > 0 ? "+" : ""}${fmt1(periodChange)}`}</span>
+              <span className={cn("num text-title-1", deltaClass(periodChange))}>{`${signOf(periodChange)}${fmt1(Math.abs(periodChange))}`}</span>
               <span className="text-subhead text-secondary">{unit} over {days === 365 ? "a year" : `${days} days`}</span>
             </>
           )}
@@ -145,7 +143,15 @@ export default function WeightScreen() {
   );
 
   return (
-    <Screen title="Weight" back="/health">
+    <Screen
+      title="Weight"
+      back="/health"
+      actions={
+        <IconButton label="Log Weight" tinted onClick={() => setLogOpen(true)} data-testid="open-log-weight">
+          <Icon name="plus" />
+        </IconButton>
+      }
+    >
       {weight.isPending ? (
         <div className="flex flex-col gap-6 pt-2">
           <Skeleton rows={1} />

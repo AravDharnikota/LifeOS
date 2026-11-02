@@ -11,7 +11,7 @@ export const distanceUnit = (units: Units): string => (units === "imperial" ? "m
 export const KM_PER_MI = 1.609344;
 
 export function displayWeight(kg: number, units: Units): number {
-  return Math.round((units === "imperial" ? kgToLb(kg) : kg) * 100) / 100;
+  return Math.round((units === "imperial" ? kgToLb(kg) : kg) * 10) / 10;
 }
 export function storeWeight(display: number, units: Units): number {
   return round2(units === "imperial" ? lbToKg(display) : display);

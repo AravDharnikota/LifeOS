@@ -28,6 +28,13 @@ import { RestSheet, ScreenFrame, SupersetSheet, useStartFlow } from "./common";
 
 type Mode = "live" | "edit";
 
+/** Grow a textarea to fit its content; usable as a ref callback and after each change. */
+export function autosize(el: HTMLTextAreaElement | null): void {
+  if (!el) return;
+  el.style.height = "auto";
+  el.style.height = `${el.scrollHeight}px`;
+}
+
 export default function WorkoutScreen({ mode }: { mode: Mode }) {
   const { id } = useParams();
   const activeQ = useActiveWorkout();
@@ -369,7 +376,7 @@ function WorkoutEditor({ workout: w, mode, queryKey }: { workout: Workout; mode:
             {fmtDate(w.startedAt)}, {fmtTime(w.startedAt, app.hour12)}
             {w.templateName ? ` · ${w.templateName}` : ""}
           </div>
-          <textarea value={notes} onChange={(e) => { setNotes(e.target.value); e.target.style.height = "auto"; e.target.style.height = `${e.target.scrollHeight}px`; }} onBlur={saveNotes} placeholder="Notes" rows={1} className="w-full bg-transparent outline-none text-subhead text-primary resize-none mt-2 placeholder:text-tertiary" aria-label="Workout notes" />
+          <textarea ref={autosize} value={notes} onChange={(e) => { setNotes(e.target.value); autosize(e.target); }} onBlur={saveNotes} placeholder="Notes" rows={1} className="w-full bg-transparent outline-none text-subhead text-primary resize-none mt-2 placeholder:text-tertiary" aria-label="Workout notes" />
         </div>
 
         <div className="flex flex-col gap-4 pt-1">
@@ -517,7 +524,7 @@ function ExerciseBlock({ exercise: e, index, count, units, mode, all, onChangeVa
       </div>
       {noteOpen && (
         <div className="px-[var(--gutter)] pb-2 -mt-1">
-          <textarea ref={noteRef} value={note} rows={1} placeholder="Exercise note" onChange={(ev) => { setNote(ev.target.value); ev.target.style.height = "auto"; ev.target.style.height = `${ev.target.scrollHeight}px`; }} onBlur={() => { const v = note.trim() || null; if (v !== (e.notes ?? null)) onPatch({ notes: v }); if (!v) setNoteOpen(false); }} className="w-full bg-surface-2 rounded-sm px-3 py-2 text-subhead text-primary outline-none resize-none placeholder:text-tertiary" aria-label="Exercise note" />
+          <textarea ref={(el) => { noteRef.current = el; autosize(el); }} value={note} rows={1} placeholder="Exercise note" onChange={(ev) => { setNote(ev.target.value); autosize(ev.target); }} onBlur={() => { const v = note.trim() || null; if (v !== (e.notes ?? null)) onPatch({ notes: v }); if (!v) setNoteOpen(false); }} className="w-full bg-surface-2 rounded-sm px-3 py-2 text-subhead text-primary outline-none resize-none placeholder:text-tertiary" aria-label="Exercise note" />
         </div>
       )}
       <div className="wk-grid wk-grid-head px-[var(--gutter)] text-caption-1 font-medium text-secondary" style={{ gridTemplateColumns: grid }}>

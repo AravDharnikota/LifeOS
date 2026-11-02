@@ -314,6 +314,15 @@ export function TimeGrid({ days, events, calendars, now, pager, header, scrollRe
   const hover = taskDrag.hover;
 
   const perDay = useMemo(() => days.map((d) => packColumns(itemsForDay(events, d))), [days, events]);
+  const [colWidth, setColWidth] = useState(400);
+  useEffect(() => {
+    const el = colsRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setColWidth(el.clientWidth / (pager ? 1 : days.length)));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [days.length, pager]);
+  const dense = colWidth < 110;
 
   const renderColumn = (date: string, dayIdx: number) => {
     const placed = perDay[dayIdx] ?? [];
@@ -334,7 +343,7 @@ export function TimeGrid({ days, events, calendars, now, pager, header, scrollRe
         onClick={onColumnClick(dayIdx)}
       >
         {Array.from({ length: 24 }, (_, hr) => (
-          <div key={hr} data-hour={hr} className={cn("absolute left-0 right-0 hairline-t", hr === 0 && "border-transparent")} style={{ top: px(hr * 60) }} />
+          <div key={hr} data-hour={hr} className={cn("absolute left-0 right-0 h-px hairline-t", hr === 0 && "border-transparent")} style={{ top: px(hr * 60) }} />
         ))}
         {placed.map(({ item, col, cols, span }) => {
           const ev = item.ev;
@@ -352,6 +361,7 @@ export function TimeGrid({ days, events, calendars, now, pager, header, scrollRe
               cols={cols}
               span={span}
               color={eventColor(ev, calendars)}
+              dense={dense}
               dim={Boolean(isDragging && drag?.kind === "move" && drag.active)}
               lifted={Boolean(isDragging && drag?.lifted && !drag.active)}
               resizing={Boolean(resizing)}
@@ -460,6 +470,7 @@ interface BlockProps {
   cols: number;
   span: number;
   color: string;
+  dense: boolean;
   dim: boolean;
   lifted: boolean;
   resizing: boolean;
@@ -474,7 +485,7 @@ interface BlockProps {
   onOpen: () => void;
 }
 
-function EventBlock({ item, startMin, endMin, col, cols, span, color, dim, lifted, resizing, date, onToggleTask, onHandlePointerDown, onOpen, ...rest }: BlockProps) {
+function EventBlock({ item, startMin, endMin, col, cols, span, color, dense, dim, lifted, resizing, date, onToggleTask, onHandlePointerDown, onOpen, ...rest }: BlockProps) {
   const ev = item.ev;
   const dur = endMin - startMin;
   const height = Math.max(16, px(dur) - 2);
@@ -492,8 +503,9 @@ function EventBlock({ item, startMin, endMin, col, cols, span, color, dim, lifte
     ...(timebox ? { ["--cal-mix" as string]: "10%", border: `1.5px dashed color-mix(in oklab, ${color} 55%, transparent)` } : {}),
     ...(overlapping && !timebox ? { boxShadow: `inset 3px 0 0 ${color}` } : {}),
   };
-  const showTime = dur >= 45;
+  const showTime = dur >= 45 && !dense;
   const compact = dur < 30;
+  const showCheckbox = timebox && !compact && !(dense && cols > 1);
   return (
     <div
       data-event-block
@@ -512,8 +524,8 @@ function EventBlock({ item, startMin, endMin, col, cols, span, color, dim, lifte
       }}
       {...rest}
     >
-      <div className={cn("flex items-start gap-1 h-full overflow-hidden", compact ? "px-1.5 py-0" : "px-1.5 py-[3px]", timebox && "pl-1")}>
-        {timebox && (
+      <div className={cn("flex items-start gap-1 h-full overflow-hidden", compact ? "px-1.5 py-0" : "px-1.5 py-[3px]", showCheckbox && "pl-1", dense && "px-1")}>
+        {showCheckbox && (
           <span data-grid-stop className="shrink-0 w-6 h-5 overflow-hidden flex items-center justify-center -ml-0.5" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
             <Checkbox checked={done} onChange={onToggleTask} size={16} label={`Complete ${ev.title}`} tint={color} />
           </span>
@@ -527,10 +539,8 @@ function EventBlock({ item, startMin, endMin, col, cols, span, color, dim, lifte
             </div>
           )}
         </div>
-        {timebox && !compact && ev.locked && <Icon name="lock" size={12} className="shrink-0 opacity-70 mt-0.5" />}
-        {timebox && !compact && (
-          <span className="shrink-0 text-caption-1 leading-4 tabular opacity-80">{fmtMinutes(dur)}</span>
-        )}
+        {timebox && !compact && !dense && ev.locked && <Icon name="lock" size={12} className="shrink-0 opacity-70 mt-0.5" />}
+        {timebox && !compact && !dense && <span className="shrink-0 text-caption-1 leading-4 tabular opacity-80">{fmtMinutes(dur)}</span>}
       </div>
       {!item.continuesAfter && (
         <div data-grid-stop data-resize-handle className="absolute left-0 right-0 -bottom-1 h-3 cursor-ns-resize touch-none flex items-end justify-center" onPointerDown={onHandlePointerDown} onClick={(e) => e.stopPropagation()}>

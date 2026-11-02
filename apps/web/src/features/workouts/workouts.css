@@ -22,8 +22,8 @@
 .wk-input::-webkit-outer-spin-button, .wk-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
 /* Set table: Set | Previous | value columns | check. Columns are set per category via inline style. */
-.wk-grid { display: grid; align-items: center; column-gap: 6px; min-height: 44px; }
-.wk-grid-head { min-height: 28px; }
+.wk-grid { display: grid; align-items: center; column-gap: 6px; height: 44px; }
+.wk-grid-head { height: 28px; }
 
 .wk-check { width: 30px; height: 30px; border-radius: var(--r-sm); background: var(--bg-surface-2); color: var(--text-tertiary); display: inline-flex; align-items: center; justify-content: center; transition: background-color var(--dur-press) var(--ease-out), color var(--dur-press) var(--ease-out), transform var(--dur-press) var(--ease-out); }
 .wk-check:active { transform: scale(0.94); }
@@ -54,6 +54,9 @@
   .wk-resume-bar { left: var(--sidebar-w); }
   .wk-with-resume .scroller { padding-bottom: 100px; }
 }
+
+/* Live PR badge on a completed row */
+.wk-pr { position: absolute; top: 3px; right: 1px; width: 16px; height: 16px; border-radius: 9999px; background: var(--bg-surface); color: var(--warning-text); display: inline-flex; align-items: center; justify-content: center; }
 
 /* Charts */
 .wk-chart-bar { fill: var(--accent); }

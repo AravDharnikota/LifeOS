@@ -17,7 +17,7 @@ import { impact, notify } from "@/lib/haptics";
 import { useIsDesktop, useLongPress } from "@/lib/hooks";
 import { useAppSettings, useSettings } from "@/data/queries";
 import { useAddWater, useNutritionDay, useWeight } from "@/features/nutrition/api";
-import { MACROS, WATER_TAP_ML, celebrateOnce, toDisplayWater, waterUnit } from "@/features/nutrition/model";
+import { MACROS, WATER_TAP_ML, celebrateOnce, signOf, toDisplayWater, waterUnit } from "@/features/nutrition/model";
 import { LogFoodSheet } from "@/features/nutrition/LogFoodSheet";
 import { WaterSheet } from "@/features/nutrition/WaterSheet";
 import { useBodyPhotos } from "@/features/body/api";
@@ -225,7 +225,7 @@ function WeightTile({ latestKg, latestDate, change7d, goal, loading, onPress, on
       )}
       <span className={cn("text-footnote mt-auto pt-1 flex items-center gap-1 tabular", change7d != null ? tone : "text-secondary")}>
         {change7d != null && Math.abs(change7d) >= 0.05 && <Icon name={change7d > 0 ? "arrow-up" : "arrow-down"} size={13} strokeWidth={2} />}
-        {change7d != null ? `${change7d > 0 ? "+" : change7d < 0 ? "-" : ""}${fmt1(toDisplayWeight(Math.abs(change7d), units))} ${unit} in 7 days` : latestDate ? fmtRelativeDate(latestDate) : loading ? "" : "No weigh-ins"}
+        {change7d != null ? `${signOf(change7d)}${fmt1(toDisplayWeight(Math.abs(change7d), units))} ${unit} in 7 days` : latestDate ? fmtRelativeDate(latestDate) : loading ? "" : "No weigh-ins"}
       </span>
     </button>
   );

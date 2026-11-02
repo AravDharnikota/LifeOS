@@ -87,6 +87,7 @@ export function TaskGroup({ group, lists, actions, expandedId, onExpand, onConte
   const count = group.tasks.length;
   return (
     <section className="mt-6 first:mt-0" data-task-group={group.key}>
+      {group.title && (
       <div className="flex items-end justify-between px-[var(--gutter)] pb-2">
         <button type="button" className={cn("flex items-center gap-2 text-footnote", group.tone === "danger" ? "text-danger-text font-medium" : "text-secondary", group.collapsed ? "pressable" : "cursor-default")} onClick={group.collapsed ? () => setCollapsed((c) => !c) : undefined} aria-expanded={group.collapsed ? !collapsed : undefined}>
           {group.color && <span className="w-2 h-2 rounded-full" style={{ background: group.color }} />}
@@ -100,6 +101,7 @@ export function TaskGroup({ group, lists, actions, expandedId, onExpand, onConte
           )}
         </button>
       </div>
+      )}
       {!collapsed && (
         <div ref={ref} className={cn("bg-surface rounded-md mx-[var(--gutter)] group-rows", !drag && "overflow-hidden")}>
           {group.tasks.map((t) => (
@@ -113,6 +115,7 @@ export function TaskGroup({ group, lists, actions, expandedId, onExpand, onConte
               hideDone={group.hideDone}
               date={date}
               logbook={logbook}
+              showList={group.showList}
               onContext={onContext}
               onSchedule={onSchedule}
               onDelete={onDelete}

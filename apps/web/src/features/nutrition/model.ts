@@ -32,6 +32,8 @@ export const MACROS = [
 export type MacroKey = (typeof MACROS)[number]["key"];
 
 export const fmtKcal = (n: number): string => `${fmtInt(n)} kcal`;
+/** A real minus sign for negative deltas, a plus for positive ones, nothing within rounding. */
+export const signOf = (v: number): string => (v >= 0.05 ? "+" : v <= -0.05 ? "\u2212" : "");
 export const fmtG = (n: number | null | undefined): string => (n == null ? "0 g" : `${n >= 10 ? fmtInt(n) : fmt1(n)} g`);
 /** "P 31 · C 12 · F 8" in grams, for footnotes. */
 export const fmtMacros = (n: Partial<Nutrients>): string => `P ${fmtInt(n.proteinG ?? 0)} · C ${fmtInt(n.carbsG ?? 0)} · F ${fmtInt(n.fatG ?? 0)}`;

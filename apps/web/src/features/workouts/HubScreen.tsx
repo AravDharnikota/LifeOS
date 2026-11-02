@@ -64,7 +64,7 @@ export default function HubScreen() {
       }
     >
       <div className={cn(isDesktop && "max-w-[960px]")}>
-        <div className="px-[var(--gutter)] pt-1 pb-2">
+        <div className="px-[var(--gutter)] pt-1 pb-2 lg:max-w-[420px]">
           {active.data ? (
             <Button variant="secondary" size="lg" full onClick={() => navigate(`${WORKOUTS}/active`)}>Resume Workout</Button>
           ) : (
@@ -85,7 +85,10 @@ export default function HubScreen() {
           ) : templates.isError ? (
             <InlineError onRetry={() => void templates.refetch()}>Unable to load templates.</InlineError>
           ) : folders.mine.length === 0 ? (
-            <Empty className="pt-4 pb-2" action={<Button variant="plain" onClick={() => navigate(`${WORKOUTS}/templates/new`)}>New Template</Button>}>No templates yet.</Empty>
+            <Group>
+              <Row title={<span className="text-secondary">No templates yet.</span>} />
+              <Row title={<span className="text-accent-text">New Template</span>} onPress={() => navigate(`${WORKOUTS}/templates/new`)} />
+            </Group>
           ) : (
             <TemplateGrid templates={folders.mine} onOpen={setPreview} onStart={start} />
           )}

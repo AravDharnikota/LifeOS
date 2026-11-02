@@ -84,16 +84,16 @@ export function SetRow({ set, index, sets, columns, grid, previous, category, un
         </button>
         <button type="button" tabIndex={-1} className={cn("h-11 text-left text-footnote tabular truncate min-w-0 flex items-center gap-1.5", prevText ? "text-tertiary active:text-primary" : "text-quaternary")} onClick={() => prevText && onCopyPrevious?.()} disabled={!prevText} aria-label={prevText ? `Previous ${prevText}, copy into this set` : "No previous set"}>
           <span className="truncate">{prevText || "–"}</span>
-          {set.prs.length > 0 && <Icon name="trophy" size={14} className="text-warning-text shrink-0" data-testid="pr-badge" />}
         </button>
         {columns.map((c) => (
           <ValueCell key={c.kind} setId={set.id} kind={c.kind} value={set} units={units} placeholder={previous ? fieldText(previous, c.kind, units) : c.kind === "seconds" ? "0:00" : "0"} onChange={(v) => onChangeValue(c.kind, v)} onCommit={onCommit} />
         ))}
         {checkable ? (
-          <button type="button" tabIndex={-1} role="checkbox" aria-checked={set.completed} aria-label={set.completed ? "Mark set incomplete" : "Complete set"} className="h-11 w-11 -mr-1 inline-flex items-center justify-center" onClick={onToggleComplete} data-testid="set-check">
+          <button type="button" tabIndex={-1} role="checkbox" aria-checked={set.completed} aria-label={set.completed ? "Mark set incomplete" : "Complete set"} className="relative h-11 w-11 -mr-1 inline-flex items-center justify-center" onClick={onToggleComplete} data-testid="set-check">
             <span className={cn("wk-check", set.completed && "wk-check-on")}>
               <Icon name="check" size={18} strokeWidth={2.2} />
             </span>
+            {set.prs.length > 0 && <span className="wk-pr" data-testid="pr-badge" aria-label="Personal record"><Icon name="trophy" size={11} strokeWidth={2} /></span>}
           </button>
         ) : (
           <span className="h-11 w-11 -mr-1 inline-flex items-center justify-center text-quaternary"><Icon name="lock" size={16} /></span>

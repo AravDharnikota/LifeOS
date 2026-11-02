@@ -37,10 +37,13 @@ export function useRailTasks(date: string) {
 function subtitleFor(t: Task, date: string, lists: Map<string, TaskList & { openCount: number }>): string {
   const today = todayString();
   const parts: string[] = [];
-  if (t.dueDate) parts.push(t.dueDate < today ? `Overdue ${fmtRelativeDate(t.dueDate)}` : `Due ${fmtRelativeDate(t.dueDate)}${t.dueTime ? " " + t.dueTime : ""}`);
-  else if (t.startDate && t.startDate <= date) parts.push(fmtRelativeDate(t.startDate));
-  const list = t.listId ? lists.get(t.listId) : undefined;
-  if (list && !list.isDefault) parts.push(list.name);
+  if (t.dueDate) parts.push(t.dueDate < today ? `Overdue ${fmtRelativeDate(t.dueDate, false)}` : `Due ${fmtRelativeDate(t.dueDate, false).toLowerCase()}${t.dueTime ? " " + t.dueTime : ""}`);
+  else if (t.startDate && t.startDate <= date) parts.push(fmtRelativeDate(t.startDate, false));
+  else {
+    const list = t.listId ? lists.get(t.listId) : undefined;
+    if (list && !list.isDefault) parts.push(list.name);
+  }
+  if (t.estimateMinutes) parts.push(fmtMinutes(t.estimateMinutes));
   return parts.join(" · ");
 }
 
@@ -86,10 +89,7 @@ function RailRow({ task, date, lists, onSchedule, draggable }: { task: Task; dat
       <span className="w-2 h-2 rounded-full shrink-0" style={{ background: colorVar(list?.color ?? "gray") }} aria-hidden="true" />
       <div className="flex-1 min-w-0 py-2">
         <div className="text-subhead text-primary truncate">{task.title}</div>
-        <div className={cn("text-footnote truncate mt-px", overdue ? "text-danger-text" : "text-secondary")}>
-          {subtitleFor(task, date, lists)}
-          {task.estimateMinutes ? `${task.dueDate || task.startDate || list ? " · " : ""}${fmtMinutes(task.estimateMinutes)}` : ""}
-        </div>
+        <div className={cn("text-footnote truncate mt-px", overdue ? "text-danger-text" : "text-secondary")}>{subtitleFor(task, date, lists)}</div>
       </div>
       <Button variant="plain" size="sm" className={cn("shrink-0 -mr-1", draggable && "absolute right-2 top-1/2 -translate-y-1/2 bg-surface pl-4 opacity-0 group-hover:opacity-100 focus-visible:opacity-100")} onClick={() => onSchedule(task)}>
         Schedule

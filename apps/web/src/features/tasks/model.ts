@@ -21,6 +21,8 @@ export interface TaskGroupData {
   /** Color dot before the title (Anytime groups by list). */
   color?: string;
   reorderable?: boolean;
+  /** Show the list name in each row (off when the group is the list). */
+  showList?: boolean;
 }
 
 export const ESTIMATES = [15, 30, 60, 120] as const;
@@ -95,7 +97,7 @@ export function groupByList(tasks: Task[], lists: ListWithCount[]): TaskGroupDat
     .sort(([a], [b]) => (order.get(a ?? "") ?? 99) - (order.get(b ?? "") ?? 99))
     .map(([id, list]) => {
       const l = lists.find((x) => x.id === id);
-      return { key: id ?? "none", title: l?.name ?? "No list", color: colorVar(l?.color ?? "gray"), tasks: list.sort(byOrder), hideDone: true, reorderable: true };
+      return { key: id ?? "none", title: l?.name ?? "No list", color: colorVar(l?.color ?? "gray"), tasks: list.sort(byOrder), hideDone: true, reorderable: true, showList: false };
     });
 }
 

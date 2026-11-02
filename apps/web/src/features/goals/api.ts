@@ -47,11 +47,11 @@ export interface LogInput {
   note?: string | null;
 }
 
-function optimisticLog(g: Goal, input: LogInput): Goal {
+function optimisticLog(g: Goal, input: LogInput, entriesHint?: Goal["recentEntries"]): Goal {
   const today = todayString();
   if (g.kind === "habit") {
     const date = input.date ?? today;
-    const entries = g.recentEntries ?? [];
+    const entries = g.recentEntries ?? entriesHint ?? [];
     const has = entries.some((e) => e.date === date);
     const inPeriod = g.cadence === "weekly" ? date >= weekStartString(today) : date === today;
     const periodCount = Math.max(0, (g.periodCount ?? 0) + (inPeriod ? (has ? -1 : 1) : 0));
@@ -84,10 +84,11 @@ export function useLogGoal() {
       await qc.cancelQueries({ queryKey: ["goals"] });
       await qc.cancelQueries({ queryKey: keys.goal(input.id) });
       const snap = snapshotGoals(qc, input.id);
+      const entriesHint = qc.getQueryData<Goal>(keys.goal(input.id))?.recentEntries;
       let prevStatus: Goal["status"] | undefined;
       patchGoalCaches(qc, input.id, (g) => {
         prevStatus = g.status;
-        return optimisticLog(g, input);
+        return optimisticLog(g, input, entriesHint);
       });
       return { snap, prevStatus };
     },

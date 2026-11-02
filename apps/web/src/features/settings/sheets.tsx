@@ -87,5 +87,5 @@ export function OptionSheet<T extends string>({ open, onClose, title, value, opt
 
 /** Inline native time or date input used inside FieldRow. */
 export function InlineInput({ className, ...rest }: React.InputHTMLAttributes<HTMLInputElement>) {
-  return <input className={cn("h-8 px-2 rounded-sm bg-surface-2 text-body text-primary outline-none focus:bg-surface focus:shadow-[0_0_0_1.5px_var(--accent)] tabular", className)} {...rest} />;
+  return <input className={cn("h-8 px-2 rounded-sm bg-surface-2 text-body text-primary outline-none focus:bg-surface focus:shadow-[0_0_0_1.5px_var(--accent)] tabular [&::-webkit-calendar-picker-indicator]:hidden", className)} {...rest} />;
 }

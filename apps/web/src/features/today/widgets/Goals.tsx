@@ -195,7 +195,7 @@ export function HabitGridWidget({ widget, editing }: WidgetProps<WidgetOf<"habit
           </div>
           <div className="mt-auto pt-3 flex items-center justify-between gap-2">
             <Sub className="mt-0">{g?.streak ? `${g.streak} day streak` : "No streak yet"}</Sub>
-            <button type="button" disabled={editing} onClick={() => void toggle()} className={cn("pointer-events-auto h-8 px-3 rounded-sm text-footnote font-medium whitespace-nowrap shrink-0 pressable", doneToday ? "bg-surface-2 text-secondary" : "bg-surface-2 text-primary", editing && "opacity-40")}>
+            <button type="button" disabled={editing} onClick={() => void toggle()} className={cn("pointer-events-auto h-8 px-3 rounded-md text-footnote font-medium whitespace-nowrap shrink-0 pressable", doneToday ? "bg-surface-2 text-secondary" : "bg-surface-2 text-primary", editing && "opacity-40")}>
               {doneToday ? "Done Today" : "Check In"}
             </button>
           </div>

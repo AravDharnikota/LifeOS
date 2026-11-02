@@ -5,7 +5,7 @@ import { impact } from "@/lib/haptics";
 import { Checkbox } from "@/ui/Checkbox";
 import { Icon } from "@/ui/Icon";
 import { IconButton } from "@/ui/Button";
-import { TaskEditor } from "./TaskEditor";
+import { TaskEditor, TaskTitleInput } from "./TaskEditor";
 import { taskMeta, type ListMap } from "./model";
 import type { TaskActions } from "./useTaskActions";
 
@@ -34,6 +34,8 @@ export interface TaskRowProps {
   onDelete: (task: Task) => void;
   /** Logbook style: filled quaternary circle, no checkbox choreography. */
   logbook?: boolean;
+  /** Hide the list name in the meta line (the group already says it). */
+  showList?: boolean;
 }
 
 const HOLD_MS = 400;
@@ -45,7 +47,7 @@ const TRAILING_W = ACTION_W * 2;
  * reveals Schedule and Delete (full swipe deletes); long press lifts for reorder or, released in
  * place, opens the context menu. Pointer: hover shows the same actions as glyphs. Tap expands.
  */
-export function TaskRow({ task, lists, actions, expanded, onExpand, hideDone, date, reorder, onContext, onSchedule, onDelete, logbook }: TaskRowProps) {
+export function TaskRow({ task, lists, actions, expanded, onExpand, hideDone, date, reorder, onContext, onSchedule, onDelete, logbook, showList }: TaskRowProps) {
   const done = task.status === "done";
   const [checked, setChecked] = useState(done);
   const [leaving, setLeaving] = useState(false);
@@ -201,7 +203,7 @@ export function TaskRow({ task, lists, actions, expanded, onExpand, hideDone, da
     onExpand(expanded ? null : task.id);
   };
 
-  const meta = taskMeta(task, lists, { date });
+  const meta = taskMeta(task, lists, { date, showList });
   const lifted = Boolean(reorder?.lifted);
   const offset = reorder?.offset ?? 0;
 
@@ -253,7 +255,12 @@ export function TaskRow({ task, lists, actions, expanded, onExpand, hideDone, da
             ) : (
               <Checkbox checked={checked} onChange={onCheck} label={checked ? `Reopen ${task.title}` : `Complete ${task.title}`} />
             )}
-            <div className={cn("flex-1 min-w-0 py-[11px]", expanded && "invisible h-0 py-0")}>
+            {expanded ? (
+              <div className="flex-1 min-w-0">
+                <TaskTitleInput task={task} actions={actions} onClose={() => onExpand(null)} />
+              </div>
+            ) : (
+            <div className="flex-1 min-w-0 py-[11px]">
               <div className={cn("text-body truncate", done || logbook ? "text-secondary" : "text-primary")}>{task.title}</div>
               {meta.length > 0 && (
                 <div className="text-footnote text-secondary truncate mt-px flex items-center gap-1.5">
@@ -266,6 +273,7 @@ export function TaskRow({ task, lists, actions, expanded, onExpand, hideDone, da
                 </div>
               )}
             </div>
+            )}
             {!expanded && !logbook && (
               <div className="hidden lg:flex items-center opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-150">
                 {task.status === "open" && (

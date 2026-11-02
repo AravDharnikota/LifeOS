@@ -12,7 +12,7 @@ import { pickImage, type PickedImage } from "@/lib/images";
 import { fmt1, fmtDate, fmtWeight, toDisplayWeight } from "@/lib/format";
 import { useIsDesktop } from "@/lib/hooks";
 import { useAppSettings } from "@/data/queries";
-import { aiErrorText } from "@/features/nutrition/model";
+import { aiErrorText, signOf } from "@/features/nutrition/model";
 import { POSES, useAnalyzeBodyPhoto, useBodyPhotos, useBodyProgress, type Pose, type TimelineEntry } from "./api";
 import { AddPhotoSheet } from "./AddPhotoSheet";
 import { AnalysisSheet } from "./AnalysisSheet";
@@ -80,7 +80,7 @@ export default function BodyScreen() {
     body = (
       <>
         {pair && (
-          <section className="px-[var(--gutter)] pt-1">
+          <section className={cn("px-[var(--gutter)] pt-1", isDesktop && "max-w-[560px]")}>
             <div className="grid grid-cols-2 gap-3">
               <PairPhoto entry={pair.first} caption="Before" units={units} onPress={() => setDetail(pair.first.photoId)} />
               <PairPhoto entry={pair.last} caption="Latest" units={units} onPress={() => setDetail(pair.last.photoId)} />
@@ -125,7 +125,7 @@ export default function BodyScreen() {
 function weightDelta(fromKg: number, toKg: number, units: "metric" | "imperial"): string {
   const d = toKg - fromKg;
   const v = toDisplayWeight(Math.abs(d), units);
-  return `${d > 0 ? "+" : d < 0 ? "-" : ""}${fmt1(v)} ${units === "imperial" ? "lb" : "kg"}`;
+  return `${signOf(d)}${fmt1(v)} ${units === "imperial" ? "lb" : "kg"}`;
 }
 
 function PairPhoto({ entry, caption, units, onPress }: { entry: TimelineEntry; caption: string; units: "metric" | "imperial"; onPress: () => void }) {

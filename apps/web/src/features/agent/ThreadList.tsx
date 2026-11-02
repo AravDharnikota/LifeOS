@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { parseISO } from "date-fns";
 import type { AgentThread } from "@aravos/shared";
-import { cn } from "@/lib/cn";
 import { fmtRelativeDate, fmtTime } from "@/lib/format";
 import { IconButton } from "@/ui/Button";
 import { Empty, InlineError, Skeleton } from "@/ui/Empty";
@@ -70,9 +69,11 @@ export function ThreadList({ current, onSelect }: { current: string | null; onSe
               title={t.title?.trim() || "New conversation"}
               subtitle={subtitle(t)}
               onPress={() => onSelect(t.id)}
-              className={cn(t.id === current && "bg-selected")}
+              aria-current={t.id === current ? "true" : undefined}
               trailing={
-                <IconButton
+                <>
+                  {t.id === current && <Icon name="check" size={18} strokeWidth={2} className="text-accent-text" aria-label="Current thread" />}
+                  <IconButton
                   label="Thread options"
                   className="-mr-3 text-secondary"
                   onClick={(e) => {
@@ -83,6 +84,7 @@ export function ThreadList({ current, onSelect }: { current: string | null; onSe
                 >
                   <Icon name="more" size={20} />
                 </IconButton>
+                </>
               }
             />
           ))}

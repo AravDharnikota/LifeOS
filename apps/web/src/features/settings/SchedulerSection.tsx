@@ -114,9 +114,9 @@ function WorkHoursSheet({ open, onClose, value, onSave }: { open: boolean; onClo
                 </div>
                 {h && (
                   <div className="flex items-center gap-2 tabular pb-1">
-                    <InlineInput type="time" value={h.start} onChange={(e) => set(d.key, { ...h, start: e.target.value })} aria-label={`${d.label} start`} className="bg-surface w-[128px]" />
+                    <InlineInput type="time" value={h.start} onChange={(e) => set(d.key, { ...h, start: e.target.value })} aria-label={`${d.label} start`} className="bg-surface w-[132px] text-center" />
                     <span className="text-footnote text-secondary">to</span>
-                    <InlineInput type="time" value={h.end} onChange={(e) => set(d.key, { ...h, end: e.target.value })} aria-label={`${d.label} end`} className="bg-surface w-[128px]" />
+                    <InlineInput type="time" value={h.end} onChange={(e) => set(d.key, { ...h, end: e.target.value })} aria-label={`${d.label} end`} className="bg-surface w-[132px] text-center" />
                   </div>
                 )}
               </div>
@@ -153,9 +153,9 @@ function LunchSheet({ open, onClose, value, onSave }: { open: boolean; onClose: 
           </div>
           {lunch && (
             <div className="row-sep relative flex items-center gap-2 min-h-[52px] pl-4 pr-3 tabular">
-              <InlineInput type="time" value={lunch.start} onChange={(e) => setLunch({ ...lunch, start: e.target.value })} aria-label="Lunch start" className="bg-surface w-[128px]" />
+              <InlineInput type="time" value={lunch.start} onChange={(e) => setLunch({ ...lunch, start: e.target.value })} aria-label="Lunch start" className="bg-surface w-[132px] text-center" />
               <span className="text-footnote text-secondary">to</span>
-              <InlineInput type="time" value={lunch.end} onChange={(e) => setLunch({ ...lunch, end: e.target.value })} aria-label="Lunch end" className="bg-surface w-[128px]" />
+              <InlineInput type="time" value={lunch.end} onChange={(e) => setLunch({ ...lunch, end: e.target.value })} aria-label="Lunch end" className="bg-surface w-[132px] text-center" />
             </div>
           )}
         </div>

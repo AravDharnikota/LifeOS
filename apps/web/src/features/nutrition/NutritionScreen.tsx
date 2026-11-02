@@ -67,7 +67,7 @@ export default function NutritionScreen() {
   };
 
   const header = (
-    <div className="flex flex-col gap-3">
+    <div className={cn("flex flex-col gap-3", isDesktop && "max-w-[400px]")}>
       <div className="flex items-center justify-between -mx-2">
         <IconButton label={view === "day" ? "Previous day" : "Previous week"} onClick={() => go(addDaysString(date, -step))}>
           <Icon name="chevron-left" size={24} />
@@ -79,7 +79,7 @@ export default function NutritionScreen() {
           <Icon name="chevron-right" size={24} />
         </IconButton>
       </div>
-      <Segmented options={[{ value: "day", label: "Day" }, { value: "week", label: "Week" }]} value={view} onChange={setView} className={isDesktop ? "max-w-[280px]" : undefined} />
+      <Segmented options={[{ value: "day", label: "Day" }, { value: "week", label: "Week" }]} value={view} onChange={setView} />
     </div>
   );
 
@@ -153,11 +153,9 @@ function SummaryStrip({ data }: { data: NutritionDay }) {
       <div className="grid grid-cols-3 gap-4 mt-4">
         {MACROS.map((m) => (
           <div key={m.key}>
-            <div className="flex items-baseline justify-between gap-2 text-footnote mb-1.5">
-              <span className="text-secondary">{m.label}</span>
-              <span className="tabular text-primary">
-                {fmtInt(totals[m.key])} / {fmtInt(targets[m.key])} g
-              </span>
+            <div className="text-footnote text-secondary">{m.label}</div>
+            <div className="text-subhead tabular text-primary mb-1.5">
+              {fmtInt(totals[m.key])} / {fmtInt(targets[m.key])} g
             </div>
             <Bar progress={targets[m.key] ? totals[m.key] / targets[m.key] : 0} color={m.color} height={5} />
           </div>

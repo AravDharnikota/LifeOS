@@ -36,8 +36,8 @@ test.describe("Today dashboard", () => {
     await request.post("/api/tasks", { data: { title: "Pay rent", dueDate: today } });
     await request.post("/api/goals", { data: { title: "Read 12 books", kind: "number", unit: "books", targetValue: 12, currentValue: 3 } });
     await openToday(page);
-    await expect(page.getByText("Health", { exact: true })).toBeVisible();
-    await expect(page.getByText("Goals", { exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Health", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Goals", exact: true })).toBeVisible();
     await expect(page.locator("[data-widget-type=agenda]")).toBeVisible();
     await expect(page.locator("[data-widget-type=tasks]")).toContainText("Pay rent");
     await expect(page.locator("[data-widget-type=nutrition_rings]")).toContainText("left");
@@ -78,9 +78,9 @@ test.describe("Today dashboard", () => {
 
   test("edit mode adds a countdown widget and removes it", async ({ page, request }) => {
     await openToday(page);
-    await page.getByRole("button", { name: "More" }).click();
+    await page.getByRole("button", { name: "More", exact: true }).click();
     await page.getByRole("menuitem", { name: "Edit Layout" }).click();
-    await expect(page.getByRole("button", { name: "Done" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Done", exact: true })).toBeVisible();
     await page.getByRole("button", { name: "Add Widget" }).click();
     const sheet = page.getByRole("dialog");
     await sheet.locator("[data-add-widget=countdown]").click();
@@ -95,7 +95,7 @@ test.describe("Today dashboard", () => {
     await widget.getByRole("button", { name: "Remove widget" }).click();
     await expect(widget).toHaveCount(0);
     await expect.poll(async () => JSON.stringify(await (await request.get("/api/layout/today")).json())).not.toContain('"countdown"');
-    await page.getByRole("button", { name: "Done" }).click();
+    await page.getByRole("button", { name: "Done", exact: true }).click();
     await expect(page.getByRole("button", { name: "Assistant" }).first()).toBeVisible();
   });
 });
