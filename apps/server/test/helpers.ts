@@ -24,7 +24,7 @@ export function makeTestApp(opts: { token?: string | null } = {}): TestApp {
     ai,
     webDist: null,
   });
-  const fetchFn = (url: string, init?: RequestInit) => app.request(url, init);
+  const fetchFn = async (url: string, init?: RequestInit) => app.request(url, init);
   const api: TestApp["api"] = async (method, url, body, o = {}) => {
     const headers: Record<string, string> = { "content-type": "application/json", ...(o.headers ?? {}) };
     if (opts.token) headers.authorization = `Bearer ${opts.token}`;
