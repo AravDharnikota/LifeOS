@@ -482,3 +482,38 @@ describe("exercise tracking type", () => {
     t.cleanup();
   });
 });
+
+describe("exercise library migration and aliases", () => {
+  it("renames old built-in names on startup and keeps used rows", async () => {
+    const t = makeTestApp();
+    const { schema: sc } = await import("../src/db/client.ts");
+    const { seedExercises } = await import("../src/services/exercise-library.ts");
+    const { eq } = await import("drizzle-orm");
+    // Simulate a database seeded by the old library: an old name whose new name is absent, and one whose new name exists.
+    t.ctx.db.delete(sc.exercises).where(eq(sc.exercises.name, "Shoulder Press (Dumbbell)")).run();
+    t.ctx.db.insert(sc.exercises).values({ id: "old-ohp-db", name: "Overhead Press (Dumbbell)", category: "dumbbell", bodyPart: "shoulders", isCustom: false }).run();
+    t.ctx.db.insert(sc.exercises).values({ id: "old-chest-dip", name: "Chest Dip", category: "bodyweight", bodyPart: "chest", isCustom: false }).run();
+    seedExercises(t.ctx.db);
+    const list = await t.api<{ id: string; name: string }[]>("GET", "/api/exercises?q=shoulder press");
+    expect(list.data.filter((e) => e.name === "Shoulder Press (Dumbbell)")).toHaveLength(1);
+    expect(list.data.find((e) => e.name === "Shoulder Press (Dumbbell)")?.id).toBe("old-ohp-db");
+    expect(list.data.some((e) => e.name === "Overhead Press (Dumbbell)")).toBe(false);
+    const dips = await t.api<{ id: string; name: string }[]>("GET", "/api/exercises?q=dip");
+    expect(dips.data.some((e) => e.name === "Chest Dip")).toBe(false);
+    expect(dips.data.filter((e) => e.name === "Dip")).toHaveLength(1);
+    t.cleanup();
+  });
+
+  it("search matches aliases and ranks them with name matches", async () => {
+    const t = makeTestApp();
+    const sp = await t.api<{ name: string }[]>("GET", "/api/exercises?q=shoulder press");
+    const names = sp.data.map((e) => e.name);
+    expect(names.slice(0, 4)).toContain("Shoulder Press (Dumbbell)");
+    expect(names.slice(0, 4)).toContain("Overhead Press (Barbell)");
+    const rdl = await t.api<{ name: string }[]>("GET", "/api/exercises?q=rdl");
+    expect(rdl.data[0]?.name).toBe("Romanian Deadlift (Barbell)");
+    const total = await t.api<{ name: string }[]>("GET", "/api/exercises");
+    expect(total.data.length).toBeGreaterThan(900);
+    t.cleanup();
+  });
+});

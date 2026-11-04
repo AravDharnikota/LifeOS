@@ -1,4 +1,4 @@
-import { POPULAR_EXERCISES } from "./exercise-library.ts";
+import { EXERCISE_ALIASES, POPULAR_EXERCISES } from "./exercise-library.ts";
 import { and, asc, desc, eq, inArray, isNull, like, ne, notInArray, sql } from "drizzle-orm";
 import { format } from "date-fns";
 import {
@@ -344,8 +344,18 @@ export function listExercises(db: Db, opts: { q?: string; bodyPart?: string; cat
   const rows = db.select().from(ex).where(and(...conds)).orderBy(asc(ex.name)).all();
   const q = opts.q?.trim().toLowerCase();
   if (q) {
+    // Aliases: "shoulder press" also finds "Overhead Press (Barbell)", "rdl" finds the Romanian deadlift.
+    const seen = new Set(rows.map((r) => r.name));
+    const aliasHits = Object.entries(EXERCISE_ALIASES).filter(([name, aliases]) => !seen.has(name) && aliases.some((a) => a.toLowerCase().includes(q))).map(([name]) => name);
+    if (aliasHits.length) {
+      const extraConds = [inArray(ex.name, aliasHits), isNull(ex.deletedAt)];
+      if (opts.bodyPart) extraConds.push(eq(ex.bodyPart, opts.bodyPart));
+      if (opts.category) extraConds.push(eq(ex.category, opts.category));
+      rows.push(...db.select().from(ex).where(and(...extraConds)).all());
+    }
     // Name starts with the query first, then word starts, then substrings; shorter (plainer) names before variants.
-    const tier = (name: string) => (name.toLowerCase().startsWith(q) ? 0 : name.toLowerCase().split(/[\s(]+/).some((w) => w.startsWith(q)) ? 1 : 2);
+    const aliasMatch = (name: string) => (EXERCISE_ALIASES[name] ?? []).some((a) => a.toLowerCase().startsWith(q));
+    const tier = (name: string) => (name.toLowerCase().startsWith(q) || aliasMatch(name) ? 0 : name.toLowerCase().split(/[\s(]+/).some((w) => w.startsWith(q)) ? 1 : 2);
     const popular = (name: string) => (POPULAR_EXERCISES.has(name) ? 0 : 1);
     rows.sort((a, b) => tier(a.name) - tier(b.name) || popular(a.name) - popular(b.name) || a.name.length - b.name.length || a.name.localeCompare(b.name));
   }
