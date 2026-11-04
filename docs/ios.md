@@ -11,15 +11,14 @@ keyboard and safe areas come from native plugins; everything else is the same co
 ## Build and run
 ```bash
 pnpm install
-pnpm --filter @aravos/web build          # builds apps/web/dist
 cd apps/web
-pnpm exec cap sync ios                   # copies dist into ios/App/App/public and resolves plugins
+pnpm ios:sync                            # builds dist in ios mode, copies it into ios/App/App/public, resolves plugins
 pnpm exec cap open ios                   # opens Xcode
 ```
 In Xcode: select the `App` target, set your Team under Signing and Capabilities, pick your iPhone,
 press Run. The first launch asks for the server address and the access token (`ARAVOS_TOKEN`).
 
-Re-run `pnpm --filter @aravos/web build && pnpm exec cap sync ios` whenever the web app changes.
+Re-run `pnpm ios:sync` whenever the web app changes.
 
 ## What is native
 | Feature | Plugin | Notes |
@@ -31,8 +30,9 @@ Re-run `pnpm --filter @aravos/web build && pnpm exec cap sync ios` whenever the 
 | Preferences | `@capacitor/preferences` | Stores the server address and access token |
 
 ## Skip the connect screen (personal builds)
-Put the server and token in `apps/web/.env.local` (gitignored) before building; a fresh install
-then connects on first launch and never shows the connect screen:
+Put the server and token in `apps/web/.env.ios.local` (gitignored). `pnpm ios:sync` builds with
+`vite build --mode ios`, which is the only build that reads this file, so the token never lands in the
+web bundle the server serves. A fresh install then connects on first launch and never shows the connect screen:
 ```
 VITE_ARAVOS_SERVER_URL=https://your-server.example.com
 VITE_ARAVOS_TOKEN=<ARAVOS_TOKEN>

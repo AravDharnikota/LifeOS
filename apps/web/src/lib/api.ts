@@ -18,19 +18,27 @@ let token: string | null = null;
 let serverUrl = "";
 let loaded = false;
 
-// Build-time defaults (apps/web/.env.local, gitignored). A personal build can bake in its own
-// server and token so a fresh install skips the connect screen. Values saved on the device win.
-const DEFAULT_SERVER = (import.meta.env.VITE_ARAVOS_SERVER_URL as string | undefined)?.replace(/\/$/, "") ?? "";
-const DEFAULT_TOKEN = (import.meta.env.VITE_ARAVOS_TOKEN as string | undefined) || null;
+// Build-time defaults for the native app only. They come from `apps/web/.env.ios.local`
+// (gitignored, read by `vite build --mode ios`), so a fresh personal install skips the connect
+// screen. The ordinary web build (served publicly by the server) never loads that file, and
+// the token is only honoured at runtime inside the native shell. Values saved on the device win.
+const IOS_BUILD = import.meta.env.MODE === "ios";
+const DEFAULT_SERVER = IOS_BUILD ? ((import.meta.env.VITE_ARAVOS_SERVER_URL as string | undefined)?.replace(/\/$/, "") ?? "") : "";
+const DEFAULT_TOKEN = IOS_BUILD ? (import.meta.env.VITE_ARAVOS_TOKEN as string | undefined) || null : null;
 
 async function loadConfig(): Promise<void> {
   if (loaded) return;
   loaded = true;
   if (isNative) {
-    token = (await Preferences.get({ key: KEY_TOKEN })).value ?? DEFAULT_TOKEN;
-    serverUrl = (await Preferences.get({ key: KEY_SERVER })).value ?? DEFAULT_SERVER;
+    // null = never saved (fresh install) -> defaults apply. "" = user disconnected -> stay signed out.
+    const savedToken = (await Preferences.get({ key: KEY_TOKEN })).value;
+    const savedServer = (await Preferences.get({ key: KEY_SERVER })).value;
+    serverUrl = savedServer ?? DEFAULT_SERVER;
+    // The baked-in token is only ever sent to the server it was issued for.
+    const defaultAllowed = savedToken === null && (savedServer === null || savedServer === DEFAULT_SERVER);
+    token = savedToken ? savedToken : defaultAllowed ? DEFAULT_TOKEN : null;
   } else {
-    token = localStorage.getItem(KEY_TOKEN) ?? DEFAULT_TOKEN;
+    token = localStorage.getItem(KEY_TOKEN);
     serverUrl = localStorage.getItem(KEY_SERVER) ?? "";
   }
 }
@@ -44,7 +52,8 @@ export async function setConfig(next: { token?: string | null; serverUrl?: strin
   await loadConfig();
   if (next.token !== undefined) {
     token = next.token;
-    if (isNative) await (token ? Preferences.set({ key: KEY_TOKEN, value: token }) : Preferences.remove({ key: KEY_TOKEN }));
+    // Store "" (not remove) on disconnect so a restart does not revive the baked-in default token.
+    if (isNative) await Preferences.set({ key: KEY_TOKEN, value: token ?? "" });
     else token ? localStorage.setItem(KEY_TOKEN, token) : localStorage.removeItem(KEY_TOKEN);
   }
   if (next.serverUrl !== undefined) {

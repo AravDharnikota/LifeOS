@@ -6,11 +6,12 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
+    "build:ios": "tsc --noEmit && vite build --mode ios",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "ios:sync": "cap sync ios",
+    "ios:sync": "pnpm build:ios && cap sync ios",
     "ios:open": "cap open ios"
   },
   "dependencies": {
