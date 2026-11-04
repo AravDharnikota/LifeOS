@@ -11,3 +11,6 @@ data
 docs/research
 *.log
 .env
+.env.*
+**/.env
+**/.env.*
