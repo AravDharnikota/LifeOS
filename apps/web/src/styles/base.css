@@ -60,6 +60,18 @@
   --color-white: #ffffff;
   --color-black: #000000;
   --color-transparent: transparent;
+  --color-term-bg: var(--term-bg);
+  --color-term-bg-raised: var(--term-bg-raised);
+  --color-term-bg-hover: var(--term-bg-hover);
+  --color-term-line: var(--term-line);
+  --color-term-fg: var(--term-fg);
+  --color-term-fg-dim: var(--term-fg-dim);
+  --color-term-fg-faint: var(--term-fg-faint);
+  --color-term-prompt: var(--term-prompt);
+  --color-term-tool: var(--term-tool);
+  --color-term-ok: var(--term-ok);
+  --color-term-err: var(--term-err);
+  --color-term-cursor: var(--term-cursor);
 
   --radius-xs: var(--r-xs);
   --radius-sm: var(--r-sm);
@@ -172,3 +184,12 @@
   border-top: 1px solid var(--separator);
 }
 @media (min-resolution: 2dppx) { .group-rows > .row-sep ~ .row-sep::before { border-top-width: 0.5px; } }
+
+/* Assistant terminal: monospace, fixed 20px grid, no ligatures so glyphs line up. 14px on the phone for legibility. */
+.term { font-family: var(--font-mono); font-size: 13px; line-height: 20px; font-variant-ligatures: none; -webkit-font-smoothing: antialiased; }
+@media (max-width: 1023px) { .term { font-size: 14px; } }
+.term ::selection { background: var(--term-selection); }
+.term input, .term textarea { font-size: inherit; }
+@keyframes term-blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+.term-cursor { animation: term-blink 1s step-end infinite; }
+@media (prefers-reduced-motion: reduce) { .term-cursor { animation: none !important; } }

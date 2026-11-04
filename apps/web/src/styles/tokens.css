@@ -148,3 +148,20 @@
   --shadow-popover: 0 4px 16px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(238, 238, 236, 0.08);
   --shadow-thumb: 0 1px 2px rgba(0, 0, 0, 0.3), 0 0 0 0.5px rgba(255, 255, 255, 0.06);
 }
+
+/* Terminal palette for the assistant. Always dark, whatever the app theme: a terminal is a dark panel. */
+:root {
+  --term-bg: #0e0e0d;
+  --term-bg-raised: #151514;
+  --term-bg-hover: rgba(238, 238, 236, 0.06);
+  --term-line: rgba(238, 238, 236, 0.1);
+  --term-fg: #e9e7e1;
+  --term-fg-dim: #9c9a91;
+  --term-fg-faint: #5f5d56;
+  --term-prompt: #ffb454;
+  --term-tool: #8ac4ff;
+  --term-ok: #4ad968;
+  --term-err: #ff6165;
+  --term-cursor: #e9e7e1;
+  --term-selection: rgba(255, 180, 84, 0.3);
+}

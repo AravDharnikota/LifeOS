@@ -66,7 +66,7 @@ Memories (`memories` table) are short third-person sentences with a kind: `fact`
 ## Model and configuration
 
 - `ANTHROPIC_API_KEY` enables the agent. Without it every agent request returns 503 with a message saying so.
-- `ANTHROPIC_MODEL` picks the model (default `claude-opus-5-5`). The agent streams text, runs up to 12 tool iterations per turn, and caches the system prompt.
+- `ANTHROPIC_MODEL` picks the model (default `claude-sonnet-5-5`). The agent streams text, runs up to 12 tool iterations per turn, and caches the system prompt.
 - `ARAVOS_TIMEZONE` and the app settings timezone decide the local date and time shown to the model.
 - `ARAVOS_TOKEN` protects the API.
 

@@ -1,73 +1,110 @@
 import { useState } from "react";
-import { motion } from "motion/react";
 import { cn } from "@/lib/cn";
-import { Icon } from "@/ui/Icon";
-import { Spinner } from "@/ui/Spinner";
+import { useSpinnerFrame, WorkingLine } from "./Spinner";
+import { formatToolArgs } from "./terminal";
 import { AgentText } from "./text";
-import { toolLabel } from "./tools";
 import type { ChatMessage, ChatTool } from "./useAgent";
 
-/** User text right-aligned on a surface, assistant text plain on the canvas, tool activity as footnotes. */
-export function MessageItem({ message }: { message: ChatMessage }) {
+/**
+ * One turn of the transcript on a 2ch gutter grid.
+ * User turns are prompt lines (`❯ text`). Assistant turns are tool entries (glyph in the gutter) and then plain text indented under the caret.
+ */
+export function Turn({ message, onRetry }: { message: ChatMessage; onRetry?: () => void }) {
   if (message.role === "user") {
     return (
-      <div className="flex flex-col items-end gap-1.5" data-role="user">
-        {message.images?.map((src, i) => (
-          <img key={i} src={src} alt="" className="max-w-[60%] max-h-48 rounded-lg object-cover" />
-        ))}
-        {message.text && <div className="max-w-[85%] bg-surface-2 rounded-lg px-3.5 py-2.5 text-body text-primary whitespace-pre-wrap break-words">{message.text}</div>}
+      <div data-role="user" className="grid grid-cols-[2ch_1fr]">
+        <span aria-hidden="true" className="text-term-prompt select-none">❯</span>
+        <div className="min-w-0 text-term-fg whitespace-pre-wrap break-words">{message.text}</div>
+        {message.images && message.images.length > 0 && (
+          <div className="col-start-2 mt-1.5 flex flex-wrap gap-1.5">
+            {message.images.map((src, i) => (
+              <img key={i} src={src} alt={`attached image ${i + 1}`} className="w-14 h-14 object-cover rounded-xs border border-term-line" />
+            ))}
+          </div>
+        )}
       </div>
     );
   }
   const empty = !message.text && message.tools.length === 0;
   return (
-    <div className="flex flex-col gap-1.5 items-start max-w-full" data-role="assistant">
-      {message.tools.length > 0 && (
-        <div className="flex flex-col gap-1 w-full">
-          {message.tools.map((t) => (
-            <ToolLine key={t.id} tool={t} />
-          ))}
+    <div data-role="assistant" className="flex flex-col gap-0.5">
+      {message.tools.map((t) => (
+        <ToolEntry key={t.id} tool={t} />
+      ))}
+      {message.streaming && empty && <WorkingLine>thinking…</WorkingLine>}
+      {!empty && (message.text || message.streaming) && (
+        <div className="pl-[2ch] text-term-fg break-words">
+          <AgentText text={message.text} trailing={message.streaming ? <BlockCursor /> : undefined} />
         </div>
       )}
-      {(message.text || message.streaming) && (
-        <div className="text-body text-primary break-words max-w-full">
-          <AgentText text={message.text} />
-          {message.streaming && <Cursor inline={Boolean(message.text) && !empty} />}
+      {message.cancelled && (
+        <div className="pl-[2ch] text-term-fg-faint">
+          ^C <span className="text-term-fg-dim">cancelled</span>
         </div>
       )}
-      {message.streaming && empty && (
-        <div className="flex items-center gap-2 text-footnote text-tertiary h-5">
-          <Cursor />
+      {message.failed && (
+        <div className="grid grid-cols-[2ch_1fr]" role="alert">
+          <span aria-hidden="true" className="text-term-err select-none">✗</span>
+          <div className="text-term-err break-words">
+            {message.failed.message}
+            {onRetry && (
+              <>
+                {"  "}
+                <button type="button" onClick={onRetry} className="text-term-fg-dim underline underline-offset-2 hover:text-term-fg">
+                  retry
+                </button>
+              </>
+            )}
+          </div>
         </div>
       )}
     </div>
   );
 }
 
-function ToolLine({ tool }: { tool: ChatTool }) {
+/** `⠋ name(args)` while running, `✓` / `✗` when done, `–` when the turn was cancelled before it answered. Click to show the result under a `⎿`. */
+function ToolEntry({ tool }: { tool: ChatTool }) {
   const [open, setOpen] = useState(false);
-  const label = toolLabel(tool.name, tool.input, tool.pending);
-  const failed = tool.ok === false;
+  const frame = useSpinnerFrame(tool.pending);
+  const args = formatToolArgs(tool.input);
   const detail = tool.summary?.trim();
+  const failed = tool.ok === false;
+  const interrupted = !tool.pending && tool.ok === undefined;
+  const expandable = Boolean(detail) && !tool.pending;
+  const state = tool.pending ? "running" : failed ? "failed" : interrupted ? "interrupted" : "ok";
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col" data-tool={tool.name} data-state={state}>
       <button
         type="button"
-        disabled={!detail}
+        disabled={!expandable}
+        aria-expanded={expandable ? open : undefined}
         onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        className={cn("flex items-center gap-1.5 min-h-[28px] text-left text-footnote", failed ? "text-danger-text" : "text-secondary", detail && "active:opacity-60")}
+        className={cn("grid grid-cols-[2ch_1fr_auto] items-start text-left min-h-[32px] lg:min-h-[24px] py-1.5 lg:py-0.5 -mx-1 px-1 rounded-xs", expandable && "hover:bg-term-bg-hover active:bg-term-bg-hover")}
       >
-        {tool.pending ? <Spinner size={12} className="text-tertiary" /> : <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", failed ? "bg-danger" : "bg-quaternary")} />}
-        <span className="truncate">{failed ? `Could not: ${label.toLowerCase()}` : label}</span>
-        {detail && <Icon name={open ? "chevron-up" : "chevron-down"} size={14} className="text-quaternary shrink-0" />}
+        <span aria-hidden="true" className={cn("select-none", tool.pending ? "text-term-prompt" : failed ? "text-term-err" : interrupted ? "text-term-fg-faint" : "text-term-ok")}>
+          {tool.pending ? frame : failed ? "✗" : interrupted ? "–" : "✓"}
+        </span>
+        <span className="min-w-0 truncate">
+          <span className="text-term-tool">{tool.name}</span>
+          <span className="text-term-fg-dim">({args})</span>
+        </span>
+        {expandable && (
+          <span aria-hidden="true" className="text-term-fg-faint pl-2 select-none">
+            {open ? "▾" : "▸"}
+          </span>
+        )}
       </button>
-      {open && detail && <div className="pl-3 pb-1 text-caption-1 text-tertiary whitespace-pre-wrap break-words">{detail}</div>}
+      {open && detail && (
+        <div className="grid grid-cols-[2ch_1fr] pb-1 text-term-fg-dim">
+          <span aria-hidden="true" className="select-none text-term-fg-faint">⎿</span>
+          <pre className="m-0 font-mono whitespace-pre-wrap break-words text-[0.92em] leading-[18px]">{detail}</pre>
+        </div>
+      )}
     </div>
   );
 }
 
-/** A 2px bar that blinks slowly. Opacity only, so reduced motion is respected. */
-function Cursor({ inline }: { inline?: boolean }) {
-  return <motion.span aria-hidden="true" className={cn("inline-block w-[2px] h-[1em] bg-primary align-text-bottom rounded-full", inline ? "ml-0.5" : "")} animate={{ opacity: [1, 1, 0.15, 0.15, 1] }} transition={{ duration: 1.2, repeat: Infinity, ease: "linear", times: [0, 0.45, 0.5, 0.95, 1] }} />;
+/** Block cursor that blinks on a 1s step; reduced motion keeps it solid. */
+export function BlockCursor() {
+  return <span aria-hidden="true" className="term-cursor inline-block w-[0.55em] h-[1.05em] bg-term-cursor align-[-0.15em] ml-px" />;
 }

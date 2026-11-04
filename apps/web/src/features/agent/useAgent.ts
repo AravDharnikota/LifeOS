@@ -22,6 +22,8 @@ export interface ChatMessage {
   images?: string[];
   tools: ChatTool[];
   streaming?: boolean;
+  /** Set when the reader stopped the turn with Esc. The server finishes the turn on its own; its copy replaces this one on the next send or reload. */
+  cancelled?: boolean;
   /** Set on the assistant placeholder when the turn failed; carries what to resend. */
   failed?: { text: string; images: Attachment[]; message: string };
 }
@@ -67,6 +69,8 @@ export function useChat(open: boolean) {
   const [live, setLive] = useState<ChatMessage[]>([]);
   const [sending, setSending] = useState(false);
   const abort = useRef<AbortController | null>(null);
+  // How many server messages existed when the live turn started. While it runs, anything the server adds is its copy of that turn, which the live messages already show.
+  const [baseline, setBaseline] = useState<number | null>(null);
   const thread = useThread(threadId, open);
 
   // A stored thread that no longer exists starts fresh.
@@ -82,11 +86,13 @@ export function useChat(open: boolean) {
     abort.current = null;
     setSending(false);
     setLive([]);
+    setBaseline(null);
     storeThread(id);
     setThreadIdState(id);
   }, []);
 
-  const history = (thread.data?.messages ?? []).map(fromServer);
+  const stored = thread.data?.messages ?? [];
+  const history = (baseline === null ? stored : stored.slice(0, baseline)).map(fromServer);
   const liveIds = new Set(live.map((m) => m.id));
   const messages: ChatMessage[] = [...history.filter((m) => !liveIds.has(m.id)), ...live];
 
@@ -95,10 +101,12 @@ export function useChat(open: boolean) {
       const body = text.trim();
       if ((!body && images.length === 0) || sending) return;
       setSending(true);
+      setBaseline(threadId && thread.data ? thread.data.messages.length : 0);
       const userId = nextId();
       const assistantId = nextId();
+      // Failed and cancelled turns go, prompt included: the server stored that prompt before the turn ran, so its copy takes over.
       setLive((prev) => [
-        ...prev.filter((m) => !m.failed),
+        ...prev.filter((m, i, arr) => !m.failed && !m.cancelled && !arr[i + 1]?.failed && !arr[i + 1]?.cancelled),
         { id: userId, role: "user", text: body, images: images.map((i) => i.dataUrl), tools: [] },
         { id: assistantId, role: "assistant", text: "", tools: [], streaming: true },
       ]);
@@ -148,8 +156,12 @@ export function useChat(open: boolean) {
         void qc.invalidateQueries({ queryKey: threadKeys.list });
         const fresh = qc.getQueryData<AgentThread & { messages: AgentMessage[] }>(threadKeys.one(id));
         if (serverAssistantId && fresh?.messages.some((m) => m.id === serverAssistantId)) setLive((prev) => prev.filter((m) => m.id !== userId && m.id !== assistantId));
+        setBaseline(null);
       } catch (e) {
-        if (controller.signal.aborted) return;
+        if (controller.signal.aborted) {
+          patch((m) => ({ ...m, streaming: false, cancelled: true, tools: m.tools.map((t) => ({ ...t, pending: false })) }));
+          return;
+        }
         const message = e instanceof ApiError && e.status === 503 ? "Assistant needs an API key on the server." : e instanceof Error ? e.message : "The assistant could not answer.";
         patch((m) => ({ ...m, streaming: false, failed: { text: body, images, message } }));
       } finally {
@@ -157,7 +169,7 @@ export function useChat(open: boolean) {
         setSending(false);
       }
     },
-    [qc, sending, threadId],
+    [qc, sending, threadId, thread.data],
   );
 
   const retry = useCallback(() => {
@@ -174,6 +186,7 @@ export function useChat(open: boolean) {
   const stop = useCallback(() => {
     abort.current?.abort();
   }, []);
+
 
   return { threadId, setThreadId, messages, send, retry, stop, sending, loading: Boolean(threadId) && thread.isPending && open, error: thread.isError && !(thread.error instanceof ApiError && thread.error.status === 404), refetch: thread.refetch };
 }

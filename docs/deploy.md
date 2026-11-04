@@ -9,7 +9,7 @@ Copy `.env.example` to `.env` (or set them in your host's secrets):
 | Variable | Required | What it does |
 |---|---|---|
 | `ANTHROPIC_API_KEY` | for AI features | Food photo analysis, body progress comparisons, the in-app assistant, duration estimates |
-| `ANTHROPIC_MODEL` | no | Default `claude-opus-5-5`. `claude-sonnet-5-5` is cheaper for routine logging |
+| `ANTHROPIC_MODEL` | no | Default `claude-sonnet-5-5`. `claude-opus-5-5` is stronger for planning, at a higher cost |
 | `ANTHROPIC_VISION_MODEL` | no | Model for photo analysis (defaults to `ANTHROPIC_MODEL`) |
 | `ARAVOS_TOKEN` | yes once exposed to the internet | Bearer token the apps and every MCP client must send. Generate with `openssl rand -hex 32` |
 | `ARAVOS_PUBLIC_URL` | yes | Public base URL (used for Google OAuth redirect and MCP instructions) |

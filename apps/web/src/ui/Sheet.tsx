@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useDragControls, type PanInfo } from "motion/react";
 import { cn } from "@/lib/cn";
@@ -23,6 +23,10 @@ export interface SheetProps {
   desktop?: "dialog" | "panel";
   /** Hide the drag grabber and header entirely (e.g. custom chrome). */
   bare?: boolean;
+  /** Content fills the sheet edge to edge; the child handles its own gutters and safe area. */
+  flush?: boolean;
+  /** Inline styles for the sheet surface (e.g. a different background). */
+  style?: CSSProperties;
 }
 
 let openSheets = 0;
@@ -31,7 +35,7 @@ let openSheets = 0;
  * Bottom sheet with the iOS curve (500ms), drag-to-dismiss, grabber, dimmed backdrop.
  * On desktop it becomes a centered dialog.
  */
-export function Sheet({ open, onClose, title, detent = "auto", leading, trailing, children, dirty, className, desktop = "dialog", bare }: SheetProps) {
+export function Sheet({ open, onClose, title, detent = "auto", leading, trailing, children, dirty, className, desktop = "dialog", bare, flush, style }: SheetProps) {
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const controls = useDragControls();
   const contentRef = useRef<HTMLDivElement>(null);
@@ -91,7 +95,7 @@ export function Sheet({ open, onClose, title, detent = "auto", leading, trailing
               !isDesktop && "rounded-t-lg max-h-[calc(100dvh-var(--safe-top)-8px)]",
               className,
             )}
-            style={!isDesktop && height ? { height } : undefined}
+            style={{ ...(!isDesktop && height ? { height } : undefined), ...style }}
           >
             {!isDesktop && !bare && (
               <div className="shrink-0 pt-2 pb-1 flex justify-center cursor-grab touch-none" onPointerDown={(e) => controls.start(e)}>
@@ -105,7 +109,7 @@ export function Sheet({ open, onClose, title, detent = "auto", leading, trailing
                 <div className="justify-self-end">{trailing}</div>
               </div>
             )}
-            <div ref={contentRef} className="scroller flex-1 min-h-0 px-[var(--gutter)] pb-[max(16px,var(--safe-bottom))]">
+            <div ref={contentRef} className={cn("flex-1 min-h-0", flush ? "flex flex-col" : "scroller px-[var(--gutter)] pb-[max(16px,var(--safe-bottom))]")}>
               {children}
             </div>
             {confirmClose && (
