@@ -30,6 +30,15 @@ Re-run `pnpm --filter @aravos/web build && pnpm exec cap sync ios` whenever the 
 | Keyboard | `@capacitor/keyboard` | Native resize so sheets stay above the keyboard |
 | Preferences | `@capacitor/preferences` | Stores the server address and access token |
 
+## Skip the connect screen (personal builds)
+Put the server and token in `apps/web/.env.local` (gitignored) before building; a fresh install
+then connects on first launch and never shows the connect screen:
+```
+VITE_ARAVOS_SERVER_URL=https://your-server.example.com
+VITE_ARAVOS_TOKEN=<ARAVOS_TOKEN>
+```
+Values saved on the device (Settings, server) still override these.
+
 ## Server address
 The native app does not bundle a server. Point it at your deployment (see `docs/deploy.md`).
 For local development on the same Wi-Fi, use `http://<your-mac-ip>:8787`; `NSAllowsLocalNetworking`

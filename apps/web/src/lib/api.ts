@@ -18,14 +18,19 @@ let token: string | null = null;
 let serverUrl = "";
 let loaded = false;
 
+// Build-time defaults (apps/web/.env.local, gitignored). A personal build can bake in its own
+// server and token so a fresh install skips the connect screen. Values saved on the device win.
+const DEFAULT_SERVER = (import.meta.env.VITE_ARAVOS_SERVER_URL as string | undefined)?.replace(/\/$/, "") ?? "";
+const DEFAULT_TOKEN = (import.meta.env.VITE_ARAVOS_TOKEN as string | undefined) || null;
+
 async function loadConfig(): Promise<void> {
   if (loaded) return;
   loaded = true;
   if (isNative) {
-    token = (await Preferences.get({ key: KEY_TOKEN })).value;
-    serverUrl = (await Preferences.get({ key: KEY_SERVER })).value ?? "";
+    token = (await Preferences.get({ key: KEY_TOKEN })).value ?? DEFAULT_TOKEN;
+    serverUrl = (await Preferences.get({ key: KEY_SERVER })).value ?? DEFAULT_SERVER;
   } else {
-    token = localStorage.getItem(KEY_TOKEN);
+    token = localStorage.getItem(KEY_TOKEN) ?? DEFAULT_TOKEN;
     serverUrl = localStorage.getItem(KEY_SERVER) ?? "";
   }
 }
