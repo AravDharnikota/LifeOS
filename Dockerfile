@@ -22,7 +22,6 @@ COPY --from=build /app/apps/server/package.json ./apps/server/package.json
 COPY --from=build /app/apps/web/dist ./apps/web/dist
 COPY --from=build /app/package.json /app/pnpm-workspace.yaml /app/tsconfig.base.json ./
 ENV PORT=8787 ARAVOS_DATA_DIR=/data
-VOLUME ["/data"]
 EXPOSE 8787
 WORKDIR /app/apps/server
 CMD ["node", "--import", "tsx", "src/index.ts"]
