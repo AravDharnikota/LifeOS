@@ -4,6 +4,7 @@ import { calendarTools } from "./calendar.ts";
 import { goalsTools } from "./goals.ts";
 import { trackersTools } from "./trackers.ts";
 import { healthTools } from "./health.ts";
+import { workoutTools } from "./workouts.ts";
 import { summaryTools } from "./summary.ts";
 import { schedulerTools } from "./scheduler.ts";
 import { layoutTools } from "./layout.ts";
@@ -11,7 +12,7 @@ import { memoryTools } from "./memory.ts";
 
 export * from "./types.ts";
 
-export const allTools: ToolDef[] = [...summaryTools, ...tasksTools, ...calendarTools, ...schedulerTools, ...goalsTools, ...trackersTools, ...healthTools, ...layoutTools, ...memoryTools];
+export const allTools: ToolDef[] = [...summaryTools, ...tasksTools, ...calendarTools, ...schedulerTools, ...goalsTools, ...trackersTools, ...healthTools, ...workoutTools, ...layoutTools, ...memoryTools];
 
 export function toolsFor(surface: "agent" | "mcp"): ToolDef[] {
   const seen = new Set<string>();

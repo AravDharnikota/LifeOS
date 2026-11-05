@@ -150,6 +150,32 @@ Health
 | `get_personal_records` | Personal records (weight, one_rm, volume, reps) per exercise, filterable by name |
 | `get_health_targets` | Daily targets, profile goal and pace, latest weight and suggested targets |
 
+Workouts
+
+Weights and distances are stored in kg and km. Every workout tool takes an optional `units` (`imperial` = lb and mi, `metric` = kg and km), defaulting to Arav's profile setting, converts both ways and states the unit in its result. Dumbbell weights are per hand.
+
+| Tool | What it does |
+| --- | --- |
+| `search_exercises` | Search the exercise library by name or alias (`rdl`, `shoulder press`), filter by body part or category; returns the ids every other tool needs |
+| `create_exercise` | Add a custom exercise; its category decides what a set records |
+| `list_templates` | Templates (routines) with folder, last performed date and exercises with set counts |
+| `get_template` | One template with every exercise's target sets, rest timers and supersets |
+| `create_template` | New template from exercise ids and target sets |
+| `update_template` | Rename, change notes or folder; `exercises` replaces the whole list |
+| `duplicate_template` | Copy a template as `<name> (copy)` |
+| `delete_template` | Delete a template; past workouts stay (destructive) |
+| `get_active_workout` | The workout in progress with set ids, values, PRs and previous performance |
+| `get_workout` | One workout, in progress or completed, with every set |
+| `start_workout` | Start a live workout, empty or from a template |
+| `add_workout_exercise` | Add an exercise (optionally with planned sets) to the workout in progress |
+| `log_workout_set` | Record or correct one set; `completed` defaults to true and checks PRs |
+| `add_workout_set` | Add a set to an exercise; missing values copy the previous set |
+| `finish_workout` | Finish, optionally update or save the template; returns new PRs |
+| `discard_workout` | Throw away the workout in progress (destructive) |
+| `log_workout` | Record a workout that already happened in one call, backdated with `startedAt` |
+| `update_workout` | Rename, change notes, or move a workout's date and duration |
+| `delete_workout` | Remove a workout from history; PRs are recalculated (destructive) |
+
 Summary and system
 
 | Tool | What it does |
