@@ -5,7 +5,7 @@ import { Sheet } from "@/ui/Sheet";
 import { Segmented } from "@/ui/Segmented";
 import { Button, IconButton } from "@/ui/Button";
 import { Icon } from "@/ui/Icon";
-import { Group, Row, SectionHeader, Footnote } from "@/ui/List";
+import { Row, SectionHeader, Footnote } from "@/ui/List";
 import { TextField, TextArea } from "@/ui/Field";
 import { TapChip } from "./TapChip";
 import { Stepper } from "@/ui/Stepper";
@@ -20,7 +20,9 @@ import { fmtInt, plural } from "@/lib/format";
 import { useDebounced, useIsDesktop } from "@/lib/hooks";
 import { isNative } from "@/lib/platform";
 import { analyzeFood, correctAnalysis, createFood, lookupBarcode, useCreateMeal, useFoodSearch, useMealFromAnalysis, useNutritionDay } from "./api";
-import { MEAL_TYPES, aiErrorText, analysisFromDraft, celebrateOnce, defaultServing, draftFromAnalysis, draftItemFromFood, draftTotals, fmtKcal, fmtMacros, mealTypeForNow, rescaleItem, scoreLine, type Draft, type DraftItem } from "./model";
+import { MACROS, MEAL_TYPES, aiErrorText, analysisFromDraft, celebrateOnce, defaultServing, draftFromAnalysis, draftItemFromFood, draftTotals, fmtKcal, fmtMacros, mealTypeForNow, rescaleItem, scoreLine, type Draft, type DraftItem } from "./model";
+import { ScoreValue, WellGroup } from "@/features/health/parts";
+import { BigNumber, Legend } from "@/ui/viz";
 
 export type LogMode = "photo" | "describe" | "search" | "barcode";
 type Stage = { kind: "input" } | { kind: "portion"; food: Food } | { kind: "create" } | { kind: "results" };
@@ -179,7 +181,7 @@ function PhotoPane({ preview, busy, error, onPicked, onRetry, onClear, onSwitch 
     <div className="flex flex-col gap-4">
       {preview ? (
         <div className="flex flex-col gap-3">
-          <img src={preview} alt="Meal photo" className="w-full max-h-[280px] object-cover rounded-md bg-surface-2" />
+          <img src={preview} alt="Meal photo" className="w-full max-h-[280px] object-cover rounded-[18px] bg-surface-2 shadow-thumb" />
           {busy ? (
             <Analyzing />
           ) : error ? (
@@ -193,17 +195,26 @@ function PhotoPane({ preview, busy, error, onPicked, onRetry, onClear, onSwitch 
         </div>
       ) : (
         <>
-          <div className="flex flex-col gap-2 pt-2">
-            <Button variant="primary" size="lg" full leading={<Icon name="camera" size={20} />} onClick={() => void pick("camera")} data-testid="take-photo">
-              Take Photo
-            </Button>
-            <Button variant="plain" size="lg" full onClick={() => void pick("library")}>
-              Choose from Library
-            </Button>
+          <div className="well rounded-[20px] px-4 pt-6 pb-4 mt-1 flex flex-col items-center text-center">
+            <span className="relative w-16 h-16 rounded-[18px] glass inline-flex items-center justify-center text-secondary">
+              <Icon name="camera" size={26} strokeWidth={1.5} />
+              {(["left-0 top-0 border-l border-t rounded-tl-[8px]", "right-0 top-0 border-r border-t rounded-tr-[8px]", "left-0 bottom-0 border-l border-b rounded-bl-[8px]", "right-0 bottom-0 border-r border-b rounded-br-[8px]"] as const).map((c) => (
+                <span key={c} className={cn("absolute w-3 h-3 border-accent", c)} style={{ margin: -6 }} aria-hidden="true" />
+              ))}
+            </span>
+            <p className="text-[15px] text-primary mt-4">Snap the plate</p>
+            <p className="text-[13px] text-tertiary mt-0.5">Fit the whole plate in the frame.</p>
+            <div className="w-full flex flex-col gap-1 mt-5">
+              <Button variant="primary" size="lg" full leading={<Icon name="camera" size={20} />} onClick={() => void pick("camera")} data-testid="take-photo">
+                Take Photo
+              </Button>
+              <Button variant="plain" size="lg" full onClick={() => void pick("library")}>
+                Choose from Library
+              </Button>
+            </div>
           </div>
           {pickError && <p className="text-footnote text-danger-text text-center">{pickError}</p>}
-          <p className="text-footnote text-tertiary text-center">Fit the whole plate in the frame.</p>
-          <TextField label="Note" placeholder="Home-made, big bowl" value={note} onChange={(e) => setNote(e.target.value)} enterKeyHint="done" className="pt-2" />
+          <TextField label="Note" placeholder="Home-made, big bowl" value={note} onChange={(e) => setNote(e.target.value)} enterKeyHint="done" />
         </>
       )}
     </div>
@@ -214,7 +225,7 @@ function Analyzing() {
   return (
     <div className="flex items-center justify-center gap-2 py-5 text-secondary" role="status">
       <Spinner size={18} />
-      <span className="text-callout">Analyzing</span>
+      <span className="text-[15px]">Analyzing</span>
     </div>
   );
 }
@@ -267,9 +278,9 @@ function SearchPane({ draft, onPick, onCreate, onReview }: { draft: Draft | null
         <TextField placeholder="Search foods" aria-label="Search foods" value={q} onChange={(e) => setQ(e.target.value)} leading={<Icon name="search" size={18} className="text-tertiary" />} enterKeyHint="search" autoCapitalize="none" autoCorrect="off" autoFocus={isDesktop} data-testid="food-search" />
       </div>
       {draft && items > 0 && (
-        <Group>
+        <WellGroup>
           <Row title={`${plural(items, "item")} in this meal`} subtitle={fmtKcal(draftTotals(draft).calories)} chevron onPress={onReview} trailing={<span className="text-accent-text font-medium">Review</span>} />
-        </Group>
+        </WellGroup>
       )}
       <div>
         <SectionHeader title={dq ? (res.isFetching && !res.data ? "Searching" : `${foods.length === 30 ? "30+" : foods.length} results`) : "Popular"} />
@@ -280,13 +291,13 @@ function SearchPane({ draft, onPick, onCreate, onReview }: { draft: Draft | null
         ) : foods.length === 0 ? (
           <Empty action={<Button variant="plain" onClick={onCreate}>Create Food</Button>}>No foods match.</Empty>
         ) : (
-          <Group>
+          <WellGroup>
             {foods.map((f) => {
               const s = servingText(f);
               return <Row key={f.id} title={f.name} subtitle={f.brand ? `${f.brand} · ${s.label}` : s.label} trailing={fmtKcal(s.kcal)} onPress={() => onPick(f)} data-testid="food-result" />;
             })}
             <Row title={<span className="text-accent-text">Create Food</span>} onPress={onCreate} />
-          </Group>
+          </WellGroup>
         )}
       </div>
     </div>
@@ -450,12 +461,15 @@ function PortionPane({ food, onAdd }: { food: Food; onAdd: (item: DraftItem) => 
 
 function NutrientSummary({ n }: { n: Nutrients }) {
   return (
-    <div className="flex items-baseline justify-between gap-3">
-      <div className="flex items-baseline gap-1.5">
-        <span className="num text-title-1 text-primary">{fmtInt(n.calories)}</span>
-        <span className="text-subhead text-secondary">kcal</span>
+    <div className="well rounded-[16px] px-4 py-3 flex items-center justify-between gap-3">
+      <BigNumber value={fmtInt(n.calories)} unit="kcal" size={30} />
+      <div className="flex items-center gap-3">
+        {MACROS.map((m) => (
+          <Legend key={m.key} color={m.color} className="!text-[12px] tabular">
+            {m.short} {fmtInt(n[m.key] ?? 0)} g
+          </Legend>
+        ))}
       </div>
-      <span className="text-footnote text-secondary tabular">{fmtMacros(n)}</span>
     </div>
   );
 }
@@ -539,7 +553,7 @@ function ResultsPane({ draft, setDraft, preview, busy, error, onFix, onLog, onAd
   return (
     <div className="flex flex-col gap-4 pt-2 -mx-[var(--gutter)]">
       <div className="px-[var(--gutter)] flex items-center gap-3">
-        {photo && <img src={photo} alt="" className="w-[72px] h-[72px] rounded-sm object-cover bg-surface-2 shrink-0" />}
+        {photo && <img src={photo} alt="" className="w-[72px] h-[72px] rounded-[14px] object-cover bg-surface-2 shrink-0 shadow-thumb" />}
         <TextField className="flex-1" placeholder="Meal name" aria-label="Meal name" value={draft.name} onChange={(e) => setDraft((d) => (d ? { ...d, name: e.target.value } : d))} />
       </div>
       <div className="px-[var(--gutter)] flex gap-2">
@@ -551,7 +565,7 @@ function ResultsPane({ draft, setDraft, preview, busy, error, onFix, onLog, onAd
       </div>
       <div>
         <SectionHeader title="Items" />
-        <Group>
+        <WellGroup>
           {draft.items.map((it) => {
             const expanded = openKey === it.key;
             return (
@@ -586,7 +600,7 @@ function ResultsPane({ draft, setDraft, preview, busy, error, onFix, onLog, onAd
             );
           })}
           <Row title={<span className="text-accent-text">Add Item</span>} onPress={onAddItem} />
-        </Group>
+        </WellGroup>
         {draft.items.length === 0 && <Footnote>No items yet. Add Item.</Footnote>}
       </div>
       {ai && (
@@ -611,9 +625,9 @@ function ResultsPane({ draft, setDraft, preview, busy, error, onFix, onLog, onAd
       )}
       <div className="px-[var(--gutter)] flex flex-col gap-3">
         <NutrientSummary n={totals} />
-        <Group inset={false} className="mx-0">
-          <Row title="Health score" subtitle={score.reason} trailing={score.score != null ? <span className="num text-title-3 text-primary">{score.score}</span> : undefined} />
-        </Group>
+        <WellGroup inset={false}>
+          <Row title="Health score" subtitle={score.reason} trailing={score.score != null ? <ScoreValue score={score.score} /> : undefined} />
+        </WellGroup>
         {draft.notes && <p className="text-footnote text-secondary">{draft.notes}</p>}
         {error && <p className="text-footnote text-danger-text">{error}</p>}
         <Button variant="primary" size="lg" full loading={busy === "log"} disabled={draft.items.length === 0 || busy === "fix"} onClick={onLog} data-testid="log-meal">
@@ -623,3 +637,4 @@ function ResultsPane({ draft, setDraft, preview, busy, error, onFix, onLog, onAd
     </div>
   );
 }
+

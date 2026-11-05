@@ -1,167 +1,216 @@
-/* AravOS design tokens. Source of truth: docs/research/design-brief.md section 3. */
+/*
+ * AravOS design tokens, "Glass".
+ * A calm, clinical, futuristic look: frosted-glass panels floating over a softly lit scene
+ * (out-of-focus blue and warm yellow light), airy light-weight type, big thin numbers,
+ * and dense but quiet data visualizations. One accent (clinical blue), one highlight (yellow).
+ * Color in charts only; chrome stays neutral.
+ */
 :root {
   color-scheme: light dark;
 
-  --font-ui: -apple-system, BlinkMacSystemFont, system-ui, "Host Grotesk", "Segoe UI", Roboto, sans-serif;
-  --font-num: ui-rounded, -apple-system, system-ui, "Host Grotesk", sans-serif;
+  --font-ui: "Outfit Variable", -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", Roboto, sans-serif;
+  --font-num: "Outfit Variable", -apple-system, system-ui, sans-serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
-  /* neutrals (Radix Sand) */
-  --bg-canvas: #f9f9f8;
-  --bg-surface: #ffffff;
-  --bg-elevated: #ffffff;
-  --bg-surface-2: #f1f0ef;
-  --bg-pressed: #e9e8e6;
-  --bg-selected: #e2e1de;
-  --separator: rgba(33, 32, 28, 0.1);
-  --separator-strong: rgba(33, 32, 28, 0.16);
-  --border-interactive: #cfceca;
-  --border-focus: #bcbbb5;
-  --text-primary: #21201c;
-  --text-secondary: #63635e;
-  --text-tertiary: #8d8d86;
-  --text-quaternary: #bcbbb5;
-  --backdrop: rgba(0, 0, 0, 0.3);
+  /* scene: the lit backdrop behind the glass */
+  --scene-base: #eceef2;
+  --scene-a: #9ec5ff; /* cool blue light */
+  --scene-b: #ffe28a; /* warm yellow light */
+  --scene-c: #ffffff; /* white bloom */
+  --scene-d: #d9d4ff; /* faint lilac */
 
-  /* accent (system blue) */
-  --accent: #0088ff;
-  --accent-text: #1e6ef4;
-  --accent-soft: #e5f2ff;
+  /* glass */
+  --glass-fill: rgba(255, 255, 255, 0.56);
+  --glass-fill-strong: rgba(255, 255, 255, 0.78);
+  --glass-edge: rgba(255, 255, 255, 0.75);
+  --glass-blur: 22px;
+  --glass-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 40%);
+
+  /* surfaces (kept for existing class names) */
+  --bg-canvas: #eceef2;
+  --bg-surface: rgba(255, 255, 255, 0.56);
+  --bg-elevated: rgba(248, 249, 251, 0.94);
+  --bg-surface-2: rgba(255, 255, 255, 0.72);
+  --bg-pressed: rgba(17, 19, 24, 0.06);
+  --bg-selected: rgba(17, 19, 24, 0.09);
+  --separator: rgba(17, 19, 24, 0.07);
+  --separator-strong: rgba(17, 19, 24, 0.12);
+  --border-interactive: rgba(17, 19, 24, 0.16);
+  --border-focus: rgba(17, 19, 24, 0.28);
+
+  /* ink */
+  --text-primary: #111318;
+  --text-secondary: #5b616e;
+  --text-tertiary: #8a909c;
+  --text-quaternary: #b8bdc6;
+  --backdrop: rgba(17, 19, 24, 0.22);
+
+  /* accent: clinical blue. highlight: soft yellow for the one hero action. */
+  --accent: #2f6bff;
+  --accent-2: #5b9dff;
+  --accent-text: #2456d6;
+  --accent-soft: rgba(47, 107, 255, 0.1);
   --on-accent: #ffffff;
+  --highlight: #ffd84d;
+  --on-highlight: #1a1a1a;
 
-  /* health metrics: solid / text / soft */
-  --energy: #ff8d28; --energy-text: #c55300; --energy-soft: #fff1e6;
-  --protein: #34c759; --protein-text: #008932; --protein-soft: #e6f7ea;
-  --carbs: #ffcc00; --carbs-text: #a16a00; --carbs-soft: #fff6d6;
-  --fat: #ff2d55; --fat-text: #e7124d; --fat-soft: #ffe8ee;
-  --water: #00c0e8; --water-text: #007eae; --water-soft: #e2f5fb;
-  --activity: #00c8b3; --activity-text: #008575; --activity-soft: #e0f7f4;
+  /* data colors (charts, metric dots) */
+  --energy: #f97316; --energy-text: #c2410c; --energy-soft: rgba(249, 115, 22, 0.12);
+  --protein: #22c55e; --protein-text: #15803d; --protein-soft: rgba(34, 197, 94, 0.12);
+  --carbs: #facc15; --carbs-text: #a16207; --carbs-soft: rgba(250, 204, 21, 0.16);
+  --fat: #ef4444; --fat-text: #b91c1c; --fat-soft: rgba(239, 68, 68, 0.12);
+  --water: #38bdf8; --water-text: #0369a1; --water-soft: rgba(56, 189, 248, 0.14);
+  --activity: #14b8a6; --activity-text: #0f766e; --activity-soft: rgba(20, 184, 166, 0.12);
 
   /* status */
-  --danger: #ff383c; --danger-text: #e9152d; --danger-soft: #ffe9ea;
-  --success: #34c759; --success-text: #008932;
-  --warning: #ff8d28; --warning-text: #c55300;
+  --danger: #ef4444; --danger-text: #c81e1e; --danger-soft: rgba(239, 68, 68, 0.12);
+  --success: #22c55e; --success-text: #15803d; --success-soft: rgba(34, 197, 94, 0.14);
+  --warning: #f97316; --warning-text: #c2410c; --warning-soft: rgba(249, 115, 22, 0.12);
 
   /* calendar palette */
-  --cal-blue: #2383e2;
-  --cal-green: #0f7b6c;
-  --cal-yellow: #cb912f;
-  --cal-orange: #d9730d;
-  --cal-red: #d44c47;
-  --cal-pink: #c14c8a;
-  --cal-purple: #9065b0;
-  --cal-gray: #787774;
-  --cal-graphite: #5f5e5a;
-  --cal-mix: 16%;
+  --cal-blue: #2f6bff;
+  --cal-green: #16a34a;
+  --cal-yellow: #ca8a04;
+  --cal-orange: #ea580c;
+  --cal-red: #dc2626;
+  --cal-pink: #db2777;
+  --cal-purple: #7c3aed;
+  --cal-gray: #8a909c;
+  --cal-graphite: #5b616e;
+  --cal-mix: 18%;
   --cal-text-mix: 100%;
 
   /* radius */
-  --r-xs: 4px; --r-sm: 6px; --r-md: 10px; --r-lg: 12px; --r-full: 9999px;
+  --r-xs: 8px; --r-sm: 12px; --r-md: 16px; --r-lg: 20px; --r-xl: 26px; --r-full: 9999px;
 
   /* motion */
-  --dur-press: 100ms; --dur-micro: 150ms; --dur-enter: 200ms; --dur-exit: 160ms; --dur-page: 300ms; --dur-sheet: 500ms; --dur-ring: 600ms;
+  --dur-press: 120ms; --dur-micro: 150ms; --dur-enter: 220ms; --dur-exit: 160ms; --dur-page: 320ms; --dur-sheet: 420ms; --dur-ring: 900ms;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
   --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
   --spring-snappy: linear(0, 0.038 4%, 0.129 8%, 0.244 12%, 0.367 17%, 0.485 21%, 0.592 25%, 0.685 29%, 0.763 33%, 0.826 38%, 0.876 42%, 0.915 46%, 0.944 50%, 0.966 54%, 0.981 58%, 0.992 62%, 0.998 67%, 1.003 71%, 1.005 75%, 1.006 79%, 1.006 83%, 1.006 88%, 1.005 92%, 1.005 96%, 1);
   --spring-pop: linear(0, 0.039 4%, 0.133 8%, 0.256 12%, 0.388 17%, 0.516 21%, 0.633 25%, 0.734 29%, 0.817 33%, 0.884 38%, 0.934 42%, 0.971 46%, 0.997 50%, 1.014 54%, 1.023 58%, 1.028 62%, 1.028 67%, 1.027 71%, 1.024 75%, 1.020 79%, 1.017 83%, 1.013 88%, 1.010 92%, 1.007 96%, 1);
 
-  /* shadows: only popovers, dragged rows, segmented thumb */
-  --shadow-popover: 0 4px 12px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(33, 32, 28, 0.06);
-  --shadow-drag: 0 4px 12px rgba(0, 0, 0, 0.15);
-  --shadow-thumb: 0 1px 2px rgba(0, 0, 0, 0.08), 0 0 0 0.5px rgba(0, 0, 0, 0.04);
+  /* shadows: barely there; glass reads from its edge and blur, not its shadow */
+  --shadow-card: 0 1px 1px rgba(17, 19, 24, 0.03), 0 12px 32px -16px rgba(17, 19, 24, 0.14);
+  --shadow-float: 0 2px 6px rgba(17, 19, 24, 0.04), 0 20px 48px -18px rgba(17, 19, 24, 0.24);
+  --shadow-popover: 0 16px 48px -12px rgba(17, 19, 24, 0.26), 0 0 0 1px rgba(17, 19, 24, 0.05);
+  --shadow-drag: 0 24px 48px -16px rgba(17, 19, 24, 0.3);
+  --shadow-thumb: 0 1px 2px rgba(17, 19, 24, 0.08), 0 4px 12px -4px rgba(17, 19, 24, 0.12);
+  --glass-inset: inset 0 1px 0 rgba(255, 255, 255, 0.85), inset 0 0 0 1px rgba(255, 255, 255, 0.5);
 
   /* layout */
   --gutter: 16px;
-  --tabbar-h: 49px;
+  --tabbar-h: 72px; /* reserved above the safe area for the floating tab bar: calc(var(--tabbar-h) + var(--safe-bottom)) */
   --topbar-h: 44px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --sidebar-w: 232px;
+  --sidebar-w: 240px;
+
+  /* keyboard: height published by src/lib/keyboard.ts; timing matches the iOS keyboard slide */
+  --kb: 0px;
+  --kb-dur: 320ms;
+  --kb-ease: cubic-bezier(0.38, 0.7, 0.125, 1);
 }
 
 @media (min-width: 430px) {
   :root { --gutter: 20px; }
 }
+@media (min-width: 1024px) {
+  :root { --tabbar-h: 0px; }
+}
 
-:root[data-theme="dark"],
-:root:not([data-theme="light"]) {
-  @media (prefers-color-scheme: dark) {
-    --bg-canvas: #111110;
-    --bg-surface: #191918;
-    --bg-elevated: #222221;
-    --bg-surface-2: #2a2a28;
-    --bg-pressed: #31312e;
-    --bg-selected: #3b3a37;
-    --separator: rgba(238, 238, 236, 0.12);
-    --separator-strong: rgba(238, 238, 236, 0.2);
-    --border-interactive: #494844;
-    --border-focus: #62605b;
-    --text-primary: #eeeeec;
-    --text-secondary: #b5b3ad;
-    --text-tertiary: #7c7b74;
-    --text-quaternary: #6f6d66;
+/* Dark: a cinematic, warm-lit scene with smoked glass. */
+:root[data-theme="dark"] {
+  --scene-base: #0b0b0d;
+  --scene-a: #3a2a14;
+  --scene-b: #6b3d10;
+  --scene-c: #1d2433;
+  --scene-d: #2a1a10;
+  --glass-fill: rgba(32, 32, 36, 0.5);
+  --glass-fill-strong: rgba(36, 36, 40, 0.8);
+  --glass-edge: rgba(255, 255, 255, 0.09);
+  --glass-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0) 40%);
+  --bg-canvas: #0b0b0d;
+  --bg-surface: rgba(32, 32, 36, 0.5);
+  --bg-elevated: rgba(26, 26, 30, 0.96);
+  --bg-surface-2: rgba(255, 255, 255, 0.06);
+  --bg-pressed: rgba(255, 255, 255, 0.08);
+  --bg-selected: rgba(255, 255, 255, 0.12);
+  --separator: rgba(255, 255, 255, 0.08);
+  --separator-strong: rgba(255, 255, 255, 0.14);
+  --border-interactive: rgba(255, 255, 255, 0.18);
+  --border-focus: rgba(255, 255, 255, 0.3);
+  --text-primary: #f3f2ef;
+  --text-secondary: #b4b1aa;
+  --text-tertiary: #7f7c76;
+  --text-quaternary: #55534f;
+  --backdrop: rgba(0, 0, 0, 0.5);
+  --accent: #ff9f2e; --accent-2: #ffc35a; --accent-text: #ffb557; --accent-soft: rgba(255, 159, 46, 0.14);
+  --on-accent: #1a1206;
+  --highlight: #ffc94a;
+  --energy-text: #fdba74; --protein-text: #86efac; --carbs-text: #fde047; --fat-text: #fca5a5; --water-text: #7dd3fc; --activity-text: #5eead4;
+  --danger-text: #fca5a5; --success-text: #86efac; --warning-text: #fdba74;
+  --cal-mix: 26%;
+  --shadow-card: 0 12px 32px -16px rgba(0, 0, 0, 0.6);
+  --shadow-float: 0 20px 48px -18px rgba(0, 0, 0, 0.8);
+  --shadow-popover: 0 16px 48px -12px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  --shadow-thumb: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --glass-inset: inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --scene-base: #0b0b0d;
+    --scene-a: #3a2a14;
+    --scene-b: #6b3d10;
+    --scene-c: #1d2433;
+    --scene-d: #2a1a10;
+    --glass-fill: rgba(32, 32, 36, 0.5);
+    --glass-fill-strong: rgba(36, 36, 40, 0.8);
+    --glass-edge: rgba(255, 255, 255, 0.09);
+    --glass-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0) 40%);
+    --bg-canvas: #0b0b0d;
+    --bg-surface: rgba(32, 32, 36, 0.5);
+    --bg-elevated: rgba(26, 26, 30, 0.96);
+    --bg-surface-2: rgba(255, 255, 255, 0.06);
+    --bg-pressed: rgba(255, 255, 255, 0.08);
+    --bg-selected: rgba(255, 255, 255, 0.12);
+    --separator: rgba(255, 255, 255, 0.08);
+    --separator-strong: rgba(255, 255, 255, 0.14);
+    --border-interactive: rgba(255, 255, 255, 0.18);
+    --border-focus: rgba(255, 255, 255, 0.3);
+    --text-primary: #f3f2ef;
+    --text-secondary: #b4b1aa;
+    --text-tertiary: #7f7c76;
+    --text-quaternary: #55534f;
     --backdrop: rgba(0, 0, 0, 0.5);
-    --accent: #0091ff; --accent-text: #5cb8ff; --accent-soft: #0e2238;
-    --energy: #ff9230; --energy-text: #ffa056; --energy-soft: #2a1c10;
-    --protein: #30d158; --protein-text: #4ad968; --protein-soft: #0f2416;
-    --carbs: #ffd600; --carbs-text: #fedf43; --carbs-soft: #27220f;
-    --fat: #ff375f; --fat-text: #ff8ac4; --fat-soft: #2b141b;
-    --water: #3cd3fe; --water-text: #6dd9ff; --water-soft: #0e2230;
-    --activity: #00dac3; --activity-text: #54dfcb; --activity-soft: #0e2622;
-    --danger: #ff4245; --danger-text: #ff6165; --danger-soft: #2b1516;
-    --success: #30d158; --success-text: #4ad968;
-    --warning: #ff9230; --warning-text: #ffa056;
-    --cal-mix: 22%;
-    --shadow-popover: 0 4px 16px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(238, 238, 236, 0.08);
-    --shadow-thumb: 0 1px 2px rgba(0, 0, 0, 0.3), 0 0 0 0.5px rgba(255, 255, 255, 0.06);
+    --accent: #ff9f2e; --accent-2: #ffc35a; --accent-text: #ffb557; --accent-soft: rgba(255, 159, 46, 0.14);
+    --on-accent: #1a1206;
+    --highlight: #ffc94a;
+    --energy-text: #fdba74; --protein-text: #86efac; --carbs-text: #fde047; --fat-text: #fca5a5; --water-text: #7dd3fc; --activity-text: #5eead4;
+    --danger-text: #fca5a5; --success-text: #86efac; --warning-text: #fdba74;
+    --cal-mix: 26%;
+    --shadow-card: 0 12px 32px -16px rgba(0, 0, 0, 0.6);
+    --shadow-float: 0 20px 48px -18px rgba(0, 0, 0, 0.8);
+    --shadow-popover: 0 16px 48px -12px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.08);
+    --shadow-thumb: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --glass-inset: inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 0 0 1px rgba(255, 255, 255, 0.06);
   }
 }
 
-:root[data-theme="dark"] {
-  --bg-canvas: #111110;
-  --bg-surface: #191918;
-  --bg-elevated: #222221;
-  --bg-surface-2: #2a2a28;
-  --bg-pressed: #31312e;
-  --bg-selected: #3b3a37;
-  --separator: rgba(238, 238, 236, 0.12);
-  --separator-strong: rgba(238, 238, 236, 0.2);
-  --border-interactive: #494844;
-  --border-focus: #62605b;
-  --text-primary: #eeeeec;
-  --text-secondary: #b5b3ad;
-  --text-tertiary: #7c7b74;
-  --text-quaternary: #6f6d66;
-  --backdrop: rgba(0, 0, 0, 0.5);
-  --accent: #0091ff; --accent-text: #5cb8ff; --accent-soft: #0e2238;
-  --energy: #ff9230; --energy-text: #ffa056; --energy-soft: #2a1c10;
-  --protein: #30d158; --protein-text: #4ad968; --protein-soft: #0f2416;
-  --carbs: #ffd600; --carbs-text: #fedf43; --carbs-soft: #27220f;
-  --fat: #ff375f; --fat-text: #ff8ac4; --fat-soft: #2b141b;
-  --water: #3cd3fe; --water-text: #6dd9ff; --water-soft: #0e2230;
-  --activity: #00dac3; --activity-text: #54dfcb; --activity-soft: #0e2622;
-  --danger: #ff4245; --danger-text: #ff6165; --danger-soft: #2b1516;
-  --success: #30d158; --success-text: #4ad968;
-  --warning: #ff9230; --warning-text: #ffa056;
-  --cal-mix: 22%;
-  --shadow-popover: 0 4px 16px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(238, 238, 236, 0.08);
-  --shadow-thumb: 0 1px 2px rgba(0, 0, 0, 0.3), 0 0 0 0.5px rgba(255, 255, 255, 0.06);
-}
-
-/* Terminal palette for the assistant. Always dark, whatever the app theme: a terminal is a dark panel. */
+/* Assistant terminal palette: smoked glass terminal in both themes. */
 :root {
-  --term-bg: #0e0e0d;
-  --term-bg-raised: #151514;
-  --term-bg-hover: rgba(238, 238, 236, 0.06);
-  --term-line: rgba(238, 238, 236, 0.1);
-  --term-fg: #e9e7e1;
-  --term-fg-dim: #9c9a91;
+  --term-bg: rgba(18, 19, 24, 0.94);
+  --term-bg-raised: rgba(255, 255, 255, 0.05);
+  --term-bg-hover: rgba(255, 255, 255, 0.06);
+  --term-line: rgba(255, 255, 255, 0.09);
+  --term-fg: #ecebe6;
+  --term-fg-dim: #9e9c94;
   --term-fg-faint: #5f5d56;
-  --term-prompt: #ffb454;
-  --term-tool: #8ac4ff;
-  --term-ok: #4ad968;
-  --term-err: #ff6165;
-  --term-cursor: #e9e7e1;
-  --term-selection: rgba(255, 180, 84, 0.3);
+  --term-prompt: #ffd84d;
+  --term-tool: #8ab4ff;
+  --term-ok: #6ee7a0;
+  --term-err: #ff7b7b;
+  --term-cursor: #ecebe6;
+  --term-selection: rgba(255, 216, 77, 0.28);
 }

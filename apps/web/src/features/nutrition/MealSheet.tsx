@@ -2,7 +2,7 @@ import { Fragment, useEffect, useState } from "react";
 import type { MealItem, MealType } from "@aravos/shared";
 import { Sheet, ActionSheet } from "@/ui/Sheet";
 import { Button } from "@/ui/Button";
-import { Group, Row, SectionHeader, Footnote } from "@/ui/List";
+import { Row, SectionHeader, Footnote } from "@/ui/List";
 import { TapChip } from "./TapChip";
 import { Stepper } from "@/ui/Stepper";
 import { Spinner } from "@/ui/Spinner";
@@ -15,7 +15,9 @@ import { notify } from "@/lib/haptics";
 import { useDebounced } from "@/lib/hooks";
 import { useAppSettings } from "@/data/queries";
 import { useDeleteMeal, useDeleteMealItem, useMeal, useUpdateMeal, useUpdateMealItem } from "./api";
-import { MEAL_TYPES, fmtKcal, fmtMacros, mealTypeLabel, scaleMealItem, scoreLine } from "./model";
+import { MACROS, MEAL_TYPES, fmtKcal, fmtMacros, mealTypeLabel, scaleMealItem, scoreLine } from "./model";
+import { ScoreValue, WellGroup } from "@/features/health/parts";
+import { BigNumber, Legend } from "@/ui/viz";
 
 /** Meal detail: photo, editable items, score with its reason, notes, meal slot, delete. */
 export function MealSheet({ mealId, open, onClose }: { mealId: string | null; open: boolean; onClose: () => void }) {
@@ -53,15 +55,19 @@ export function MealSheet({ mealId, open, onClose }: { mealId: string | null; op
         <InlineError onRetry={() => void meal.refetch()}>Unable to load the meal.</InlineError>
       ) : (
         <div className="flex flex-col gap-6 pt-2 pb-2 -mx-[var(--gutter)]">
-          {m.photoPath && <img src={imageUrl(m.photoPath)} alt="" className="mx-[var(--gutter)] rounded-md max-h-[260px] object-cover bg-surface-2" />}
+          {m.photoPath && <img src={imageUrl(m.photoPath)} alt="" className="mx-[var(--gutter)] rounded-[18px] max-h-[260px] object-cover bg-surface-2 shadow-thumb" />}
           <div className="px-[var(--gutter)]">
-            <div className="flex items-baseline gap-1.5">
-              <span className="num text-display-44 text-primary">{fmtInt(totals?.calories ?? 0)}</span>
-              <span className="text-subhead text-secondary">kcal</span>
-            </div>
-            <p className="text-footnote text-secondary tabular mt-1">
-              {fmtMacros(totals ?? {})} · {plural(m.items?.length ?? 0, "item")} · {fmtTime(m.loggedAt, hour12)}
+            <BigNumber value={fmtInt(totals?.calories ?? 0)} unit="kcal" size={44} />
+            <p className="text-[13px] text-tertiary tabular mt-1">
+              {plural(m.items?.length ?? 0, "item")} · {fmtTime(m.loggedAt, hour12)}
             </p>
+            <div className="flex gap-4 mt-3">
+              {MACROS.map((x) => (
+                <Legend key={x.key} color={x.color} className="tabular">
+                  {x.label} {fmtInt(totals?.[x.key] ?? 0)} g
+                </Legend>
+              ))}
+            </div>
           </div>
           <div className="px-[var(--gutter)] flex gap-2">
             {MEAL_TYPES.map((t) => (
@@ -72,18 +78,18 @@ export function MealSheet({ mealId, open, onClose }: { mealId: string | null; op
           </div>
           <div>
             <SectionHeader title="Items" />
-            <Group>
+            <WellGroup>
               {(m.items ?? []).map((it) => (
                 <ItemRow key={it.id} item={it} expanded={openItem === it.id} onToggle={() => setOpenItem((k) => (k === it.id ? null : it.id))} />
               ))}
               {(m.items?.length ?? 0) === 0 && <Row title={<span className="text-secondary">No items</span>} />}
-            </Group>
+            </WellGroup>
           </div>
           {score && (
             <div>
-              <Group>
-                <Row title="Health score" subtitle={score.reason} trailing={score.score != null ? <span className="num text-title-3 text-primary">{score.score}</span> : undefined} />
-              </Group>
+              <WellGroup>
+                <Row title="Health score" subtitle={score.reason} trailing={score.score != null ? <ScoreValue score={score.score} /> : undefined} />
+              </WellGroup>
               {m.aiNotes && <Footnote>{m.aiNotes}</Footnote>}
             </div>
           )}

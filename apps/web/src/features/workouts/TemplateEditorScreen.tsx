@@ -1,12 +1,10 @@
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useNavigate, useParams } from "react-router";
 import type { Exercise, SetType, WorkoutSet, WorkoutTemplate, WorkoutTemplateInput } from "@aravos/shared";
 import { Button, IconButton } from "@/ui/Button";
 import { Icon } from "@/ui/Icon";
-import { Group } from "@/ui/List";
 import { ActionSheet } from "@/ui/Sheet";
 import { Menu, type MenuItem } from "@/ui/Menu";
-import { TextField } from "@/ui/Field";
 import { Empty, InlineError, Skeleton } from "@/ui/Empty";
 import { toast } from "@/ui/Toast";
 import { cn } from "@/lib/cn";
@@ -128,12 +126,16 @@ export default function TemplateEditorScreen() {
   return (
     <>
       <ScreenFrame onBack={cancel} title={id ? "Edit Template" : "New Template"} right={<Button variant="primary" size="sm" loading={saving} onClick={save} data-testid="template-save">Save</Button>}>
-        <div className="px-[var(--gutter)] pt-3 pb-2 flex flex-col gap-3">
-          <input value={name} onChange={(e) => { setName(e.target.value); setDirty(true); }} placeholder="Template name" className="w-full bg-transparent outline-none text-title-2 text-primary font-bold placeholder:text-tertiary placeholder:font-bold" aria-label="Template name" data-testid="template-name" />
-          <textarea value={notes} onChange={(e) => { setNotes(e.target.value); setDirty(true); e.target.style.height = "auto"; e.target.style.height = `${e.target.scrollHeight}px`; }} placeholder="Notes" rows={1} className="w-full bg-transparent outline-none text-subhead text-primary resize-none placeholder:text-tertiary" aria-label="Template notes" />
-          <TextField label="Folder" placeholder="My Templates" value={folder} onChange={(e) => { setFolder(e.target.value); setDirty(true); }} />
+        <div className="px-[var(--gutter)] pt-4 pb-3 flex flex-col gap-2">
+          <input value={name} onChange={(e) => { setName(e.target.value); setDirty(true); }} placeholder="Template name" className="w-full bg-transparent outline-none text-[28px] leading-[34px] tracking-[-0.02em] text-primary placeholder:text-quaternary focus-visible:!outline-none" aria-label="Template name" data-testid="template-name" />
+          <textarea value={notes} onChange={(e) => { setNotes(e.target.value); setDirty(true); e.target.style.height = "auto"; e.target.style.height = `${e.target.scrollHeight}px`; }} placeholder="Notes" rows={1} className="w-full bg-transparent outline-none text-[15px] text-primary resize-none placeholder:text-tertiary focus-visible:!outline-none" aria-label="Template notes" />
+          <label className="flex items-center gap-2.5 h-11 px-4 rounded-full well mt-1 focus-within:shadow-[inset_0_0_0_1.5px_var(--accent)] transition-shadow duration-200">
+            <Icon name="inbox" size={16} className="text-tertiary shrink-0" />
+            <span className="text-[13px] text-tertiary shrink-0">Folder</span>
+            <input value={folder} onChange={(e) => { setFolder(e.target.value); setDirty(true); }} placeholder="My Templates" className="flex-1 min-w-0 h-full bg-transparent outline-none text-[16px] text-primary text-right placeholder:text-tertiary focus-visible:!outline-none" aria-label="Folder" />
+          </label>
         </div>
-        <div className="flex flex-col gap-4 pt-2">
+        <div className="flex flex-col gap-3 pt-2">
           {exercises.map((e, i) => (
             <TemplateBlock
               key={e.key}
@@ -154,7 +156,7 @@ export default function TemplateEditorScreen() {
           ))}
           {exercises.length === 0 && <Empty className="pt-4 pb-0">No exercises yet.</Empty>}
         </div>
-        <div className="px-[var(--gutter)] pt-6">
+        <div className="px-[var(--gutter)] pt-5">
           <Button variant="secondary" size="lg" full onClick={() => setPicker({ mode: "add" })} data-testid="add-exercises">Add Exercises</Button>
         </div>
       </ScreenFrame>
@@ -180,11 +182,19 @@ function TemplateBlock({ ex: e, index, count, all, units, onUpdate, onUpdateSet,
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
   const [typeMenu, setTypeMenu] = useState<{ setKey: string; anchor: { x: number; y: number } } | null>(null);
   const [noteOpen, setNoteOpen] = useState(Boolean(e.notes));
+  // Focus the note only after the user picks Add/Edit Note; never when the editor opens.
+  const noteRef = useRef<HTMLTextAreaElement>(null);
+  const [focusNote, setFocusNote] = useState(false);
+  useLayoutEffect(() => {
+    if (!focusNote) return;
+    setFocusNote(false);
+    noteRef.current?.focus();
+  }, [focusNote]);
   const [restOpen, setRestOpen] = useState(false);
   const [ssOpen, setSsOpen] = useState(false);
   const asSets: WorkoutSet[] = e.sets.map((s, i) => ({ id: s.key, workoutExerciseId: e.key, sortOrder: i, setType: s.setType, weight: s.targetWeight, reps: s.targetReps, seconds: s.targetSeconds, distance: s.targetDistance, rpe: null, completed: false, completedAt: null, prs: [] }));
   const items: MenuItem[] = [
-    { label: noteOpen ? "Edit Note" : "Add Note", icon: "note", onPress: () => setNoteOpen(true) },
+    { label: noteOpen ? "Edit Note" : "Add Note", icon: "note", onPress: () => { setNoteOpen(true); setFocusNote(true); } },
     { label: `Rest Timer (${e.restSeconds ? fmtSeconds(e.restSeconds) : "Off"})`, icon: "timer", onPress: () => setRestOpen(true) },
     { label: "Replace Exercise", icon: "swap", onPress: onReplace },
     { label: e.supersetGroup != null ? "Edit Superset" : "Superset With", icon: "link", onPress: () => setSsOpen(true), disabled: all.length < 2 },
@@ -194,37 +204,43 @@ function TemplateBlock({ ex: e, index, count, all, units, onUpdate, onUpdateSet,
   ];
   const fieldFor = (kind: ColumnKind): keyof TSet => (kind === "weight" ? "targetWeight" : kind === "reps" ? "targetReps" : kind === "seconds" ? "targetSeconds" : "targetDistance");
   return (
-    <Group className={cn("overflow-visible", e.supersetGroup != null && "wk-superset")} style={e.supersetGroup != null ? ({ "--wk-ss": supersetColor(e.supersetGroup) } as CSSProperties) : undefined} data-testid="exercise-block">
-      <div className="flex items-center min-h-[44px] pl-[var(--gutter)] pr-1">
-        <span className="flex-1 min-w-0 text-headline text-primary truncate py-2" data-testid="exercise-name">{e.exercise.name}</span>
-        <IconButton label="Exercise menu" onClick={(ev) => { const r = ev.currentTarget.getBoundingClientRect(); setMenu({ x: r.left + r.width / 2, y: r.bottom }); }}>
+    <div className={cn("glass rounded-lg mx-[var(--gutter)] relative", e.supersetGroup != null && "wk-superset")} style={e.supersetGroup != null ? ({ "--wk-ss": supersetColor(e.supersetGroup) } as CSSProperties) : undefined} data-testid="exercise-block">
+      <div className="flex items-center gap-1 pl-4 pr-1.5 pt-2.5 pb-2">
+        <div className="flex-1 min-w-0">
+          <span className="block text-[17px] leading-[22px] text-primary truncate" data-testid="exercise-name">{e.exercise.name}</span>
+          <span className="block text-[12px] leading-4 text-tertiary tabular mt-0.5 truncate">{`${e.sets.length} ${e.sets.length === 1 ? "set" : "sets"}`}{e.restSeconds ? ` · Rest ${fmtSeconds(e.restSeconds)}` : ""}</span>
+        </div>
+        <IconButton label="Exercise menu" className="!text-secondary" onClick={(ev) => { const r = ev.currentTarget.getBoundingClientRect(); setMenu({ x: r.left + r.width / 2, y: r.bottom }); }}>
           <Icon name="more" size={20} />
         </IconButton>
       </div>
       {noteOpen && (
-        <div className="px-[var(--gutter)] pb-2 -mt-1">
-          <textarea value={e.notes ?? ""} rows={1} placeholder="Exercise note" autoFocus={!e.notes} onChange={(ev) => onUpdate({ notes: ev.target.value || null })} onBlur={() => { if (!e.notes) setNoteOpen(false); }} className="w-full bg-surface-2 rounded-sm px-3 py-2 text-subhead text-primary outline-none resize-none placeholder:text-tertiary" aria-label="Exercise note" />
+        <div className="px-3 pb-2">
+          <textarea ref={noteRef} value={e.notes ?? ""} rows={1} placeholder="Exercise note" onChange={(ev) => onUpdate({ notes: ev.target.value || null })} onBlur={() => { if (!e.notes) setNoteOpen(false); }} className="w-full well rounded-[12px] px-3 py-2 text-[15px] text-primary outline-none resize-none placeholder:text-tertiary focus-visible:!outline-none" aria-label="Exercise note" />
         </div>
       )}
-      <div className="wk-grid wk-grid-head px-[var(--gutter)] text-caption-1 font-medium text-secondary" style={{ gridTemplateColumns: grid }}>
-        <span className="pl-1">Set</span>
-        <span>Previous</span>
-        {columns.map((c) => <span key={c.kind} className="text-center">{c.label}</span>)}
-        <span className="text-center"><Icon name="lock" size={14} className="inline-block text-tertiary" /></span>
-        {hasFinePointer && <span />}
+      <div className="well rounded-[16px] mx-2 overflow-hidden" style={{ "--wk-row-px": "8px" } as CSSProperties}>
+        <div className="wk-grid wk-grid-head px-[var(--wk-row-px)] text-[11px] text-tertiary" style={{ gridTemplateColumns: grid }}>
+          <span className="text-center">Set</span>
+          <span>Previous</span>
+          {columns.map((c) => <span key={c.kind} className="text-center">{c.label}</span>)}
+          <span className="flex justify-center"><Icon name="lock" size={13} className="text-quaternary" /></span>
+          {hasFinePointer && <span />}
+        </div>
+        <div>
+          {asSets.map((s, i) => (
+            <SetRow key={s.id} set={s} index={i} sets={asSets} columns={columns} grid={grid} previous={null} category={category} units={units} checkable={false} onChangeValue={(kind, v) => onUpdateSet(s.id, { [fieldFor(kind)]: v } as Partial<TSet>)} onCommit={() => undefined} onDelete={() => onDeleteSet(s.id)} onSetType={(anchor) => setTypeMenu({ setKey: s.id, anchor })} />
+          ))}
+        </div>
       </div>
-      <div className="hairline-t">
-        {asSets.map((s, i) => (
-          <SetRow key={s.id} set={s} index={i} sets={asSets} columns={columns} grid={grid} previous={null} category={category} units={units} checkable={false} onChangeValue={(kind, v) => onUpdateSet(s.id, { [fieldFor(kind)]: v } as Partial<TSet>)} onCommit={() => undefined} onDelete={() => onDeleteSet(s.id)} onSetType={(anchor) => setTypeMenu({ setKey: s.id, anchor })} />
-        ))}
-      </div>
-      <button type="button" className="w-full h-11 text-subhead font-semibold text-accent-text hairline-t active:bg-pressed" onClick={onAddSet} data-testid="add-set">
+      <button type="button" className="w-full h-12 inline-flex items-center justify-center gap-1.5 text-[15px] text-accent-text rounded-b-lg active:bg-pressed transition-colors" onClick={onAddSet} data-testid="add-set">
+        <Icon name="plus" size={16} strokeWidth={1.8} />
         {`Add Set${e.restSeconds ? ` (${fmtSeconds(e.restSeconds)})` : ""}`}
       </button>
       <Menu open={Boolean(menu)} onClose={() => setMenu(null)} anchor={menu} items={items} />
       <Menu open={Boolean(typeMenu)} onClose={() => setTypeMenu(null)} anchor={typeMenu?.anchor ?? null} items={SET_TYPES.map((t) => ({ label: t.letter ? `${t.letter}  ${t.label}` : t.label, onPress: () => { if (typeMenu) onUpdateSet(typeMenu.setKey, { setType: t.value }); } }))} />
       <RestSheet open={restOpen} onClose={() => setRestOpen(false)} value={e.restSeconds} onPick={(v) => { onUpdate({ restSeconds: v }); setRestOpen(false); }} />
       <SupersetSheet open={ssOpen} onClose={() => setSsOpen(false)} current={{ id: e.key, name: e.exercise.name, supersetGroup: e.supersetGroup }} all={all.map((x) => ({ id: x.key, name: x.exercise.name, supersetGroup: x.supersetGroup }))} onSave={onSuperset} />
-    </Group>
+    </div>
   );
 }

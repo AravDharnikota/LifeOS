@@ -141,6 +141,50 @@ export function taskMeta(t: Task, lists: ListMap, opts: { showList?: boolean; da
   return parts;
 }
 
+export interface RowPill {
+  text: string;
+  tone: "danger" | "accent" | "neutral";
+}
+
+/**
+ * Glass row content: a quiet meta line (relative date, estimate, list, tags) plus at most one status
+ * pill on the right where it adds meaning: Overdue, a scheduled block's start, Today, or the due time.
+ */
+export function rowInfo(t: Task, lists: ListMap, opts: { showList?: boolean; date?: string; groupDate?: string } = {}): { meta: MetaPart[]; pill?: RowPill } {
+  const today = todayString();
+  const date = opts.date ?? today;
+  const meta: MetaPart[] = [];
+  let pill: RowPill | undefined;
+  const open = t.status === "open";
+  const block = blockOn(t, date);
+  if (open && isOverdue(t, today)) {
+    pill = { text: "Overdue", tone: "danger" };
+    meta.push({ text: `Due ${fmtRelativeDate(t.dueDate!)}${t.dueTime ? " " + t.dueTime : ""}` });
+  } else if (open && block) {
+    pill = { text: fmtTime(block.start), tone: "accent" };
+    meta.push({ text: `Until ${fmtTime(block.end)}` });
+  } else if (t.dueDate) {
+    if (t.dueDate === date) {
+      // In the Today view the group already says "today"; elsewhere the pill does.
+      if (opts.date) {
+        if (t.dueTime) pill = { text: t.dueTime, tone: "neutral" };
+      } else if (open) pill = { text: t.dueTime ? `Today ${t.dueTime}` : "Today", tone: "accent" };
+    } else {
+      // Upcoming groups by day: repeating the group's day on the row is noise.
+      if (t.dueDate !== opts.groupDate) meta.push({ text: `Due ${fmtRelativeDate(t.dueDate)}` });
+      if (t.dueTime) pill = { text: t.dueTime, tone: "neutral" };
+    }
+  } else if (t.startDate && t.startDate !== date && t.startDate !== opts.groupDate) {
+    meta.push({ text: fmtRelativeDate(t.startDate) });
+  }
+  if (t.estimateMinutes) meta.push({ text: fmtMinutes(t.estimateMinutes) });
+  const list = t.listId ? lists.get(t.listId) : undefined;
+  if (opts.showList !== false && list && !list.isDefault) meta.push({ text: list.name, dot: colorVar(list.color ?? "gray") });
+  for (const tag of t.tags) meta.push({ text: `#${tag}` });
+  if (!open) pill = undefined;
+  return { meta, pill };
+}
+
 export function priorityLabel(p: number): string {
   return PRIORITIES.find((x) => Number(x.value) === p)?.label ?? "None";
 }

@@ -341,7 +341,7 @@ export function TimeGrid({ days, events, calendars, now, pager, header, scrollRe
         key={date}
         data-day-column
         data-date={date}
-        className={cn("relative select-none", !pager && isToday && "bg-accent-soft/40", !pager && dayIdx > 0 && "border-l border-separator")}
+        className={cn("relative select-none", !pager && isToday && "bg-accent-soft/30", !pager && dayIdx > 0 && "border-l border-separator")}
         style={{ height: px(MINUTES_PER_DAY) }}
         onPointerDown={onColumnPointerDown(dayIdx)}
         onPointerMove={onColumnPointerMove}
@@ -392,14 +392,14 @@ export function TimeGrid({ days, events, calendars, now, pager, header, scrollRe
           );
         })}
         {ghost && (
-          <div className="absolute left-0.5 right-0.5 rounded-xs cal-fill shadow-drag z-20 pointer-events-none px-1.5 py-[3px] overflow-hidden" style={{ top: px(ghost.preview.startMin) + 1, height: Math.max(16, px(ghost.preview.endMin - ghost.preview.startMin) - 2), ["--cal-color" as string]: eventColor(ghost.ev, calendars), transform: "scale(1.02)" }} data-drag-ghost>
-            <div className="text-footnote font-semibold leading-4 truncate">{ghost.ev.title}</div>
-            <div className="text-caption-1 leading-4 tabular opacity-80">{timeRange(date, ghost.preview.startMin, ghost.preview.endMin)}</div>
+          <div className="absolute left-0.5 right-0.5 rounded-[8px] cal-fill cal-block shadow-drag z-20 pointer-events-none pl-2 pr-1.5 py-[3px] overflow-hidden" style={{ top: px(ghost.preview.startMin) + 1, height: Math.max(16, px(ghost.preview.endMin - ghost.preview.startMin) - 2), ["--cal-color" as string]: eventColor(ghost.ev, calendars), transform: "scale(1.02)" }} data-drag-ghost>
+            <div className="text-[13px] font-medium leading-4 truncate">{ghost.ev.title}</div>
+            <div className="text-[11px] leading-4 tabular opacity-70">{timeRange(date, ghost.preview.startMin, ghost.preview.endMin)}</div>
           </div>
         )}
         {creating && creating.dayIdx === dayIdx && (
-          <div className="absolute left-0.5 right-0.5 rounded-xs bg-accent-soft border border-accent z-10 pointer-events-none px-1.5 py-[3px]" style={{ top: px(creating.startMin) + 1, height: Math.max(16, px(creating.endMin - creating.startMin) - 2) }}>
-            <div className="text-caption-1 leading-4 tabular text-accent-text">{timeRange(date, creating.startMin, creating.endMin)}</div>
+          <div className="absolute left-0.5 right-0.5 rounded-[8px] bg-accent-soft border border-accent/60 z-10 pointer-events-none px-2 py-[3px]" style={{ top: px(creating.startMin) + 1, height: Math.max(16, px(creating.endMin - creating.startMin) - 2) }}>
+            <div className="text-[11px] leading-4 tabular text-accent-text">{timeRange(date, creating.startMin, creating.endMin)}</div>
           </div>
         )}
         {draft && draft.dayIdx === dayIdx && (
@@ -416,15 +416,15 @@ export function TimeGrid({ days, events, calendars, now, pager, header, scrollRe
           />
         )}
         {hoverHere && hoverHere.task && (
-          <div className="absolute left-0.5 right-0.5 rounded-xs cal-fill z-10 pointer-events-none px-1.5 py-[3px] border border-dashed overflow-hidden" style={{ top: px(hoverHere.startMin) + 1, height: Math.max(16, px(hoverHere.duration) - 2), ["--cal-color" as string]: "var(--cal-graphite)", borderColor: "color-mix(in oklab, var(--cal-graphite) 60%, transparent)" }}>
-            <div className="text-footnote font-semibold leading-4 truncate">{hoverHere.task.title}</div>
-            <div className="text-caption-1 leading-4 tabular opacity-80">{timeRange(date, hoverHere.startMin, hoverHere.startMin + hoverHere.duration)}</div>
+          <div className="absolute left-0.5 right-0.5 rounded-[8px] cal-fill cal-block-box z-10 pointer-events-none px-2 py-[3px] overflow-hidden" style={{ top: px(hoverHere.startMin) + 1, height: Math.max(16, px(hoverHere.duration) - 2), ["--cal-color" as string]: "var(--cal-graphite)" }}>
+            <div className="text-[13px] font-medium leading-4 truncate">{hoverHere.task.title}</div>
+            <div className="text-[11px] leading-4 tabular opacity-70">{timeRange(date, hoverHere.startMin, hoverHere.startMin + hoverHere.duration)}</div>
           </div>
         )}
         {isToday && (
-          <div className="absolute left-0 right-0 z-30 pointer-events-none" style={{ top: px(nowMin) - 1 }} data-now-line>
-            <div className="h-[2px] bg-danger" />
-            <div className="absolute -top-[3px] -left-1 w-2 h-2 rounded-full bg-danger" />
+          <div className="absolute left-0 right-0 z-30 pointer-events-none" style={{ top: px(nowMin) - 0.5 }} data-now-line>
+            <div className="h-px bg-accent" />
+            <div className="absolute -top-[2.5px] -left-[3px] w-1.5 h-1.5 rounded-full bg-accent" />
           </div>
         )}
       </div>
@@ -434,15 +434,15 @@ export function TimeGrid({ days, events, calendars, now, pager, header, scrollRe
   const gutter = (
     <div className="absolute left-0 top-0 bottom-0 pointer-events-none" style={{ width: GUTTER_WIDTH }} aria-hidden="true">
       {Array.from({ length: 23 }, (_, i) => i + 1).map((hr) => {
-        const hideForNow = days.includes(today) && Math.abs(hr * 60 - nowMin) < 14;
+        const hideForNow = days.includes(today) && Math.abs(hr * 60 - nowMin) < 18;
         return (
-          <div key={hr} data-gutter-hour={hr} className={cn("absolute right-1.5 text-caption-1 font-medium tabular text-tertiary leading-4 -translate-y-1/2 transition-opacity duration-150", hideForNow && "opacity-0")} style={{ top: px(hr * 60) }}>
+          <div key={hr} data-gutter-hour={hr} className={cn("absolute right-2 text-[11px] tabular text-tertiary leading-4 -translate-y-1/2 transition-opacity duration-150", hideForNow && "opacity-0")} style={{ top: px(hr * 60) }}>
             {fmtTime(isoAt(days[0]!, hr * 60))}
           </div>
         );
       })}
       {days.includes(today) && (
-        <div className="absolute right-1.5 text-caption-1 font-semibold tabular text-danger-text leading-4 -translate-y-1/2" style={{ top: px(nowMin) }}>
+        <div className="cal-now-chip absolute right-1 h-[18px] px-[5px] rounded-full text-[10.5px] font-medium tabular leading-[18px] -translate-y-1/2" style={{ top: px(nowMin) }}>
           {format(now, "HH:mm")}
         </div>
       )}
@@ -508,7 +508,6 @@ function EventBlock({ item, startMin, endMin, col, cols, span, color, dense, dim
   const ev = item.ev;
   const dur = endMin - startMin;
   const height = Math.max(16, px(dur) - 2);
-  const overlapping = cols > 1;
   const timebox = ev.kind === "timebox";
   const done = timebox && ev.taskStatus === "done";
   const widthPct = (100 / cols) * span;
@@ -519,8 +518,6 @@ function EventBlock({ item, startMin, endMin, col, cols, span, color, dense, dim
     left: `calc(${leftPct}% + ${col === 0 ? 2 : 1}px)`,
     width: `calc(${widthPct}% - ${col + span === cols ? 3 : 2}px)`,
     ["--cal-color" as string]: color,
-    ...(timebox ? { ["--cal-mix" as string]: "10%", border: `1.5px dashed color-mix(in oklab, ${color} 55%, transparent)` } : {}),
-    ...(overlapping && !timebox ? { boxShadow: `inset 3px 0 0 ${color}` } : {}),
   };
   const showTime = dur >= 45 && !dense;
   const compact = dur < 30;
@@ -533,7 +530,7 @@ function EventBlock({ item, startMin, endMin, col, cols, span, color, dense, dim
       role="button"
       tabIndex={0}
       aria-label={`${ev.title}, ${timeRange(date, startMin, endMin)}`}
-      className={cn("absolute rounded-xs cal-fill z-10 cursor-pointer select-none", lifted && "shadow-drag scale-[1.02] z-20", dim && "opacity-40", done && "opacity-45", resizing && "z-20", !lifted && "transition-[opacity,transform] duration-150")}
+      className={cn("absolute rounded-[8px] cal-fill z-10 cursor-pointer select-none", timebox ? "cal-block-box" : "cal-block", lifted && "shadow-drag scale-[1.02] z-20", dim && "opacity-40", done && "opacity-45", resizing && "z-20", !lifted && "transition-[opacity,transform] duration-150")}
       style={{ ...style, WebkitTouchCallout: "none" } as CSSProperties}
       onKeyDown={(e) => {
         if (e.key === "Enter") {
@@ -543,23 +540,23 @@ function EventBlock({ item, startMin, endMin, col, cols, span, color, dense, dim
       }}
       {...rest}
     >
-      <div className={cn("flex items-start gap-1 h-full overflow-hidden", compact ? "px-1.5 py-0" : "px-1.5 py-[3px]", showCheckbox && "pl-[30px]", dense && "px-1", dense && showCheckbox && "pl-[26px]")}>
+      <div className={cn("flex items-start gap-1 h-full overflow-hidden", compact ? "pl-2 pr-1.5 py-0" : "pl-2 pr-1.5 py-[3px]", showCheckbox && "pl-[30px]", dense && "pl-1.5 pr-1", dense && showCheckbox && "pl-[26px]")}>
         {showCheckbox && (
           <span data-grid-stop className="absolute left-0 top-0 bottom-0 w-8 overflow-hidden flex items-start justify-center pt-[5px]" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
             <Checkbox checked={done} onChange={onToggleTask} size={16} label={`Complete ${ev.title}`} tint={color} />
           </span>
         )}
         <div className="min-w-0 flex-1">
-          <div className={cn("text-footnote font-semibold truncate", compact ? "leading-[14px]" : "leading-4", done && "line-through decoration-1")}>{ev.title}</div>
+          <div className={cn("text-[13px] font-medium truncate", compact ? "leading-[14px]" : "leading-4", done && "line-through decoration-1")}>{ev.title}</div>
           {showTime && (
-            <div className="text-caption-1 leading-4 tabular opacity-80 truncate">
+            <div className="text-[11px] leading-4 tabular opacity-70 truncate">
               {timeRange(date, startMin, endMin)}
               {ev.location ? ` · ${ev.location}` : ""}
             </div>
           )}
         </div>
         {timebox && !compact && !dense && ev.locked && <Icon name="lock" size={12} className="shrink-0 opacity-70 mt-0.5" />}
-        {timebox && !compact && !dense && <span className="shrink-0 text-caption-1 leading-4 tabular opacity-80">{fmtMinutes(dur)}</span>}
+        {timebox && !compact && !dense && <span className="shrink-0 text-[11px] leading-4 tabular opacity-70">{fmtMinutes(dur)}</span>}
       </div>
       {!item.continuesAfter && (
         <div data-grid-stop data-resize-handle className="absolute left-0 right-0 -bottom-1 h-3 cursor-ns-resize touch-none flex items-end justify-center" onPointerDown={onHandlePointerDown} onClick={(e) => e.stopPropagation()}>
@@ -586,7 +583,7 @@ function DraftBlock({ startMin, endMin, date, onSave, onCancel }: { startMin: nu
     else onCancel();
   };
   return (
-    <div data-draft className="absolute left-0.5 right-0.5 rounded-xs bg-accent-soft z-20 px-1.5 py-[3px] overflow-hidden" style={{ top: px(startMin) + 1, height: Math.max(26, px(endMin - startMin) - 2), boxShadow: "inset 0 0 0 1.5px var(--accent)" }} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+    <div data-draft className="absolute left-0.5 right-0.5 rounded-[8px] bg-accent-soft z-20 px-2 py-[3px] overflow-hidden" style={{ top: px(startMin) + 1, height: Math.max(26, px(endMin - startMin) - 2), boxShadow: "inset 0 0 0 1px var(--accent)" }} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
       <input
         ref={ref}
         value={title}
@@ -594,7 +591,7 @@ function DraftBlock({ startMin, endMin, date, onSave, onCancel }: { startMin: nu
         placeholder="New event"
         aria-label="Event title"
         enterKeyHint="done"
-        className="w-full bg-transparent outline-none font-semibold text-primary placeholder:text-tertiary"
+        className="w-full bg-transparent outline-none font-medium text-primary placeholder:text-tertiary"
         style={{ fontSize: 16, lineHeight: "18px" }}
         onKeyDown={(e) => {
           if (e.key === "Enter") {
@@ -608,24 +605,30 @@ function DraftBlock({ startMin, endMin, date, onSave, onCancel }: { startMin: nu
         }}
         onBlur={commit}
       />
-      <div className="text-caption-1 leading-4 tabular text-accent-text mt-0.5">{timeRange(date, startMin, endMin)}</div>
+      <div className="text-[11px] leading-4 tabular text-accent-text mt-0.5">{timeRange(date, startMin, endMin)}</div>
     </div>
   );
 }
 
-/** Sticky weekday header for the desktop week grid: "Mon" above the numeral, today in a 28px accent circle. */
+/**
+ * Weekday header for the week grid: small weekday above the numeral. Today is an ink pill,
+ * the selected day a white well pill, matching the week strip.
+ */
 export function DayHeader({ days, selected, onSelect }: { days: string[]; selected?: string; onSelect?: (d: string) => void }) {
   const today = todayString();
   return (
-    <div className="grid" style={{ gridTemplateColumns: `${GUTTER_WIDTH}px repeat(${days.length}, minmax(0, 1fr))` }}>
+    <div className="grid py-1.5" style={{ gridTemplateColumns: `${GUTTER_WIDTH}px repeat(${days.length}, minmax(0, 1fr))` }}>
       <div />
       {days.map((d) => {
         const isToday = d === today;
+        const isSel = selected === d && !isToday;
         const dt = parseDateString(d);
         return (
-          <button key={d} type="button" onClick={() => onSelect?.(d)} className={cn("flex flex-col items-center py-1.5 gap-0.5 min-h-[56px]", onSelect && "active:opacity-70")} aria-label={format(dt, "EEEE d MMMM")} aria-current={isToday ? "date" : undefined}>
-            <span className={cn("text-footnote leading-4", isToday ? "text-accent-text font-medium" : "text-secondary")}>{format(dt, "EEE")}</span>
-            <span className={cn("w-7 h-7 rounded-full inline-flex items-center justify-center text-title-3 tabular leading-none", isToday ? "bg-accent text-on-accent" : selected === d ? "bg-selected text-primary" : "text-primary")}>{dt.getDate()}</span>
+          <button key={d} type="button" onClick={() => onSelect?.(d)} className={cn("flex justify-center min-h-[52px]", onSelect && "active:opacity-70")} aria-label={format(dt, "EEEE d MMMM")} aria-current={isToday ? "date" : undefined}>
+            <span className={cn("flex flex-col items-center justify-center gap-0.5 w-full max-w-[46px] h-[52px] rounded-full transition-colors duration-150", isToday && "bg-primary text-canvas", isSel && "well shadow-thumb")}>
+              <span className={cn("text-[11px] leading-[13px]", isToday ? "opacity-70" : "text-tertiary")}>{format(dt, "EEE")}</span>
+              <span className={cn("text-[16px] leading-5 tabular", !isToday && "text-primary")}>{dt.getDate()}</span>
+            </span>
           </button>
         );
       })}

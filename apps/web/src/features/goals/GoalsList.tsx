@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { useNavigate } from "react-router";
 import type { Goal } from "@aravos/shared";
 import { Screen } from "@/ui/Screen";
@@ -15,6 +15,7 @@ import { fmtInt } from "@/lib/format";
 import { GoalRow } from "./GoalRow";
 import { GoalSheet } from "./GoalSheet";
 import { TrackersSection } from "./Trackers";
+import { GoalsSummary } from "./GoalsSummary";
 import { useAddMilestone, useCreateGoal, useDeleteGoal, useLogGoal, useUpdateGoal } from "./api";
 import { areaLabel, groupByArea } from "./model";
 
@@ -34,6 +35,7 @@ export function GoalsList({ createOpen = false }: { createOpen?: boolean }) {
   const isDesktop = useIsDesktop();
   const [filter, setFilter] = useState<Filter>("active");
   const active = useGoals("active");
+  const done = useGoals("done");
   const list = useGoals(filter);
   const log = useLogGoal();
   const update = useUpdateGoal();
@@ -61,22 +63,23 @@ export function GoalsList({ createOpen = false }: { createOpen?: boolean }) {
       title="Goals"
       subtitle={active.isLoading ? " " : `${fmtInt(activeCount)} active`}
       actions={
-        <IconButton label="Add Goal" tinted onClick={() => navigate("/goals/new")} data-testid="add-goal">
-          <Icon name="plus" size={24} />
+        <IconButton label="Add Goal" className="glass !min-w-0 !min-h-0 w-10 h-10" onClick={() => navigate("/goals/new")} data-testid="add-goal">
+          <Icon name="plus" size={20} strokeWidth={1.8} />
         </IconButton>
       }
       header={<Segmented options={[{ value: "active", label: "Active" }, { value: "done", label: "Done" }, { value: "all", label: "All" }]} value={filter} onChange={setFilter} className="lg:max-w-[360px]" />}
     >
       <div className="lg:max-w-[960px]">
+        {filter !== "done" && (active.data?.length ?? 0) > 0 && <GoalsSummary goals={active.data!} doneCount={done.data?.length ?? 0} onOpen={(g) => navigate(`/goals/${g.id}`)} />}
         {list.isLoading ? (
-          <Skeleton rows={4} />
+          <Skeleton rows={4} className="mt-2" />
         ) : list.error ? (
           <InlineError onRetry={() => void list.refetch()}>Unable to load goals</InlineError>
         ) : goals.length === 0 ? (
           <Empty
             action={
               filter === "done" ? undefined : (
-                <Button variant="plain" onClick={() => navigate("/goals/new")}>
+                <Button variant="secondary" size="sm" onClick={() => navigate("/goals/new")}>
                   Add Goal
                 </Button>
               )
@@ -85,22 +88,24 @@ export function GoalsList({ createOpen = false }: { createOpen?: boolean }) {
             {emptyText}
           </Empty>
         ) : (
-          groups.map((g) => (
-            <Section key={g.area} title={areaLabel(g.area)}>
-              {isDesktop ? (
-                <div className="px-[var(--gutter)] grid grid-cols-2 gap-3">
-                  {g.items.map((goal) => (
-                    <GoalRow key={goal.id} goal={goal} card onOpen={() => navigate(`/goals/${goal.id}`)} onToggle={() => log.mutate({ id: goal.id })} onMenu={(anchor) => setMenu({ goal, anchor })} />
-                  ))}
-                </div>
-              ) : (
-                <Group>
-                  {g.items.map((goal) => (
-                    <GoalRow key={goal.id} goal={goal} onOpen={() => navigate(`/goals/${goal.id}`)} onToggle={() => log.mutate({ id: goal.id })} onMenu={(anchor) => setMenu({ goal, anchor })} />
-                  ))}
-                </Group>
-              )}
-            </Section>
+          groups.map((g, gi) => (
+            <div key={g.area} className="rise mt-6" style={{ "--i": gi + 1 } as CSSProperties}>
+              <Section title={<AreaTitle area={g.area} count={g.items.length} />}>
+                {isDesktop ? (
+                  <div className="px-[var(--gutter)] grid grid-cols-2 gap-3">
+                    {g.items.map((goal) => (
+                      <GoalRow key={goal.id} goal={goal} card onOpen={() => navigate(`/goals/${goal.id}`)} onToggle={() => log.mutate({ id: goal.id })} onMenu={(anchor) => setMenu({ goal, anchor })} />
+                    ))}
+                  </div>
+                ) : (
+                  <Group>
+                    {g.items.map((goal) => (
+                      <GoalRow key={goal.id} goal={goal} onOpen={() => navigate(`/goals/${goal.id}`)} onToggle={() => log.mutate({ id: goal.id })} onMenu={(anchor) => setMenu({ goal, anchor })} />
+                    ))}
+                  </Group>
+                )}
+              </Section>
+            </div>
           ))
         )}
         <TrackersSection />
@@ -110,5 +115,15 @@ export function GoalsList({ createOpen = false }: { createOpen?: boolean }) {
       <ActionSheet open={Boolean(confirm)} onClose={() => setConfirm(null)} title="Delete this goal?" message={confirm?.title} actions={[{ label: "Delete Goal", destructive: true, onPress: () => confirm && del.mutate(confirm.id) }]} />
       <GoalSheet open={createOpen} onClose={closeCreate} onSubmit={onCreate} pending={create.isPending || addMilestone.isPending} />
     </Screen>
+  );
+}
+
+/** Quiet area header: "Health" with a muted count. */
+function AreaTitle({ area, count }: { area: string; count: number }) {
+  return (
+    <span className="text-[13px] text-secondary">
+      {areaLabel(area)}
+      <span className="text-tertiary tabular ml-1.5">{fmtInt(count)}</span>
+    </span>
   );
 }

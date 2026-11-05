@@ -3,8 +3,9 @@ import type { Exercise, ExerciseCategory } from "@aravos/shared";
 import { Sheet } from "@/ui/Sheet";
 import { Button } from "@/ui/Button";
 import { Icon } from "@/ui/Icon";
-import { Group, Row, SectionHeader } from "@/ui/List";
+import { Row, SectionHeader } from "@/ui/List";
 import { TextField, Chip, TextArea } from "@/ui/Field";
+import { ExerciseIcon, SearchField } from "./common";
 import { Empty, InlineError, Skeleton } from "@/ui/Empty";
 import { toast } from "@/ui/Toast";
 import { cn } from "@/lib/cn";
@@ -85,22 +86,22 @@ export function ExercisePicker({ open, onClose, mode = "multi", onPick, title }:
   return (
     <>
       <Sheet open={open} onClose={onClose} title={title ?? (mode === "single" ? "Replace Exercise" : "Add Exercises")} detent="large" trailing={<button type="button" className="text-headline text-accent-text px-2 h-11" onClick={() => setCreating(true)}>New</button>} className="wk-picker">
-        <div className="sticky top-0 z-10 bg-elevated pt-1 pb-2 -mx-[var(--gutter)] px-[var(--gutter)]">
-          <TextField placeholder="Search exercises" value={q} onChange={(e) => setQ(e.target.value)} leading={<Icon name="search" size={18} className="text-tertiary" />} type="search" autoCorrect="off" autoCapitalize="none" enterKeyHint="search" data-testid="exercise-search" />
-          <div className="flex gap-2 overflow-x-auto no-scrollbar mt-2 -mx-[var(--gutter)] px-[var(--gutter)]">
+        <div className="sticky top-0 z-10 pt-1 pb-2.5 -mx-[var(--gutter)] px-[var(--gutter)] hairline-b" style={{ background: "var(--glass-fill-strong)", backdropFilter: "blur(24px) saturate(1.6)", WebkitBackdropFilter: "blur(24px) saturate(1.6)" }}>
+          <SearchField placeholder="Search exercises" value={q} onChange={(e) => setQ(e.target.value)} data-testid="exercise-search" />
+          <div className="flex gap-1.5 overflow-x-auto no-scrollbar mt-2.5 -mx-[var(--gutter)] px-[var(--gutter)]">
             <Chip selected={!bodyPart} onClick={() => setBodyPart(undefined)}>Any body part</Chip>
             {BODY_PARTS.map((b) => (
               <Chip key={b.value} selected={bodyPart === b.value} onClick={() => setBodyPart(bodyPart === b.value ? undefined : b.value)}>{b.label}</Chip>
             ))}
           </div>
-          <div className="flex gap-2 overflow-x-auto no-scrollbar mt-2 -mx-[var(--gutter)] px-[var(--gutter)]">
+          <div className="flex gap-1.5 overflow-x-auto no-scrollbar mt-2.5 -mx-[var(--gutter)] px-[var(--gutter)]">
             <Chip selected={!category} onClick={() => setCategory(undefined)}>Any category</Chip>
             {CATEGORIES.map((c) => (
               <Chip key={c.value} selected={category === c.value} onClick={() => setCategory(category === c.value ? undefined : c.value)}>{c.label}</Chip>
             ))}
           </div>
         </div>
-        <div className="pb-24">
+        <div className="pb-24 pt-3">
           {list.isPending ? (
             <Skeleton rows={6} className="mx-0" />
           ) : list.isError ? (
@@ -111,25 +112,25 @@ export function ExercisePicker({ open, onClose, mode = "multi", onPick, title }:
             <>
               {recent.length > 0 && (
                 <>
-                  <SectionHeader title="Recent" className="px-0 pt-2" />
-                  <Group inset={false} className="mb-4">
+                  <SectionHeader title="Recent" className="!px-1" />
+                  <div className="well rounded-[16px] overflow-hidden group-rows mb-5 [&_.row-sep::before]:!left-[64px]">
                     {recent.map((e) => (
                       <PickRow key={e.id} exercise={e} selected={isSelected(e)} onPress={() => toggle(e)} />
                     ))}
-                  </Group>
+                  </div>
                 </>
               )}
-              {recent.length > 0 && <SectionHeader title="All exercises" className="px-0" />}
-              <Group inset={false} data-testid="exercise-list">
+              {recent.length > 0 && <SectionHeader title="All exercises" className="!px-1" />}
+              <div className="well rounded-[16px] overflow-hidden group-rows [&_.row-sep::before]:!left-[64px]" data-testid="exercise-list">
                 {list.data.map((e) => (
                   <PickRow key={e.id} exercise={e} selected={isSelected(e)} onPress={() => toggle(e)} />
                 ))}
-              </Group>
+              </div>
             </>
           )}
         </div>
         {mode === "multi" && (
-          <div className="absolute left-0 right-0 bottom-0 px-[var(--gutter)] pt-2 pb-[max(12px,var(--safe-bottom))] bg-elevated hairline-t">
+          <div className="absolute left-0 right-0 bottom-0 px-[var(--gutter)] pt-2.5 pb-[max(12px,var(--safe-bottom))] hairline-t" style={{ background: "var(--glass-fill-strong)", backdropFilter: "blur(24px) saturate(1.6)", WebkitBackdropFilter: "blur(24px) saturate(1.6)" }}>
             <Button variant="primary" size="lg" full disabled={!selected.length} onClick={submit} data-testid="picker-add">
               {selected.length ? `Add ${selected.length} ${selected.length === 1 ? "Exercise" : "Exercises"}` : "Add Exercises"}
             </Button>
@@ -144,11 +145,16 @@ export function ExercisePicker({ open, onClose, mode = "multi", onPick, title }:
 function PickRow({ exercise, selected, onPress }: { exercise: Exercise; selected: boolean; onPress: () => void }) {
   return (
     <Row
+      leading={<ExerciseIcon category={exercise.category} />}
       title={exercise.name}
       subtitle={`${bodyPartLabel(exercise.bodyPart)} · ${categoryLabel(exercise.category)}`}
       onPress={onPress}
       className={cn(selected && "bg-accent-soft")}
-      trailing={selected ? <Icon name="check" size={20} className="text-accent-text" /> : undefined}
+      trailing={
+        <span className={cn("w-6 h-6 rounded-full inline-flex items-center justify-center transition-colors duration-200", selected ? "bg-accent text-on-accent" : "shadow-[inset_0_0_0_1.5px_var(--separator-strong)]")} aria-hidden="true">
+          {selected && <Icon name="check" size={14} strokeWidth={2.4} />}
+        </span>
+      }
       aria-selected={selected}
       data-testid="exercise-row"
     />

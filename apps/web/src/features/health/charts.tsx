@@ -1,4 +1,4 @@
-import { useMemo, useState, type PointerEvent } from "react";
+import { useId, useMemo, useState, type PointerEvent } from "react";
 import { cn } from "@/lib/cn";
 import { selection } from "@/lib/haptics";
 
@@ -112,8 +112,23 @@ export interface LinePoint {
   raw: number | null;
 }
 
-/** Trend line (2px, primary) over raw points (tertiary). Y range follows the data, never 0. */
+/** Smooth curve through points (Catmull-Rom as cubic Bezier), the same shape the kit's Sparkline draws. */
+function smooth(pts: [number, number][]): string {
+  if (pts.length < 2) return "";
+  let d = `M ${pts[0]![0].toFixed(1)} ${pts[0]![1].toFixed(1)}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] ?? pts[i]!;
+    const p1 = pts[i]!;
+    const p2 = pts[i + 1]!;
+    const p3 = pts[i + 2] ?? p2;
+    d += ` C ${(p1[0] + (p2[0] - p0[0]) / 6).toFixed(1)} ${(p1[1] + (p2[1] - p0[1]) / 6).toFixed(1)}, ${(p2[0] - (p3[0] - p1[0]) / 6).toFixed(1)} ${(p2[1] - (p3[1] - p1[1]) / 6).toFixed(1)}, ${p2[0].toFixed(1)} ${p2[1].toFixed(1)}`;
+  }
+  return d;
+}
+
+/** Area trend: the smoothed line in the accent with a soft fill under it, raw weigh-ins as faint dots. Y range follows the data, never 0. */
 export function LineChart({ points, height = 190, target, format, selected, onSelect, xLabelEvery, className }: { points: LinePoint[]; height?: number; target?: number | null; format: (v: number) => string; selected: number | null; onSelect: (i: number | null) => void; xLabelEvery?: number; className?: string }) {
+  const gid = useId().replace(/:/g, "");
   const [w, setW] = useState(320);
   const plotW = Math.max(0, w - AXIS_W);
   const plotH = height - PAD_TOP - LABEL_H;
@@ -131,7 +146,9 @@ export function LineChart({ points, height = 190, target, format, selected, onSe
   }, [points, target]);
   const x = (i: number) => (n <= 1 ? plotW / 2 : (i / (n - 1)) * (plotW - 8) + 4);
   const y = (v: number) => PAD_TOP + plotH - ((v - lo) / (hi - lo || 1)) * plotH;
-  const path = points.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(p.value).toFixed(1)}`).join(" ");
+  const path = smooth(points.map((p, i) => [x(i), y(p.value)] as [number, number]));
+  const base = PAD_TOP + plotH;
+  const area = n > 1 ? `${path} L ${x(n - 1).toFixed(1)} ${base} L ${x(0).toFixed(1)} ${base} Z` : "";
   const ticks = [lo, (lo + hi) / 2, hi];
   const every = xLabelEvery ?? Math.max(1, Math.round(n / 5));
 
@@ -162,18 +179,26 @@ export function LineChart({ points, height = 190, target, format, selected, onSe
       onPointerCancel={() => onSelect(null)}
       onPointerLeave={() => onSelect(null)}
     >
+      <defs>
+        <linearGradient id={`wa${gid}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.2" />
+          <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
+        </linearGradient>
+      </defs>
       {ticks.map((t) => (
         <g key={t}>
-          <line x1={0} x2={plotW} y1={y(t)} y2={y(t)} stroke="var(--separator)" strokeWidth={1} />
+          <line x1={0} x2={plotW} y1={y(t)} y2={y(t)} stroke="var(--separator)" strokeWidth={1} strokeDasharray="2 4" />
           <text x={w} y={y(t) + 4} textAnchor="end" fontSize={12} className="tabular" style={{ fill: "var(--text-tertiary)" }}>
             {format(t)}
           </text>
         </g>
       ))}
       {target != null && target >= lo && target <= hi && <line x1={0} x2={plotW} y1={y(target)} y2={y(target)} stroke="var(--text-quaternary)" strokeWidth={1} strokeDasharray="3 3" />}
-      {points.map((p, i) => p.raw != null && <circle key={p.key} cx={x(i)} cy={y(p.raw)} r={2.5} fill="var(--text-tertiary)" />)}
-      {n > 1 && <path d={path} fill="none" stroke="var(--text-primary)" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />}
-      {n === 1 && points[0] && <circle cx={x(0)} cy={y(points[0].value)} r={3} fill="var(--text-primary)" />}
+      {n > 1 && <path d={area} fill={`url(#wa${gid})`} />}
+      {points.map((p, i) => p.raw != null && <circle key={p.key} cx={x(i)} cy={y(p.raw)} r={2.25} fill="var(--text-quaternary)" />)}
+      {n > 1 && <path d={path} fill="none" stroke="var(--accent)" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" pathLength={1} className="viz-draw" />}
+      {n > 1 && selected == null && points[n - 1] && <circle cx={x(n - 1)} cy={y(points[n - 1]!.value)} r={3.5} fill="var(--accent)" stroke="var(--bg-elevated)" strokeWidth={1.5} />}
+      {n === 1 && points[0] && <circle cx={x(0)} cy={y(points[0].value)} r={3.5} fill="var(--accent)" />}
       {points.map((p, i) =>
         (i % every === 0 && n - 1 - i >= every / 2) || i === n - 1 ? (
           <text key={p.key} x={Math.min(Math.max(x(i), 14), plotW - 14)} y={height - 5} textAnchor="middle" fontSize={12} style={{ fill: "var(--text-tertiary)" }}>
@@ -183,8 +208,8 @@ export function LineChart({ points, height = 190, target, format, selected, onSe
       )}
       {selected != null && points[selected] && (
         <g>
-          <line x1={x(selected)} x2={x(selected)} y1={PAD_TOP} y2={PAD_TOP + plotH} stroke="var(--text-primary)" strokeWidth={1} />
-          <circle cx={x(selected)} cy={y(points[selected].value)} r={4} fill="var(--bg-surface)" stroke="var(--text-primary)" strokeWidth={2} />
+          <line x1={x(selected)} x2={x(selected)} y1={PAD_TOP} y2={PAD_TOP + plotH} stroke="var(--text-tertiary)" strokeWidth={1} strokeDasharray="2 3" />
+          <circle cx={x(selected)} cy={y(points[selected].value)} r={4.5} fill="var(--bg-elevated)" stroke="var(--accent)" strokeWidth={2} />
         </g>
       )}
     </svg>

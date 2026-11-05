@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import type { SchedulerPrefs } from "@aravos/shared";
-import { Section, Group, Row, ValueRow, Footnote } from "@/ui/List";
+import { Section, Row, ValueRow, Footnote } from "@/ui/List";
 import { FieldRow, Switch } from "@/ui/Field";
 import { Sheet } from "@/ui/Sheet";
 import { fmtInt, fmtMinutes, fmtRelativeDate, fmtTime } from "@/lib/format";
 import { useSchedulerStats, useUpdateScheduler } from "./api";
 import { InlineInput, NumberSheet, SheetDone } from "./sheets";
+import { IconGroup, IconLabel, RowIcon } from "./parts";
 
 type DayKey = keyof SchedulerPrefs["workHours"];
 const DAYS: { key: DayKey; label: string }[] = [
@@ -45,26 +46,26 @@ export function SchedulerSection({ prefs, hour12 }: { prefs: SchedulerPrefs; hou
   return (
     <>
       <Section title="Scheduler" footer="Auto-plan places open tasks into free work hours ahead of their due dates.">
-        <Group>
-          <FieldRow label="Auto-plan">
+        <IconGroup>
+          <FieldRow label={<IconLabel icon="sparkle">Auto-plan</IconLabel>}>
             <Switch checked={prefs.autoRun} onChange={(v) => update.mutate({ autoRun: v })} label="Auto-plan" />
           </FieldRow>
-          <Row title="Work hours" subtitle={<span className="tabular">{workHoursSummary(prefs.workHours)}</span>} chevron onPress={() => setSheet("hours")} />
-          <ValueRow title="Lunch" value={prefs.lunch ? `${prefs.lunch.start} to ${prefs.lunch.end}` : "None"} chevron onPress={() => setSheet("lunch")} />
-          <ValueRow title="Buffer" value={`${fmtInt(prefs.bufferMinutes)} min`} chevron onPress={() => setSheet("buffer")} />
-          <ValueRow title="Shortest block" value={fmtMinutes(prefs.minBlockMinutes)} chevron onPress={() => setSheet("min")} />
-          <ValueRow title="Longest block" value={fmtMinutes(prefs.maxBlockMinutes)} chevron onPress={() => setSheet("max")} />
-          <ValueRow title="Default estimate" value={fmtMinutes(prefs.defaultEstimateMinutes)} chevron onPress={() => setSheet("estimate")} />
-          <ValueRow title="Horizon" value={`${fmtInt(prefs.horizonDays)} ${prefs.horizonDays === 1 ? "day" : "days"}`} chevron onPress={() => setSheet("horizon")} />
-        </Group>
+          <Row leading={<RowIcon name="clock" />} title="Work hours" subtitle={<span className="tabular">{workHoursSummary(prefs.workHours)}</span>} chevron onPress={() => setSheet("hours")} />
+          <ValueRow leading={<RowIcon name="utensils" />} title="Lunch" value={prefs.lunch ? `${prefs.lunch.start} to ${prefs.lunch.end}` : "None"} chevron onPress={() => setSheet("lunch")} />
+          <ValueRow leading={<RowIcon name="swap" />} title="Buffer" value={`${fmtInt(prefs.bufferMinutes)} min`} chevron onPress={() => setSheet("buffer")} />
+          <ValueRow leading={<RowIcon name="minus" />} title="Shortest block" value={fmtMinutes(prefs.minBlockMinutes)} chevron onPress={() => setSheet("min")} />
+          <ValueRow leading={<RowIcon name="plus" />} title="Longest block" value={fmtMinutes(prefs.maxBlockMinutes)} chevron onPress={() => setSheet("max")} />
+          <ValueRow leading={<RowIcon name="timer" />} title="Default estimate" value={fmtMinutes(prefs.defaultEstimateMinutes)} chevron onPress={() => setSheet("estimate")} />
+          <ValueRow leading={<RowIcon name="eye" />} title="Horizon" value={`${fmtInt(prefs.horizonDays)} ${prefs.horizonDays === 1 ? "day" : "days"}`} chevron onPress={() => setSheet("horizon")} />
+        </IconGroup>
       </Section>
 
       <Section title="Estimates">
-        <Group>
-          <ValueRow title="Completed with times" value={stats.isLoading ? "" : stats.data ? fmtInt(stats.data.historyCount) : "Unavailable"} />
-          <ValueRow title="Calibration" value={f != null ? `${f.toFixed(2)}x` : stats.isLoading ? "" : "Unavailable"} />
-          {stats.data?.lastRun && <ValueRow title="Last run" value={`${fmtRelativeDate(stats.data.lastRun.ranAt)} ${fmtTime(stats.data.lastRun.ranAt, hour12)}`} subtitle={stats.data.lastRun.summary} />}
-        </Group>
+        <IconGroup>
+          <ValueRow leading={<RowIcon name="check" />} title="Completed with times" value={stats.isLoading ? "" : stats.data ? fmtInt(stats.data.historyCount) : "Unavailable"} />
+          <ValueRow leading={<RowIcon name="target" />} title="Calibration" value={f != null ? `${f.toFixed(2)}x` : stats.isLoading ? "" : "Unavailable"} />
+          {stats.data?.lastRun && <ValueRow leading={<RowIcon name="refresh" />} title="Last run" value={`${fmtRelativeDate(stats.data.lastRun.ranAt)} ${fmtTime(stats.data.lastRun.ranAt, hour12)}`} subtitle={stats.data.lastRun.summary} />}
+        </IconGroup>
         {stats.data && (
           <Footnote>
             {stats.data.historyCount === 0 ? "Finish tasks with a time logged and estimates calibrate on their own." : `Tasks take about ${f!.toFixed(1)}x the estimate.`}
@@ -103,7 +104,7 @@ function WorkHoursSheet({ open, onClose, value, onSave }: { open: boolean; onClo
   return (
     <Sheet open={open} onClose={onClose} title="Work Hours" detent="large" dirty={JSON.stringify(wh) !== JSON.stringify(value)} trailing={<SheetDone onClick={save} />}>
       <div className="pt-1 pb-2">
-        <div className="rounded-md overflow-hidden group-rows bg-surface-2">
+        <div className="rounded-lg overflow-hidden group-rows well">
           {DAYS.map((d) => {
             const h = wh[d.key];
             return (
@@ -114,9 +115,9 @@ function WorkHoursSheet({ open, onClose, value, onSave }: { open: boolean; onClo
                 </div>
                 {h && (
                   <div className="flex items-center gap-2 tabular pb-1">
-                    <InlineInput type="time" value={h.start} onChange={(e) => set(d.key, { ...h, start: e.target.value })} aria-label={`${d.label} start`} className="bg-surface w-[132px] text-center" />
+                    <InlineInput type="time" value={h.start} onChange={(e) => set(d.key, { ...h, start: e.target.value })} aria-label={`${d.label} start`} className="glass w-[132px] text-center" />
                     <span className="text-footnote text-secondary">to</span>
-                    <InlineInput type="time" value={h.end} onChange={(e) => set(d.key, { ...h, end: e.target.value })} aria-label={`${d.label} end`} className="bg-surface w-[132px] text-center" />
+                    <InlineInput type="time" value={h.end} onChange={(e) => set(d.key, { ...h, end: e.target.value })} aria-label={`${d.label} end`} className="glass w-[132px] text-center" />
                   </div>
                 )}
               </div>
@@ -146,16 +147,16 @@ function LunchSheet({ open, onClose, value, onSave }: { open: boolean; onClose: 
   return (
     <Sheet open={open} onClose={onClose} title="Lunch" trailing={<SheetDone onClick={save} />}>
       <div className="pt-1 pb-4">
-        <div className="rounded-md overflow-hidden group-rows bg-surface-2">
+        <div className="rounded-lg overflow-hidden group-rows well">
           <div className="row-sep relative flex items-center justify-between gap-3 min-h-[44px] pl-4 pr-3">
             <span className="text-body">Lunch break</span>
             <Switch checked={Boolean(lunch)} onChange={(v) => setLunch(v ? { start: "12:30", end: "13:15" } : null)} label="Lunch break" />
           </div>
           {lunch && (
             <div className="row-sep relative flex items-center gap-2 min-h-[52px] pl-4 pr-3 tabular">
-              <InlineInput type="time" value={lunch.start} onChange={(e) => setLunch({ ...lunch, start: e.target.value })} aria-label="Lunch start" className="bg-surface w-[132px] text-center" />
+              <InlineInput type="time" value={lunch.start} onChange={(e) => setLunch({ ...lunch, start: e.target.value })} aria-label="Lunch start" className="glass w-[132px] text-center" />
               <span className="text-footnote text-secondary">to</span>
-              <InlineInput type="time" value={lunch.end} onChange={(e) => setLunch({ ...lunch, end: e.target.value })} aria-label="Lunch end" className="bg-surface w-[132px] text-center" />
+              <InlineInput type="time" value={lunch.end} onChange={(e) => setLunch({ ...lunch, end: e.target.value })} aria-label="Lunch end" className="glass w-[132px] text-center" />
             </div>
           )}
         </div>

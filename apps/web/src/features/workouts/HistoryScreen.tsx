@@ -1,9 +1,9 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import { useNavigate } from "react-router";
 import { addMonths, endOfMonth, format, startOfMonth } from "date-fns";
 import { toDateString } from "@aravos/shared";
 import { Screen } from "@/ui/Screen";
-import { Group, Section, SectionHeader } from "@/ui/List";
+import { Section } from "@/ui/List";
 import { IconButton } from "@/ui/Button";
 import { Icon } from "@/ui/Icon";
 import { Empty, InlineError, Skeleton } from "@/ui/Empty";
@@ -11,7 +11,7 @@ import { cn } from "@/lib/cn";
 import { useAppSettings } from "@/data/queries";
 import { useIsDesktop } from "@/lib/hooks";
 import { useWorkoutCalendar, useWorkouts } from "./api";
-import { WORKOUTS } from "./lib";
+import { plural, WORKOUTS } from "./lib";
 import { WorkoutRow } from "./common";
 
 export default function HistoryScreen() {
@@ -35,13 +35,15 @@ export default function HistoryScreen() {
       ) : q.data.length === 0 ? (
         <Empty>No workouts yet.</Empty>
       ) : (
-        groups.map(([month, list]) => (
-          <Section key={month} title={month} className="mt-4 first:mt-0">
-            <Group data-testid="history-group">
-              {(list ?? []).map((w) => (
-                <WorkoutRow key={w.id} workout={w} onPress={() => navigate(`${WORKOUTS}/history/${w.id}`)} />
+        groups.map(([month, list], gi) => (
+          <Section key={month} title={month} action={<span className="text-[12px] text-tertiary tabular pb-0.5">{plural((list ?? []).length, "workout")}</span>} className="mt-6 first:mt-1">
+            <div className="px-[var(--gutter)] lg:px-0 flex flex-col gap-2.5" data-testid="history-group">
+              {(list ?? []).map((w, i) => (
+                <div key={w.id} className="rise" style={{ "--i": Math.min(gi * 3 + i, 10) } as CSSProperties}>
+                  <WorkoutRow workout={w} onPress={() => navigate(`${WORKOUTS}/history/${w.id}`)} />
+                </div>
               ))}
-            </Group>
+            </div>
           </Section>
         ))
       )}
@@ -52,7 +54,7 @@ export default function HistoryScreen() {
       <Screen title="History" back={WORKOUTS}>
         <div className="grid grid-cols-[360px_minmax(0,1fr)] gap-6 pr-[var(--gutter)] max-w-[1100px]">
           <div className="pl-[var(--gutter)]"><div className="sticky top-0"><CalendarStrip /></div></div>
-          <div className="[&_.mx-\\[var\\(--gutter\\)\\]]:mx-0 [&_h2]:px-0 [&_section>div:first-child]:px-0">{list}</div>
+          <div className="wk-desktop-list">{list}</div>
         </div>
       </Screen>
     );
@@ -82,16 +84,22 @@ export function CalendarStrip() {
     return cells;
   }, [month, weekStartsOn]);
   const byDate = new Map((q.data ?? []).map((d) => [d.date, d.workouts]));
+  const monthCount = (q.data ?? []).reduce((n, d) => n + d.workouts.length, 0);
   const today = toDateString(new Date());
   const labels = weekStartsOn === 1 ? ["M", "T", "W", "T", "F", "S", "S"] : ["S", "M", "T", "W", "T", "F", "S"];
   return (
-    <div className="bg-surface rounded-md px-2 pt-1 pb-2 lg:max-w-[420px]" data-testid="calendar-strip">
-      <div className="flex items-center justify-between">
-        <IconButton label="Previous month" onClick={() => setMonth((m) => addMonths(m, -1))}><Icon name="chevron-left" size={20} /></IconButton>
-        <span className="text-subhead font-semibold text-primary">{format(month, "MMMM yyyy")}</span>
-        <IconButton label="Next month" onClick={() => setMonth((m) => addMonths(m, 1))}><Icon name="chevron-right" size={20} /></IconButton>
+    <div className="glass rounded-lg px-2.5 pt-2 pb-3 lg:max-w-[420px]" data-testid="calendar-strip">
+      <div className="flex items-center justify-between pl-2">
+        <span className="flex items-baseline gap-2">
+          <span className="text-[15px] text-primary">{format(month, "MMMM yyyy")}</span>
+          <span className="text-[12px] text-tertiary tabular">{plural(monthCount, "workout")}</span>
+        </span>
+        <span className="flex items-center gap-1.5">
+          <IconButton label="Previous month" className="well !min-w-0 !min-h-0 w-8 h-8" onClick={() => setMonth((m) => addMonths(m, -1))}><Icon name="chevron-left" size={16} strokeWidth={1.8} /></IconButton>
+          <IconButton label="Next month" className="well !min-w-0 !min-h-0 w-8 h-8" onClick={() => setMonth((m) => addMonths(m, 1))}><Icon name="chevron-right" size={16} strokeWidth={1.8} /></IconButton>
+        </span>
       </div>
-      <div className="grid grid-cols-7 text-center text-caption-1 text-tertiary font-medium">
+      <div className="grid grid-cols-7 text-center text-[11px] text-tertiary mt-2">
         {labels.map((l, i) => (
           <span key={i}>{l}</span>
         ))}
@@ -104,9 +112,8 @@ export function CalendarStrip() {
           const has = list.length > 0;
           const isToday = key === today;
           return (
-            <button key={i} type="button" disabled={!has} onClick={() => has && navigate(`${WORKOUTS}/history/${list[0]!.id}`)} className={cn("h-8 flex flex-col items-center justify-center rounded-sm text-footnote tabular", isToday ? "text-accent-text font-semibold" : has ? "text-primary font-semibold" : "text-secondary", has && "active:bg-pressed")} aria-label={`${format(d, "d MMM")}${has ? `, ${list.length} workout${list.length === 1 ? "" : "s"}` : ""}`}>
-              <span>{d.getDate()}</span>
-              <span className={cn("w-1 h-1 rounded-full mt-0.5", has ? "bg-success" : "bg-transparent")} />
+            <button key={i} type="button" disabled={!has} onClick={() => has && navigate(`${WORKOUTS}/history/${list[0]!.id}`)} className="h-9 flex items-center justify-center" aria-label={`${format(d, "d MMM")}${has ? `, ${list.length} workout${list.length === 1 ? "" : "s"}` : ""}`}>
+              <span className={cn("w-8 h-8 rounded-full inline-flex items-center justify-center text-[13px] tabular transition-transform duration-150", has ? "bg-accent-soft text-accent-text font-medium shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--accent)_30%,transparent)] active:scale-95" : isToday ? "text-accent-text shadow-[inset_0_0_0_1px_var(--accent)]" : "text-secondary")}>{d.getDate()}</span>
             </button>
           );
         })}

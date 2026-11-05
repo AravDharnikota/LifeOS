@@ -1,78 +1,115 @@
-/* Workouts feature styles. Only token-derived colors; no hex. */
+/* Workouts feature styles. Glass look: only token-derived colors; no hex. */
 
-.wk-set-done { background: color-mix(in oklab, var(--success) 12%, var(--bg-surface)); }
-.wk-set-done .wk-input { background: color-mix(in oklab, var(--success) 10%, var(--bg-surface)); }
-.wk-set-done .wk-input:focus { background: var(--bg-surface); }
+/* ---------- set table (lives inside a `well`) ---------- */
 
+/* A completed set: a soft success tint across the row. */
+.wk-set-done { background: color-mix(in oklab, var(--success) 11%, transparent); }
+.wk-set-done .wk-input { background: color-mix(in oklab, var(--success) 9%, var(--glass-fill-strong)); color: var(--success-text); }
+.wk-set-done .wk-input:focus { background: var(--glass-fill-strong); color: var(--text-primary); }
+
+/* Value chip: a white pill inside the well. */
 .wk-input {
   width: 100%;
-  height: 34px;
-  border-radius: var(--r-sm);
-  background: var(--bg-surface-2);
-  border: 1px solid transparent;
+  height: 36px;
+  border-radius: 11px;
+  background: var(--glass-fill-strong);
+  box-shadow: inset 0 0 0 1px var(--separator), 0 1px 1px color-mix(in oklab, var(--text-primary) 3%, transparent);
+  border: 0;
   text-align: center;
   font-size: 16px;
   font-variant-numeric: tabular-nums;
   color: var(--text-primary);
   padding: 0 4px;
-  transition: border-color var(--dur-micro) var(--ease-out), background-color var(--dur-micro) var(--ease-out);
+  transition: box-shadow var(--dur-micro) var(--ease-out), background-color var(--dur-micro) var(--ease-out), color var(--dur-micro) var(--ease-out);
 }
-.wk-input:focus { border-color: var(--accent); background: var(--bg-surface); }
-.wk-input::placeholder { color: var(--text-tertiary); }
+.wk-input:focus { box-shadow: inset 0 0 0 1.5px var(--accent); background: var(--glass-fill-strong); }
+.wk-input:focus-visible { outline: none; }
+.wk-input::placeholder { color: var(--text-quaternary); }
 .wk-input::-webkit-outer-spin-button, .wk-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
 /* Set table: Set | Previous | value columns | check. Columns are set per category via inline style. */
-.wk-grid { display: grid; align-items: center; column-gap: 6px; height: 44px; }
-.wk-grid-head { height: 28px; }
+.wk-grid { display: grid; align-items: center; column-gap: 6px; height: 48px; }
+.wk-grid-head { height: 30px; }
 
-.wk-check { width: 30px; height: 30px; border-radius: var(--r-sm); background: var(--bg-surface-2); color: var(--text-tertiary); display: inline-flex; align-items: center; justify-content: center; transition: background-color var(--dur-press) var(--ease-out), color var(--dur-press) var(--ease-out), transform var(--dur-press) var(--ease-out); }
+/* Check: an outlined square that fills green when the set is done. */
+.wk-check {
+  width: 32px; height: 32px; border-radius: 10px;
+  background: var(--glass-fill-strong); box-shadow: inset 0 0 0 1px var(--separator-strong);
+  color: var(--text-quaternary);
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background-color 200ms var(--ease-out), color 200ms var(--ease-out), box-shadow 200ms var(--ease-out), transform var(--dur-press) var(--ease-out);
+}
 .wk-check:active { transform: scale(0.94); }
-.wk-check-on { background: var(--success); color: var(--on-accent); }
+.wk-check-on { background: var(--success); color: white; box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--success) 70%, black); }
 
-.wk-tag { font-weight: 600; font-variant-numeric: tabular-nums; }
+.wk-tag { font-weight: 500; font-variant-numeric: tabular-nums; }
 .wk-tag-normal { color: var(--text-secondary); }
 .wk-tag-warmup { color: var(--warning-text); }
 .wk-tag-drop { color: var(--fat-text); }
 .wk-tag-failure { color: var(--danger-text); }
 
-/* Superset bar: the only colored edge in the app; it carries grouping meaning (Strong pattern). */
+/* Superset bar: a thin colored edge on the card; it carries grouping meaning. */
 .wk-superset { position: relative; }
-.wk-superset::before { content: ""; position: absolute; z-index: 1; left: 0; top: 8px; bottom: 8px; width: 3px; border-radius: 2px; background: var(--wk-ss, var(--cal-gray)); pointer-events: none; }
+.wk-superset::before { content: ""; position: absolute; z-index: 1; left: 0; top: 14px; bottom: 14px; width: 3px; border-radius: 2px; background: var(--wk-ss, var(--cal-gray)); pointer-events: none; }
 
-.wk-swipe-bg { background: var(--danger); color: var(--on-accent); }
+.wk-swipe-bg { background: var(--danger); color: white; }
 
-/* Keyboard accessory row above the system keyboard (touch devices). */
-.wk-accessory { position: fixed; left: 0; right: 0; z-index: 40; background: var(--bg-elevated); border-top: 1px solid var(--separator); display: flex; align-items: stretch; height: 44px; }
-.wk-accessory button { flex: 1; font-size: 15px; font-weight: 600; color: var(--accent-text); font-variant-numeric: tabular-nums; }
-.wk-accessory button + button { border-left: 1px solid var(--separator); }
-.wk-accessory button:active { background: var(--bg-pressed); }
-
-/* Persistent resume bar sits above the tab bar; screens under it get extra bottom padding. */
-.wk-resume-bar { position: fixed; left: 0; right: 0; z-index: 35; }
-.wk-with-resume .scroller { padding-bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 24px + 60px); }
-@media (min-width: 1024px) {
-  .wk-resume-bar { left: var(--sidebar-w); }
-  .wk-with-resume .scroller { padding-bottom: 100px; }
+/* Keyboard accessory: a frosted glass bar above the system keyboard (touch devices) with pill buttons. */
+.wk-accessory {
+  position: fixed; left: 0; right: 0; z-index: 40; height: 44px;
+  display: flex; align-items: center; gap: 6px; padding: 0 8px;
+  background: var(--glass-sheen), var(--glass-fill-strong);
+  backdrop-filter: blur(24px) saturate(1.7); -webkit-backdrop-filter: blur(24px) saturate(1.7);
+  box-shadow: 0 -1px 0 var(--separator);
 }
+.wk-accessory button {
+  flex: 1; height: 32px; border-radius: 9999px;
+  background: var(--bg-surface-2); box-shadow: inset 0 0 0 1px var(--glass-edge);
+  font-size: 15px; font-weight: 500; color: var(--text-primary); font-variant-numeric: tabular-nums;
+  transition: transform var(--dur-press) var(--ease-out), background-color var(--dur-press) var(--ease-out);
+}
+.wk-accessory button.wk-acc-next { background: var(--text-primary); color: var(--bg-canvas); box-shadow: none; }
+.wk-accessory button:active { transform: scale(0.96); background: var(--bg-pressed); }
+.wk-accessory button.wk-acc-next:active { background: var(--text-primary); opacity: 0.85; }
+
+/* ---------- floating bottom pills (resume bar, start action) ---------- */
+.wk-float { position: fixed; left: 0; right: 0; z-index: 35; bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 8px); pointer-events: none; }
+.wk-float > * { pointer-events: auto; }
+.wk-with-resume .scroller { padding-bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 24px + 68px); }
+.wk-with-float { padding-bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 24px + 68px) !important; }
+@media (min-width: 1024px) {
+  .wk-float { left: var(--sidebar-w); bottom: 16px; }
+  .wk-with-resume .scroller, .wk-with-float { padding-bottom: 104px !important; }
+}
+@keyframes wk-float-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+.wk-float-in { animation: wk-float-in 420ms var(--ease-out) backwards; }
+
+/* Live dot next to the elapsed time. */
+@keyframes wk-live { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+.wk-live { animation: wk-live 2s ease-in-out infinite; }
 
 /* Live PR badge on a completed row */
-.wk-pr { position: absolute; top: 3px; right: 1px; width: 16px; height: 16px; border-radius: 9999px; background: var(--bg-surface); color: var(--warning-text); display: inline-flex; align-items: center; justify-content: center; }
+.wk-pr { position: absolute; top: 2px; right: 0; height: 14px; padding: 0 3px; border-radius: 5px; background: var(--glass-fill-strong); box-shadow: inset 0 0 0 1px var(--success); color: var(--success-text); font-size: 8px; line-height: 14px; font-weight: 600; letter-spacing: 0.02em; }
 
 /* Sheet content whose section headers and footers should sit flush with the sheet gutter */
 .wk-flush section > div:first-child, .wk-flush section > p { padding-left: 0; padding-right: 0; }
 
-/* Charts */
-.wk-chart-bar { fill: var(--activity); }
-.wk-chart-line { stroke: var(--activity); fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
-.wk-chart-grid { stroke: var(--separator); stroke-width: 1; }
-.wk-chart-label { fill: var(--text-tertiary); font-size: 11px; font-variant-numeric: tabular-nums; }
+/* Charts (kit look): accent marks, faint dashed grid, tertiary labels. */
+.wk-chart-bar { fill: var(--accent); }
+.wk-chart-line { stroke: var(--accent); fill: none; stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; }
+.wk-chart-grid { stroke: var(--separator-strong); stroke-width: 1; stroke-dasharray: 2 4; }
+.wk-chart-label { fill: var(--text-tertiary); font-size: 10px; font-variant-numeric: tabular-nums; }
+.wk-chart-cursor { stroke: var(--text-tertiary); stroke-width: 1; stroke-dasharray: 3 3; }
 
-/* Reduced motion: the brief caps durations; nothing here translates. */
+/* Rest dial ticks ease between states. */
+.wk-tick { transition: stroke 260ms var(--ease-out), opacity 260ms var(--ease-out); }
+
 @media (prefers-reduced-motion: reduce) {
   .wk-check:active { transform: none; }
+  .wk-live { animation: none; }
 }
 
-/* Template card: surface on canvas in light; a hairline edge only in dark (brief 4.11). */
-.wk-card { background: var(--bg-surface); }
-:root[data-theme="dark"] .wk-card { box-shadow: 0 0 0 1px var(--separator); }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .wk-card { box-shadow: 0 0 0 1px var(--separator); } }
+/* Desktop history: the list column drops its own gutters (it already sits in a padded grid). */
+.wk-desktop-list [class*="mx-[var(--gutter)]"] { margin-left: 0; margin-right: 0; }
+.wk-desktop-list h2 { padding-left: 0; padding-right: 0; }
+.wk-desktop-list section > div:first-child { padding-left: 0; padding-right: 0; }

@@ -1,7 +1,9 @@
 import type { Activity } from "@aravos/shared";
 import { dateOfIso } from "@aravos/shared";
 import { Screen } from "@/ui/Screen";
-import { Section, Group, Row } from "@/ui/List";
+import { Section, Row } from "@/ui/List";
+import type { IconName } from "@/ui/Icon";
+import { IconGroup, RowIcon } from "./parts";
 import { Empty, Skeleton, InlineError } from "@/ui/Empty";
 import { useAppSettings } from "@/data/queries";
 import { fmtRelativeDate, fmtTime } from "@/lib/format";
@@ -9,6 +11,7 @@ import { useActivity } from "./api";
 
 const ACTOR: Record<string, string> = { user: "App", agent: "Assistant", mcp: "MCP", scheduler: "Scheduler", google: "Google", system: "System" };
 const actorLabel = (a: string) => ACTOR[a] ?? a;
+const ACTOR_ICON: Record<string, IconName> = { user: "home", agent: "sparkle", mcp: "link", scheduler: "clock", google: "google", system: "gear" };
 
 function groupByDay(rows: Activity[]): { day: string; rows: Activity[] }[] {
   const out: { day: string; rows: Activity[] }[] = [];
@@ -38,11 +41,11 @@ export function ActivityScreen() {
         ) : (
           groups.map((g) => (
             <Section key={g.day} title={fmtRelativeDate(g.day)}>
-              <Group>
+              <IconGroup>
                 {g.rows.map((r) => (
-                  <Row key={r.id} title={r.summary} subtitle={`${actorLabel(r.actor)}, ${r.action}${r.entity.toLowerCase() === r.actor.toLowerCase() ? "" : ` ${r.entity.replace(/_/g, " ")}`}`} trailing={fmtTime(r.at, hour12)} />
+                  <Row key={r.id} leading={<RowIcon name={ACTOR_ICON[r.actor] ?? "info"} />} title={r.summary} subtitle={`${actorLabel(r.actor)}, ${r.action}${r.entity.toLowerCase() === r.actor.toLowerCase() ? "" : ` ${r.entity.replace(/_/g, " ")}`}`} trailing={<span className="text-[13px] text-tertiary">{fmtTime(r.at, hour12)}</span>} />
                 ))}
-              </Group>
+              </IconGroup>
             </Section>
           ))
         )}

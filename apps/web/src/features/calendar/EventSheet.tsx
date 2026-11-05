@@ -1,10 +1,9 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import { format } from "date-fns";
 import type { CalEvent, Calendar, EventCreate } from "@aravos/shared";
 import { localDateTime, toDateString } from "@aravos/shared";
 import { Sheet, ActionSheet } from "@/ui/Sheet";
-import { Group, Section } from "@/ui/List";
-import { TextField, TextArea, FieldRow, Switch } from "@/ui/Field";
+import { TextField, TextArea, Switch } from "@/ui/Field";
 import { Button } from "@/ui/Button";
 import { Icon } from "@/ui/Icon";
 import { toast } from "@/ui/Toast";
@@ -49,10 +48,29 @@ function formFrom(d: Draft, defaultCalendar: string): Form {
   };
 }
 
+/** A whiter grouped well inside the glass sheet; rows get inset hairlines from `.group-rows`. */
+function WellGroup({ children, className }: { children: ReactNode; className?: string }) {
+  return <div className={cn("well rounded-lg overflow-hidden group-rows", className)}>{children}</div>;
+}
+
+/** Quiet label on the left, value on the right. */
+function FieldRow({ label, children }: { label: ReactNode; children: ReactNode }) {
+  return (
+    <div className="row-sep relative flex items-center min-h-[50px] pl-[var(--gutter)] pr-[var(--gutter)] gap-3">
+      <span className="text-[15px] text-secondary shrink-0">{label}</span>
+      <div className="flex-1 min-w-0 flex justify-end items-center">{children}</div>
+    </div>
+  );
+}
+
+function GroupLabel({ children }: { children: ReactNode }) {
+  return <div className="text-[12px] text-tertiary px-1 mb-2">{children}</div>;
+}
+
 function SelectRow({ label, value, onChange, options, display }: { label: string; value: string; onChange: (v: string) => void; options: { value: string; label: string; swatch?: string }[]; display?: ReactNode }) {
   return (
     <FieldRow label={label}>
-      <span className="relative inline-flex items-center gap-2 text-subhead text-secondary">
+      <span className="relative inline-flex items-center gap-2 text-[15px] text-primary">
         {display ?? options.find((o) => o.value === value)?.label}
         <Icon name="chevron-down" size={16} className="text-quaternary" />
         <select aria-label={label} value={value} onChange={(e) => onChange(e.target.value)} className="absolute inset-0 opacity-0 w-full h-full cursor-pointer">
@@ -70,7 +88,7 @@ function SelectRow({ label, value, onChange, options, display }: { label: string
 function TimeInput({ label, value, onChange, type = "time" }: { label: string; value: string; onChange: (v: string) => void; type?: "time" | "date" }) {
   return (
     <FieldRow label={label}>
-      <input type={type} aria-label={label} value={value} step={type === "time" ? 300 : undefined} onChange={(e) => e.target.value && onChange(e.target.value)} className="text-subhead tabular text-secondary bg-transparent text-right outline-none focus:text-primary min-h-[44px] max-w-[160px]" />
+      <input type={type} aria-label={label} value={value} step={type === "time" ? 300 : undefined} onChange={(e) => e.target.value && onChange(e.target.value)} className="text-[15px] tabular text-primary bg-transparent text-right outline-none focus:text-accent-text min-h-[44px] max-w-[170px]" />
     </FieldRow>
   );
 }
@@ -94,18 +112,17 @@ export function EventSheet({ draft, onClose, calendars }: { draft: Draft | null;
   const recurring = Boolean(ev?.instanceOf || ev?.rrule);
   const timebox = ev?.kind === "timebox";
 
-  useEffect(() => {
-    if (!draft) return;
+  // Build the form during render (not in an effect) so the title field exists in the sheet's very first
+  // commit. <Sheet initialFocus> reads titleRef when the open animation completes; with an effect the
+  // field could still be missing at that moment and a new event would open without focus.
+  const [formDraft, setFormDraft] = useState<Draft | null>(null);
+  if (draft && draft !== formDraft) {
     const f = formFrom(draft, defaultCalendar);
+    setFormDraft(draft);
     setForm(f);
     setInitial(f);
     setError(null);
-    if (!draft.event) {
-      const id = window.setTimeout(() => titleRef.current?.focus(), 350);
-      return () => window.clearTimeout(id);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draft]);
+  }
 
   const dirty = useMemo(() => Boolean(form && initial && JSON.stringify(form) !== JSON.stringify(initial)), [form, initial]);
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm((f) => (f ? { ...f, [k]: v } : f));
@@ -175,20 +192,28 @@ export function EventSheet({ draft, onClose, calendars }: { draft: Draft | null;
   };
 
   const title = timebox ? "Time Box" : isNew ? "New Event" : "Event";
+  const when = form ? `${format(localDateTime(form.date, "12:00"), "EEEE d MMMM")}${form.allDay ? " · All-day" : ""}` : "";
   const timeRow = form && !form.allDay ? fmtTimeRange(localDateTime(form.date, form.startTime).toISOString(), localDateTime(form.date, form.endTime).toISOString()) : null;
   const calendarOptions = calendars.map((c) => ({ value: c.id, label: c.name, swatch: colorVar(c.color) }));
   const selectedCal = calendars.find((c) => c.id === form?.calendarId);
 
   return (
     <>
-      <Sheet open={open} onClose={onClose} title={title} detent="large" dirty={dirty} trailing={<button type="button" className="text-headline text-accent-text px-2 h-11 disabled:opacity-40" onClick={onDone} disabled={m.create.isPending || m.update.isPending}>{isNew ? "Add" : "Done"}</button>}>
+      <Sheet open={open} onClose={onClose} title={title} detent="large" dirty={dirty} initialFocus={isNew ? titleRef : undefined} trailing={<button type="button" className="text-headline text-accent-text px-2 h-11 disabled:opacity-40" onClick={onDone} disabled={m.create.isPending || m.update.isPending}>{isNew ? "Add" : "Done"}</button>}>
         {form && (
           <div className="flex flex-col pt-2 pb-4">
-            <TextField ref={titleRef} label={undefined} placeholder={timebox ? ev?.title : "Title"} value={form.title} onChange={(e) => { set("title", e.target.value); setError(null); }} enterKeyHint="done" onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); onDone(); } }} error={error === "Add a title" ? error : undefined} className="[&>span]:h-12 [&_input]:text-body" />
-            {timeRow && <p className="text-footnote text-secondary tabular mt-2 px-1">{timeRow}</p>}
+            <TextField ref={titleRef} label={undefined} placeholder={timebox ? ev?.title : "Title"} value={form.title} onChange={(e) => { set("title", e.target.value); setError(null); }} enterKeyHint="done" onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); onDone(); } }} error={error === "Add a title" ? error : undefined} className="[&>span]:h-14 [&_input]:text-[20px] [&_input]:tracking-[-0.01em]" />
+            <p className="text-[13px] text-tertiary tabular mt-2 px-1 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full shrink-0" style={{ background: timebox ? "var(--cal-graphite)" : colorVar(ev?.color ?? selectedCal?.color) }} aria-hidden="true" />
+              <span className="truncate">
+                {when}
+                {timeRow ? ` · ${timeRow}` : ""}
+              </span>
+            </p>
 
-            <Section className="mt-4">
-              <Group inset={false}>
+            <div className="mt-5">
+              <GroupLabel>Time</GroupLabel>
+              <WellGroup>
                 <FieldRow label="All-day">
                   <Switch checked={form.allDay} onChange={(v) => set("allDay", v)} label="All-day" />
                 </FieldRow>
@@ -201,12 +226,13 @@ export function EventSheet({ draft, onClose, calendars }: { draft: Draft | null;
                     <TimeInput label="Ends" value={form.endTime} onChange={(v) => { set("endTime", v); setError(null); }} />
                   </>
                 )}
-                {error && error !== "Add a title" && <p className="text-footnote text-danger-text px-[var(--gutter)] py-2 bg-surface">{error}</p>}
-              </Group>
-            </Section>
+                {error && error !== "Add a title" && <p className="row-sep relative text-[13px] text-danger-text px-[var(--gutter)] py-2.5">{error}</p>}
+              </WellGroup>
+            </div>
 
-            <Section className="mt-6">
-              <Group inset={false}>
+            <div className="mt-6">
+              <GroupLabel>{timebox ? "Planner" : "Details"}</GroupLabel>
+              <WellGroup>
                 {!timebox && (
                   <SelectRow
                     label="Calendar"
@@ -215,7 +241,7 @@ export function EventSheet({ draft, onClose, calendars }: { draft: Draft | null;
                     options={calendarOptions}
                     display={
                       <span className="inline-flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 rounded-full" style={{ background: colorVar(selectedCal?.color) }} />
+                        <span className="w-2 h-2 rounded-full" style={{ background: colorVar(selectedCal?.color) }} />
                         {selectedCal?.name ?? "Calendar"}
                       </span>
                     }
@@ -227,27 +253,28 @@ export function EventSheet({ draft, onClose, calendars }: { draft: Draft | null;
                     <Switch checked={form.locked} onChange={(v) => set("locked", v)} label="Locked" />
                   </FieldRow>
                 )}
-              </Group>
-              {timebox && <p className="text-footnote text-secondary pt-2">A locked time box stays where it is when the planner runs.</p>}
-            </Section>
+              </WellGroup>
+              {timebox && <p className="text-[12px] text-tertiary pt-2 px-1">A locked time box stays where it is when the planner runs.</p>}
+            </div>
 
             {!timebox && (
-              <Section className="mt-6">
+              <div className="mt-6">
+                <GroupLabel>Location and notes</GroupLabel>
                 <div className="flex flex-col gap-3">
                   <TextField placeholder="Location" aria-label="Location" value={form.location} onChange={(e) => set("location", e.target.value)} leading={<Icon name="home" size={18} className="text-tertiary" />} />
                   <TextArea placeholder="Notes" aria-label="Notes" value={form.notes} onChange={(e) => set("notes", e.target.value)} />
                 </div>
-              </Section>
+              </div>
             )}
 
             {timebox && ev?.taskId && (
-              <Section className="mt-6">
+              <div className="mt-6">
                 <div className="flex gap-3">
                   <Button variant="secondary" full onClick={() => { void m.completeTask.mutateAsync(ev).then(() => { onClose(); toast("Task completed."); }); }} disabled={ev.taskStatus === "done"}>
                     Complete Task
                   </Button>
                 </div>
-              </Section>
+              </div>
             )}
 
             {!isNew && (

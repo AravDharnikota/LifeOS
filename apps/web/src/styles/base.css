@@ -57,6 +57,9 @@
   --color-danger: var(--danger); --color-danger-text: var(--danger-text); --color-danger-soft: var(--danger-soft);
   --color-success: var(--success); --color-success-text: var(--success-text);
   --color-warning: var(--warning); --color-warning-text: var(--warning-text);
+  --color-accent-2: var(--accent-2);
+  --color-highlight: var(--highlight); --color-on-highlight: var(--on-highlight);
+  --color-success-soft: var(--success-soft); --color-warning-soft: var(--warning-soft);
   --color-white: #ffffff;
   --color-black: #000000;
   --color-transparent: transparent;
@@ -77,11 +80,14 @@
   --radius-sm: var(--r-sm);
   --radius-md: var(--r-md);
   --radius-lg: var(--r-lg);
+  --radius-xl: var(--r-xl);
   --radius-full: var(--r-full);
 
   --shadow-popover: var(--shadow-popover);
   --shadow-drag: var(--shadow-drag);
   --shadow-thumb: var(--shadow-thumb);
+  --shadow-card: var(--shadow-card);
+  --shadow-float: var(--shadow-float);
 
   --font-ui: var(--font-ui);
   --font-num: var(--font-num);
@@ -98,13 +104,13 @@
   --text-subhead: 15px; --text-subhead--line-height: 20px;
   --text-callout: 16px; --text-callout--line-height: 21px;
   --text-body: 17px; --text-body--line-height: 22px;
-  --text-headline: 17px; --text-headline--line-height: 22px; --text-headline--font-weight: 600;
-  --text-title-3: 20px; --text-title-3--line-height: 25px; --text-title-3--font-weight: 600;
-  --text-title-2: 22px; --text-title-2--line-height: 28px; --text-title-2--font-weight: 700;
-  --text-title-1: 28px; --text-title-1--line-height: 34px; --text-title-1--font-weight: 700;
-  --text-large-title: 34px; --text-large-title--line-height: 41px; --text-large-title--font-weight: 700;
-  --text-display-44: 44px; --text-display-44--line-height: 48px; --text-display-44--font-weight: 700;
-  --text-display-64: 64px; --text-display-64--line-height: 68px; --text-display-64--font-weight: 700;
+  --text-headline: 17px; --text-headline--line-height: 22px; --text-headline--font-weight: 500;
+  --text-title-3: 20px; --text-title-3--line-height: 26px; --text-title-3--font-weight: 500;
+  --text-title-2: 24px; --text-title-2--line-height: 30px; --text-title-2--font-weight: 400;
+  --text-title-1: 30px; --text-title-1--line-height: 36px; --text-title-1--font-weight: 300;
+  --text-large-title: 32px; --text-large-title--line-height: 38px; --text-large-title--font-weight: 400;
+  --text-display-44: 44px; --text-display-44--line-height: 48px; --text-display-44--font-weight: 300;
+  --text-display-64: 64px; --text-display-64--line-height: 68px; --text-display-64--font-weight: 200;
 }
 
 @layer base {
@@ -115,6 +121,7 @@
     font-family: var(--font-ui);
     font-size: 17px;
     line-height: 22px;
+    letter-spacing: -0.005em;
     color: var(--text-primary);
     background: var(--bg-canvas);
     font-synthesis: none;
@@ -135,12 +142,12 @@
   svg { display: block; }
   ::selection { background: var(--accent-soft); }
   @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 150ms !important; transform: none !important; }
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 150ms !important; }
   }
 }
 
 @utility tabular { font-variant-numeric: tabular-nums; }
-@utility num { font-family: var(--font-num); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+@utility num { font-family: var(--font-num); font-variant-numeric: tabular-nums; font-weight: 300; letter-spacing: -0.03em; }
 @utility scroller { overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
 @utility hairline-t { border-top: 1px solid var(--separator); }
 @utility hairline-b { border-bottom: 1px solid var(--separator); }
@@ -149,6 +156,28 @@
   transition: transform var(--dur-press) var(--ease-out), background-color var(--dur-press) var(--ease-out), opacity var(--dur-press) var(--ease-out);
   &:active { transform: scale(0.97); }
 }
+/* Frosted glass: translucent fill, blur of the lit scene behind, a bright 1px edge and a top sheen. */
+@utility glass {
+  background: var(--glass-sheen), var(--glass-fill);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
+  box-shadow: var(--glass-inset), var(--shadow-card);
+}
+@utility glass-strong {
+  background: var(--glass-sheen), var(--glass-fill-strong);
+  backdrop-filter: blur(28px) saturate(1.7);
+  -webkit-backdrop-filter: blur(28px) saturate(1.7);
+  box-shadow: var(--glass-inset), var(--shadow-float);
+}
+/* A whiter well nested inside a glass card (lists, inputs, sub-stats). */
+@utility well { background: var(--bg-surface-2); box-shadow: inset 0 0 0 1px var(--glass-edge); }
+/* Soft press: scales slightly, springs back. */
+@utility pressable-spring {
+  transition: transform 380ms var(--spring-pop), background-color var(--dur-press) var(--ease-out);
+  &:active { transform: scale(0.97); transition-duration: 120ms; transition-timing-function: var(--ease-out); }
+}
+/* Small uppercase-free caption used for labels above values. */
+@utility label { font-size: 13px; line-height: 16px; color: var(--text-secondary); font-weight: 400; }
 @utility hit-44 { min-height: 44px; min-width: 44px; }
 @utility safe-pb { padding-bottom: max(16px, var(--safe-bottom)); }
 @utility no-scrollbar { scrollbar-width: none; &::-webkit-scrollbar { display: none; } }
@@ -166,6 +195,24 @@
 .cal-fill { background: color-mix(in oklab, var(--cal-color, var(--cal-gray)) var(--cal-mix), var(--bg-surface)); color: color-mix(in oklab, var(--cal-color, var(--cal-gray)) 85%, var(--text-primary)); }
 :root[data-theme="dark"] .cal-fill { color: color-mix(in oklab, var(--cal-color, var(--cal-gray)) 70%, white); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .cal-fill { color: color-mix(in oklab, var(--cal-color, var(--cal-gray)) 70%, white); } }
+
+/* The lit scene behind the glass: out-of-focus light blooms. Fixed, behind everything. */
+.scene { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; background: var(--scene-base); }
+.scene i { position: absolute; border-radius: 9999px; filter: blur(70px); will-change: transform; }
+.scene i:nth-child(1) { width: 70vmax; height: 70vmax; right: -30vmax; top: -28vmax; background: var(--scene-a); opacity: 0.75; animation: scene-drift 26s ease-in-out infinite alternate; }
+.scene i:nth-child(2) { width: 55vmax; height: 55vmax; right: -18vmax; top: 30vh; background: var(--scene-b); opacity: 0.6; animation: scene-drift 32s ease-in-out infinite alternate-reverse; }
+.scene i:nth-child(3) { width: 60vmax; height: 60vmax; left: -28vmax; top: 10vh; background: var(--scene-c); opacity: 0.9; animation: scene-drift 38s ease-in-out infinite alternate; }
+.scene i:nth-child(4) { width: 50vmax; height: 50vmax; left: -10vmax; bottom: -30vmax; background: var(--scene-d); opacity: 0.55; animation: scene-drift 30s ease-in-out infinite alternate-reverse; }
+@keyframes scene-drift { from { transform: translate3d(0, 0, 0) scale(1); } to { transform: translate3d(-4vmax, 3vmax, 0) scale(1.08); } }
+
+/* Shimmer for skeletons. */
+.shimmer { position: relative; overflow: hidden; background: var(--bg-pressed); }
+.shimmer::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent); animation: aravos-shimmer 1.5s ease-in-out infinite; }
+@keyframes aravos-shimmer { to { transform: translateX(100%); } }
+
+/* Staggered fade-up for cards: style={{ "--i": index }}. fill-mode backwards so it never pins transform afterwards. */
+@keyframes aravos-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.rise { animation: aravos-rise 520ms var(--ease-out) backwards; animation-delay: calc(var(--i, 0) * 45ms); }
 
 /* Entrance used by menus/popovers */
 @keyframes aravos-enter { from { opacity: 0; transform: translateY(4px) scale(0.98); } to { opacity: 1; transform: none; } }
@@ -193,3 +240,18 @@
 @keyframes term-blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
 .term-cursor { animation: term-blink 1s step-end infinite; }
 @media (prefers-reduced-motion: reduce) { .term-cursor { animation: none !important; } }
+
+/* Line charts draw themselves in (paths use pathLength=1). */
+@keyframes viz-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+.viz-draw { stroke-dasharray: 1; stroke-dashoffset: 0; animation: viz-draw 1100ms var(--ease-out) backwards; }
+
+/* Inside a sheet (already frosted), nested glass cards become plain white wells: cleaner, and no stacked blur. */
+[role="dialog"] .glass { background: var(--bg-surface-2); backdrop-filter: none; -webkit-backdrop-filter: none; box-shadow: inset 0 0 0 1px var(--glass-edge); }
+
+/* Keyboard: sheets ride up with the keyboard instead of being covered by it (see src/lib/keyboard.ts). */
+.kb-lift { padding-bottom: var(--kb, 0px); transition: padding-bottom var(--kb-dur) var(--kb-ease); }
+.kb-fit { transition: height var(--kb-dur) var(--kb-ease), max-height var(--kb-dur) var(--kb-ease); }
+/* With the keyboard up, a sheet's bottom safe-area padding is under the keyboard; keep only a small gap. */
+html.kb-open [role="dialog"] > .scroller { padding-bottom: 16px; }
+/* Focused fields scroll into view above the keyboard. */
+.scroller { scroll-padding-bottom: calc(var(--kb, 0px) + 24px); }

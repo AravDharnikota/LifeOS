@@ -28,7 +28,7 @@ test.describe("shell", () => {
     const page = await ctx.newPage();
     await page.goto("/");
     const bg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
-    expect(bg).toBe("rgb(17, 17, 16)");
+    expect(bg).toBe("rgb(11, 11, 13)");
     await ctx.close();
   });
 });

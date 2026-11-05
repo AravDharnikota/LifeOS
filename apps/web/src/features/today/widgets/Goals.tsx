@@ -6,9 +6,9 @@ import { keys, useDaySummary, useGoals } from "@/data/queries";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { fmt1, fmtInt, fmtRelativeDate } from "@/lib/format";
-import { Bar } from "@/ui/Ring";
+import { BigNumber, Gauge, StatusPill, ThinBar } from "@/ui/viz";
 import { colorVar, type WidgetOf, type WidgetProps } from "../types";
-import { Hero, Pressable, Sub, WidgetEmpty, WidgetError, WidgetLabel, WidgetSkeleton } from "./shared";
+import { chipClass, Pressable, Sub, WidgetEmpty, WidgetError, WidgetLabel, WidgetSkeleton } from "./shared";
 
 export const useGoal = (id: string, enabled = true) => useQuery({ queryKey: keys.goal(id), queryFn: () => api.get<Goal>(`/api/goals/${id}`), enabled, staleTime: 30_000 });
 
@@ -56,22 +56,24 @@ export function GoalWidget({ widget }: WidgetProps<WidgetOf<"goal">>) {
 function GoalBody({ goal }: { goal: Goal }) {
   const v = goalValue(goal);
   const color = goal.color ? colorVar(goal.color) : "var(--accent)";
+  const p = goal.progress ?? 0;
   return (
     <>
-      <Hero value={v.current} unit={v.target ? `of ${v.target}${v.unit ? ` ${v.unit}` : ""}` : v.unit ?? undefined} />
-      <div className="mt-auto pt-3">
-        <Bar progress={goal.progress ?? 0} color={color} height={6} />
-        <Sub className="flex justify-between gap-2 mt-1.5">
-          <span>{Math.round((goal.progress ?? 0) * 100)}%</span>
-          {goal.deadline && <span className="tabular">{fmtRelativeDate(goal.deadline)}</span>}
-          {!goal.deadline && goal.kind === "habit" && goal.streak != null && goal.streak > 0 && <span className="tabular">{goal.streak} day streak</span>}
-        </Sub>
+      <div className="flex justify-center">
+        <Gauge value={p} size={124} stroke={10} colors={[color]} label={`${Math.round(p * 100)}% complete`}>
+          <BigNumber value={Math.round(p * 100)} unit="%" size={26} />
+        </Gauge>
       </div>
+      <Sub className="mt-auto pt-1 flex justify-between gap-2">
+        <span className="truncate">{v.target ? `${v.current} of ${v.target}${v.unit ? ` ${v.unit}` : ""}` : `${v.current}${v.unit ? ` ${v.unit}` : ""}`}</span>
+        {goal.deadline && <span className="tabular shrink-0">{fmtRelativeDate(goal.deadline)}</span>}
+        {!goal.deadline && goal.kind === "habit" && goal.streak != null && goal.streak > 0 && <span className="tabular shrink-0">{goal.streak} day streak</span>}
+      </Sub>
     </>
   );
 }
 
-/** Active goals with progress bars. */
+/** Active goals as rows in a white well: title, value, a thin bar in the goal's color, a Complete pill when done. */
 export function GoalsOverviewWidget({ widget, sectionTitle }: WidgetProps<WidgetOf<"goals_overview">>) {
   const navigate = useNavigate();
   const goals = useGoals("active");
@@ -80,7 +82,7 @@ export function GoalsOverviewWidget({ widget, sectionTitle }: WidgetProps<Widget
 
   return (
     <Pressable label="Open goals" onPress={() => navigate("/goals")}>
-      {label !== sectionTitle && <WidgetLabel>{label}</WidgetLabel>}
+      {label !== sectionTitle && <WidgetLabel icon="target" sub={goals.data ? `${list.length} active` : undefined}>{label}</WidgetLabel>}
       {goals.isPending ? (
         <WidgetSkeleton lines={3} />
       ) : goals.isError ? (
@@ -88,21 +90,26 @@ export function GoalsOverviewWidget({ widget, sectionTitle }: WidgetProps<Widget
       ) : list.length === 0 ? (
         <WidgetEmpty action="Add Goal" onAction={() => navigate("/goals?new=1")}>No active goals.</WidgetEmpty>
       ) : (
-        <ul className="flex flex-col divide-y divide-separator -my-1">
-          {list.map((g) => {
+        <ul className="well rounded-md overflow-hidden flex flex-col">
+          {list.map((g, i) => {
             const v = goalValue(g);
             const color = g.color ? colorVar(g.color) : "var(--accent)";
+            const complete = (g.progress ?? 0) >= 1 || g.status === "done";
             return (
-              <li key={g.id} className="py-2.5 first:pt-1 last:pb-1 flex flex-col gap-1.5">
-                <div className="flex items-baseline justify-between gap-3">
-                  <span className="text-subhead text-primary truncate">{g.title}</span>
-                  <span className="text-footnote tabular text-secondary shrink-0">
-                    {v.current}
-                    {v.target && <span className="text-tertiary"> / {v.target}</span>}
-                    {v.unit && g.kind === "number" && <span className="text-tertiary"> {v.unit}</span>}
-                  </span>
+              <li key={g.id} className={cn("px-3 py-3 flex flex-col gap-2", i > 0 && "hairline-t")}>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-[14px] leading-5 text-primary truncate">{g.title}</span>
+                  {complete ? (
+                    <StatusPill tone="success">Complete</StatusPill>
+                  ) : (
+                    <span className="text-[12px] tabular text-secondary shrink-0">
+                      {v.current}
+                      {v.target && <span className="text-tertiary"> / {v.target}</span>}
+                      {v.unit && g.kind === "number" && <span className="text-tertiary"> {v.unit}</span>}
+                    </span>
+                  )}
                 </div>
-                <Bar progress={g.progress ?? 0} color={color} height={4} />
+                <ThinBar progress={g.progress ?? 0} color={color} height={4} />
               </li>
             );
           })}
@@ -183,19 +190,19 @@ export function HabitGridWidget({ widget, editing }: WidgetProps<WidgetOf<"habit
                     aria-pressed={on}
                     disabled={editing}
                     onClick={() => void toggle()}
-                    className={cn("pointer-events-auto relative aspect-square rounded-[2px] transition-colors duration-150", on ? "bg-success" : "bg-surface-2")}
+                    className={cn("pointer-events-auto relative aspect-square rounded-[4px] transition-colors duration-150", on ? "bg-success" : "bg-pressed")}
                   >
                     <span className="absolute -inset-2" />
-                    {!on && <span className="absolute inset-[3px] rounded-[1px] border border-border-focus" />}
+                    {!on && <span className="absolute inset-0 rounded-[4px] border border-dashed border-border-focus" />}
                   </button>
                 );
               }
-              return <span key={c.date} className={cn("aspect-square rounded-[2px]", on ? "bg-success" : c.future ? "bg-transparent" : "bg-surface-2")} />;
+              return <span key={c.date} className={cn("aspect-square rounded-[4px]", on ? "bg-success" : c.future ? "bg-transparent" : "bg-pressed")} />;
             })}
           </div>
           <div className="mt-auto pt-3 flex items-center justify-between gap-2">
             <Sub className="mt-0">{g?.streak ? `${g.streak} day streak` : "No streak yet"}</Sub>
-            <button type="button" disabled={editing} onClick={() => void toggle()} className={cn("pointer-events-auto h-8 px-3 rounded-md text-footnote font-medium whitespace-nowrap shrink-0 pressable", doneToday ? "bg-surface-2 text-secondary" : "bg-surface-2 text-primary", editing && "opacity-40")}>
+            <button type="button" disabled={editing} onClick={() => void toggle()} className={cn(chipClass, "shrink-0", doneToday && "text-secondary")}>
               {doneToday ? "Done Today" : "Check In"}
             </button>
           </div>

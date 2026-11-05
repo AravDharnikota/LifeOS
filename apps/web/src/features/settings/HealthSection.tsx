@@ -1,17 +1,20 @@
 import { useEffect, useState } from "react";
 import type { HealthProfile } from "@aravos/shared";
-import { Section, Group, ValueRow, Row } from "@/ui/List";
+import { Section, ValueRow, Row } from "@/ui/List";
 import { FieldRow } from "@/ui/Field";
 import { Segmented } from "@/ui/Segmented";
 import { Sheet } from "@/ui/Sheet";
 import { Stepper } from "@/ui/Stepper";
 import { Button } from "@/ui/Button";
+import { Icon } from "@/ui/Icon";
 import { Skeleton, InlineError } from "@/ui/Empty";
 import { toast } from "@/ui/Toast";
+import { BigNumber, Legend, SegmentBar } from "@/ui/viz";
 import { notify } from "@/lib/haptics";
 import { fmt1, fmtDate, fmtInt, fmtMl, fmtWeight, fromDisplayWeight, toDisplayWeight } from "@/lib/format";
 import { fetchSuggestedTargets, useApplySuggestedTargets, useUpdateHealth, type SuggestedTargets } from "./api";
 import { InlineInput, NumberSheet, OptionSheet, SheetDone } from "./sheets";
+import { IconGroup, IconLabel, RowDot, RowIcon } from "./parts";
 
 type Units = "metric" | "imperial";
 type Targets = HealthProfile["targets"];
@@ -43,6 +46,18 @@ const TARGETS: { key: TargetKey; label: string; unit: "kcal" | "g" | "mg" | "ml"
   { key: "workoutsPerWeek", label: "Workouts per week", unit: "", step: 1, min: 0, max: 14 },
 ];
 
+const TARGET_COLOR: Record<TargetKey, string> = {
+  calories: "var(--energy)",
+  proteinG: "var(--protein)",
+  carbsG: "var(--carbs)",
+  fatG: "var(--fat)",
+  fiberG: "var(--activity)",
+  sugarMaxG: "var(--text-quaternary)",
+  sodiumMaxMg: "var(--text-quaternary)",
+  waterMl: "var(--water)",
+  workoutsPerWeek: "var(--accent)",
+};
+
 function fmtHeight(cm: number | null, units: Units): string {
   if (cm == null) return "Not set";
   if (units === "metric") return `${fmtInt(cm)} cm`;
@@ -68,30 +83,31 @@ export function HealthSection({ profile, units }: { profile: HealthProfile; unit
   return (
     <>
       <Section title="Health profile" footer="Used for calorie and protein suggestions.">
-        <Group>
-          <ValueRow title="Sex" value={profile.sex ? (profile.sex === "male" ? "Male" : "Female") : "Not set"} chevron onPress={() => setSheet("sex")} />
-          <FieldRow label="Birth date">
+        <IconGroup>
+          <ValueRow leading={<RowIcon name="user" />} title="Sex" value={profile.sex ? (profile.sex === "male" ? "Male" : "Female") : "Not set"} chevron onPress={() => setSheet("sex")} />
+          <FieldRow label={<IconLabel icon="calendar">Birth date</IconLabel>}>
             <InlineInput type="date" value={profile.birthDate ?? ""} max={new Date().toISOString().slice(0, 10)} onChange={(e) => update.mutate({ birthDate: e.target.value || null })} aria-label="Birth date" />
           </FieldRow>
-          <ValueRow title="Height" value={fmtHeight(profile.heightCm, units)} chevron onPress={() => setSheet("height")} />
-          <ValueRow title="Activity level" value={activityLabel(profile.activityLevel)} chevron onPress={() => setSheet("activity")} />
-          <FieldRow label="Goal">
-            <Segmented options={[{ value: "lose", label: "Lose" }, { value: "maintain", label: "Maintain" }, { value: "gain", label: "Gain" }]} value={profile.goal} onChange={(v) => update.mutate({ goal: v })} className="w-[240px]" />
+          <ValueRow leading={<RowIcon name="arrow-up" />} title="Height" value={fmtHeight(profile.heightCm, units)} chevron onPress={() => setSheet("height")} />
+          <ValueRow leading={<RowIcon name="bolt" />} title="Activity level" value={activityLabel(profile.activityLevel)} chevron onPress={() => setSheet("activity")} />
+          <FieldRow label={<IconLabel icon="target">Goal</IconLabel>}>
+            <Segmented options={[{ value: "lose", label: "Lose" }, { value: "maintain", label: "Maintain" }, { value: "gain", label: "Gain" }]} value={profile.goal} onChange={(v) => update.mutate({ goal: v })} size="sm" className="w-full max-w-[240px]" />
           </FieldRow>
-          {profile.goal !== "maintain" && <ValueRow title="Pace" value={`${fmtWeight(profile.paceKgPerWeek, units)} per week`} chevron onPress={() => setSheet("pace")} />}
-          <ValueRow title="Target weight" value={profile.targetWeightKg != null ? fmtWeight(profile.targetWeightKg, units) : "Not set"} chevron onPress={() => setSheet("targetWeight")} />
-        </Group>
+          {profile.goal !== "maintain" && <ValueRow leading={<RowIcon name="arrow-right" />} title="Pace" value={`${fmtWeight(profile.paceKgPerWeek, units)} per week`} chevron onPress={() => setSheet("pace")} />}
+          <ValueRow leading={<RowIcon name="scale" />} title="Target weight" value={profile.targetWeightKg != null ? fmtWeight(profile.targetWeightKg, units) : "Not set"} chevron onPress={() => setSheet("targetWeight")} />
+        </IconGroup>
       </Section>
 
       <div id="targets" className="mt-8">
         <Section title="Targets">
-          <Group>
+          <IconGroup>
+            <MacroSplit targets={profile.targets} />
             {TARGETS.map((t) => (
-              <ValueRow key={t.key} title={t.label} value={fmtTarget(t.key, profile.targets[t.key], units)} chevron onPress={() => setSheet(t.key)} data-testid={`target-${t.key}`} />
+              <ValueRow key={t.key} leading={<RowDot color={TARGET_COLOR[t.key]} />} title={t.label} value={fmtTarget(t.key, profile.targets[t.key], units)} chevron onPress={() => setSheet(t.key)} data-testid={`target-${t.key}`} />
             ))}
-          </Group>
+          </IconGroup>
           <div className="px-[var(--gutter)] pt-3">
-            <Button variant="plain" onClick={() => setSheet("suggest")} data-testid="suggest-targets">
+            <Button variant="secondary" size="sm" leading={<Icon name="sparkle" size={15} strokeWidth={1.8} />} onClick={() => setSheet("suggest")} data-testid="suggest-targets">
               Suggest Targets
             </Button>
           </div>
@@ -140,6 +156,36 @@ export function HealthSection({ profile, units }: { profile: HealthProfile; unit
       )}
       <SuggestSheet open={sheet === "suggest"} onClose={close} units={units} />
     </>
+  );
+}
+
+/** The calorie target as a thin number, split into protein, carbs and fat by energy (4, 4 and 9 kcal per gram). */
+function MacroSplit({ targets }: { targets: Targets }) {
+  const p = targets.proteinG * 4;
+  const c = targets.carbsG * 4;
+  const f = targets.fatG * 9;
+  if (p + c + f <= 0) return null;
+  return (
+    <div className="px-[var(--gutter)] pt-4 pb-4 hairline-b">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="label">Daily energy</span>
+        <BigNumber value={fmtInt(targets.calories)} unit="kcal" size={26} />
+      </div>
+      <SegmentBar
+        className="mt-3"
+        height={10}
+        segments={[
+          { value: p, color: "var(--protein)", style: "solid" },
+          { value: c, color: "var(--carbs)", style: "ticks" },
+          { value: f, color: "var(--fat)", style: "solid" },
+        ]}
+      />
+      <div className="flex gap-4 mt-2.5">
+        <Legend color="var(--protein)">Protein</Legend>
+        <Legend color="var(--carbs)">Carbs</Legend>
+        <Legend color="var(--fat)">Fat</Legend>
+      </div>
+    </div>
   );
 }
 
@@ -223,7 +269,7 @@ function SuggestSheet({ open, onClose, units }: { open: boolean; onClose: () => 
         )}
         {state.status === "ready" && (
           <>
-            <div className="rounded-md overflow-hidden group-rows bg-surface-2">
+            <div className="rounded-lg overflow-hidden group-rows well">
               {SUGGEST_ROWS.map((r) => {
                 const cur = state.data.current[r.key];
                 const next = state.data.suggestion[r.key] as number;

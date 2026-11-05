@@ -1,13 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { todayString } from "@aravos/shared";
+import { addDaysString, todayString } from "@aravos/shared";
 import { useAppSettings, useDaySummary } from "@/data/queries";
+import { useRange } from "@/features/nutrition/api";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { fmtInt } from "@/lib/format";
 import { notify, selection } from "@/lib/haptics";
 import type { WidgetOf, WidgetProps } from "../types";
-import { Hero, Sub, WidgetError, WidgetLabel, WidgetSkeleton, WriteError } from "./shared";
+import { TickBars } from "@/ui/viz";
+import { chipClass, Hero, Sub, WidgetError, WidgetLabel, WidgetSkeleton, WriteError } from "./shared";
+
+const DAYS = 14;
 
 const CHIPS = [250, 500];
 const CELEBRATED = "aravos.water.celebrated";
@@ -27,11 +31,13 @@ function markCelebrated(): void {
   }
 }
 
-/** Water today versus target, plus two one-tap chips. */
+/** Water today versus target, the last two weeks as tick bars, and two one-tap chips. */
 export function WaterWidget({ widget, editing }: WidgetProps<WidgetOf<"water">>) {
   const qc = useQueryClient();
   const settings = useAppSettings();
   const summary = useDaySummary();
+  const today = todayString();
+  const range = useRange(addDaysString(today, -(DAYS - 1)), today);
   const [pending, setPending] = useState(0);
   const [error, setError] = useState<number | null>(null);
 
@@ -72,9 +78,17 @@ export function WaterWidget({ widget, editing }: WidgetProps<WidgetOf<"water">>)
   const unit = imperial ? "oz" : "ml";
   const left = Math.max(0, target - ml);
 
+  // History from the range endpoint; today's bar follows the live (optimistic) total.
+  const series = Array.from({ length: DAYS }, (_, i) => {
+    const date = addDaysString(today, i - (DAYS - 1));
+    if (date === today) return ml;
+    return range.data?.find((r) => r.date === date)?.waterMl ?? 0;
+  });
+  const pct = target > 0 ? Math.min(999, Math.round((ml / target) * 100)) : null;
+
   return (
     <>
-      <WidgetLabel>{widget.title ?? "Water"}</WidgetLabel>
+      <WidgetLabel trailing={pct != null && !summary.isPending ? `${pct}%` : undefined}>{widget.title ?? "Water"}</WidgetLabel>
       {summary.isPending ? (
         <WidgetSkeleton hero lines={1} />
       ) : summary.isError ? (
@@ -82,7 +96,8 @@ export function WaterWidget({ widget, editing }: WidgetProps<WidgetOf<"water">>)
       ) : (
         <>
           <Hero value={show(ml)} unit={unit} pending={pending !== 0} />
-          <Sub>{target > 0 ? (left > 0 ? `${show(left)} ${unit} left` : "Target reached") : `No target set`}</Sub>
+          <Sub>{target > 0 ? (left > 0 ? `${show(left)} ${unit} left` : "Target reached") : "No target set"}</Sub>
+          <TickBars values={series} color="var(--water)" height={28} gap={3} className="mt-3 justify-between" />
           <div className="mt-auto pt-3 flex gap-2">
             {CHIPS.map((c) => (
               <button
@@ -91,7 +106,7 @@ export function WaterWidget({ widget, editing }: WidgetProps<WidgetOf<"water">>)
                 aria-label={`Add ${c} millilitres`}
                 onClick={() => void add(c)}
                 disabled={editing}
-                className={cn("h-9 flex-1 rounded-md bg-surface-2 text-footnote font-medium text-primary tabular active:bg-pressed pressable", editing && "opacity-40")}
+                className={cn(chipClass, "flex-1 px-1")}
               >
                 +{imperial ? `${show(c)} ${unit}` : `${c} ${unit}`}
               </button>

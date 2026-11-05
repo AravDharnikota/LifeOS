@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { PhotoAnalysis } from "@aravos/shared";
 import { Sheet, ActionSheet } from "@/ui/Sheet";
 import { Button } from "@/ui/Button";
-import { Group, SectionHeader, ValueRow } from "@/ui/List";
+import { SectionHeader, ValueRow } from "@/ui/List";
 import { Skeleton, InlineError } from "@/ui/Empty";
 import { toast } from "@/ui/Toast";
 import { imageUrl } from "@/lib/api";
@@ -12,6 +12,7 @@ import { useAppSettings } from "@/data/queries";
 import { aiErrorText } from "@/features/nutrition/model";
 import { POSES, useAnalyzeBodyPhoto, useBodyPhoto, useDeleteBodyPhoto } from "./api";
 import { AnalysisBody } from "./Observations";
+import { WellGroup } from "@/features/health/parts";
 
 /** One photo: full size, its facts, the latest analysis, analyze against the previous photo, delete. */
 export function PhotoSheet({ photoId, open, onClose }: { photoId: string | null; open: boolean; onClose: () => void }) {
@@ -60,12 +61,12 @@ export function PhotoSheet({ photoId, open, onClose }: { photoId: string | null;
         <InlineError onRetry={() => void photo.refetch()}>Unable to load the photo.</InlineError>
       ) : (
         <div className="flex flex-col gap-5 pt-2 -mx-[var(--gutter)]">
-          <img src={imageUrl(p.path)} alt={`${p.pose} photo from ${fmtDate(p.date)}`} className="mx-[var(--gutter)] max-h-[52vh] object-contain rounded-md bg-surface-2" />
-          <Group>
+          <img src={imageUrl(p.path)} alt={`${p.pose} photo from ${fmtDate(p.date)}`} className="mx-[var(--gutter)] max-h-[52vh] object-contain rounded-[18px] well p-1" />
+          <WellGroup>
             <ValueRow title="Date" value={fmtDate(p.date)} />
             <ValueRow title="Weight" value={p.weightKg != null ? fmtWeight(p.weightKg, units) : "Not recorded"} />
             {p.note && <ValueRow title="Note" value={<span className="whitespace-normal text-right">{p.note}</span>} />}
-          </Group>
+          </WellGroup>
           <div>
             <SectionHeader title="Analysis" />
             <div className="px-[var(--gutter)] flex flex-col gap-3">

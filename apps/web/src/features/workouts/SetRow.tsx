@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { animate, motion, useMotionValue } from "motion/react";
+import { animate, motion, useMotionValue, useTransform } from "motion/react";
 import type { ExerciseCategory, WorkoutSet } from "@aravos/shared";
 import { Icon } from "@/ui/Icon";
 import { cn } from "@/lib/cn";
@@ -41,11 +41,15 @@ export function focusNextInput(from?: Element | null): boolean {
 }
 
 /**
- * One set: number or type tag, ghost previous, value inputs, check. 44px tall, tabular digits.
- * Swipe left (touch) reveals Delete; a full swipe commits with a medium impact. Desktop shows a trash glyph on hover.
+ * One set: number or type tag, ghost previous, value chips, check. 48px tall, tabular digits.
+ * Built to sit inside a `well`: the row itself is transparent and turns success-tinted when done.
+ * Horizontal padding comes from `--wk-row-px` (falls back to the gutter) so a header row can line up with it.
+ * Swipe left (touch) reveals Delete; a full swipe commits with a medium impact. Desktop shows a delete glyph on hover.
  */
 export function SetRow({ set, index, sets, columns, grid, previous, category, units, checkable = true, onChangeValue, onCommit, onToggleComplete, onDelete, onSetType, onCopyPrevious }: SetRowProps) {
   const x = useMotionValue(0);
+  // The red Delete layer only shows while the row is pulled, so a translucent row never shows red through it.
+  const deleteOpacity = useTransform(x, [-24, -2, 0], [1, 0, 0]);
   const rowRef = useRef<HTMLDivElement>(null);
   const label = setLabel(sets, index);
   const prevText = previous ? fieldTextAll(previous, columns, units) : "";
@@ -66,9 +70,9 @@ export function SetRow({ set, index, sets, columns, grid, previous, category, un
   return (
     <div ref={rowRef} className="relative overflow-hidden" data-testid="set-row" data-completed={set.completed ? "true" : "false"} data-set-type={set.setType}>
       {!hasFinePointer && (
-        <div className="absolute inset-y-0 right-0 flex items-stretch" style={{ width: SWIPE_W }}>
-          <button type="button" className="wk-swipe-bg flex-1 text-footnote font-semibold" onClick={() => { void impact("medium"); onDelete(); }}>Delete</button>
-        </div>
+        <motion.div className="absolute inset-y-0 right-0 flex items-stretch" style={{ width: SWIPE_W, opacity: deleteOpacity }}>
+          <button type="button" className="wk-swipe-bg flex-1 text-[13px] font-medium" onClick={() => { void impact("medium"); onDelete(); }}>Delete</button>
+        </motion.div>
       )}
       <motion.div
         drag={hasFinePointer ? false : "x"}
@@ -77,12 +81,12 @@ export function SetRow({ set, index, sets, columns, grid, previous, category, un
         dragDirectionLock
         onDragEnd={onDragEnd}
         style={{ x, gridTemplateColumns: grid }}
-        className={cn("wk-grid relative px-[var(--gutter)] bg-surface group", set.completed && "wk-set-done")}
+        className={cn("wk-grid relative px-[var(--wk-row-px,var(--gutter))] group transition-colors duration-200", set.completed && "wk-set-done")}
       >
         <button type="button" tabIndex={-1} aria-label={`Set ${label || set.setType}, change type`} className="h-11 w-10 -ml-1 inline-flex items-center justify-center" onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); onSetType({ x: r.left + r.width / 2, y: r.bottom }); }}>
-          <span className={cn("inline-flex items-center justify-center min-w-[28px] h-7 px-1 rounded-sm bg-surface-2 text-footnote", tagClass)}>{label}</span>
+          <span className={cn("inline-flex items-center justify-center min-w-[28px] h-7 px-1 rounded-[9px] text-[14px]", set.setType !== "normal" && "bg-pressed", tagClass)}>{label}</span>
         </button>
-        <button type="button" tabIndex={-1} className={cn("h-11 text-left text-footnote tabular truncate min-w-0 flex items-center gap-1.5", prevText ? "text-tertiary active:text-primary" : "text-quaternary")} onClick={() => prevText && onCopyPrevious?.()} disabled={!prevText} aria-label={prevText ? `Previous ${prevText}, copy into this set` : "No previous set"}>
+        <button type="button" tabIndex={-1} className={cn("h-11 text-left text-[13px] tabular truncate min-w-0 flex items-center gap-1.5", prevText ? "text-tertiary active:text-primary" : "text-quaternary")} onClick={() => prevText && onCopyPrevious?.()} disabled={!prevText} aria-label={prevText ? `Previous ${prevText}, copy into this set` : "No previous set"}>
           <span className="truncate">{prevText || "–"}</span>
         </button>
         {columns.map((c) => (
@@ -91,9 +95,9 @@ export function SetRow({ set, index, sets, columns, grid, previous, category, un
         {checkable ? (
           <button type="button" tabIndex={-1} role="checkbox" aria-checked={set.completed} aria-label={set.completed ? "Mark set incomplete" : "Complete set"} className="relative h-11 w-11 -mr-1 inline-flex items-center justify-center" onClick={onToggleComplete} data-testid="set-check">
             <span className={cn("wk-check", set.completed && "wk-check-on")}>
-              <Icon name="check" size={18} strokeWidth={2.2} />
+              <Icon name="check" size={17} strokeWidth={2.2} />
             </span>
-            {set.prs.length > 0 && <span className="wk-pr" data-testid="pr-badge" aria-label="Personal record"><Icon name="trophy" size={11} strokeWidth={2} /></span>}
+            {set.prs.length > 0 && <span className="wk-pr" data-testid="pr-badge" aria-label="Personal record">PR</span>}
           </button>
         ) : (
           <span className="h-11 w-11 -mr-1 inline-flex items-center justify-center text-quaternary"><Icon name="lock" size={16} /></span>

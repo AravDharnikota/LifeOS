@@ -6,7 +6,8 @@ import { Screen } from "@/ui/Screen";
 import { Segmented } from "@/ui/Segmented";
 import { Button, IconButton } from "@/ui/Button";
 import { Icon } from "@/ui/Icon";
-import { Group, Row, Section, ValueRow } from "@/ui/List";
+import { Group, Row, Section } from "@/ui/List";
+import { BigNumber, CardHeader, StatusPill, Trend } from "@/ui/viz";
 import { ActionSheet } from "@/ui/Sheet";
 import { Empty, InlineError, Skeleton } from "@/ui/Empty";
 import { toast } from "@/ui/Toast";
@@ -18,6 +19,7 @@ import { useDeleteWeight, useWeight } from "@/features/nutrition/api";
 import { signOf } from "@/features/nutrition/model";
 import { LineChart } from "./charts";
 import { WeightSheet } from "./WeightSheet";
+import { riseStyle } from "./parts";
 
 type Period = "30" | "90" | "365";
 const PERIODS: { value: Period; label: string }[] = [
@@ -68,71 +70,101 @@ export default function WeightScreen() {
     return g === true ? "text-success-text" : g === false ? "text-danger-text" : "text-secondary";
   };
 
-  const hero = (
-    <div className="px-[var(--gutter)] pt-1">
-      {latest ? (
-        <>
-          <div className="flex items-baseline gap-1.5">
-            <span className="num text-display-44 text-primary" data-testid="weight-hero">{fmt1(toDisplayWeight(latest.weightKg, units))}</span>
-            <span className="text-subhead text-secondary">{unit}</span>
-          </div>
-          <p className="text-footnote text-secondary mt-1">
-            {fmtRelativeDate(latest.date)}
-            {latest.bodyFatPct != null ? ` · ${fmt1(latest.bodyFatPct)}% body fat` : ""}
-          </p>
-        </>
-      ) : (
-        <Empty className="pt-4 pb-2" action={<Button variant="plain" onClick={() => setLogOpen(true)}>Log Weight</Button>}>No weight logged yet.</Empty>
-      )}
+  const moved = (kg: number | null): kg is number => kg != null && Math.abs(kg) >= 0.05;
+  const trendBadge = (kg: number | null) => {
+    if (!moved(kg)) return null;
+    const g = good(kg);
+    const text = `${signOf(kg)}${fmt1(toDisplayWeight(Math.abs(kg), units))}`;
+    return g == null ? <StatusPill tone="neutral" className="tabular">{text}</StatusPill> : <Trend value={text} up={kg > 0} good={g} />;
+  };
+
+  const hero = latest ? (
+    <div className="mx-[var(--gutter)] glass-strong rounded-lg p-4 rise" style={riseStyle(0)}>
+      <CardHeader icon="scale" iconColor="var(--accent)" title="Latest" sub={`${fmtRelativeDate(latest.date)}${latest.bodyFatPct != null ? ` · ${fmt1(latest.bodyFatPct)}% body fat` : ""}`} trailing={trendBadge(data?.change7d ?? null)} />
+      <div className="mt-3 flex items-end justify-between gap-3">
+        <BigNumber value={<span data-testid="weight-hero">{fmt1(toDisplayWeight(latest.weightKg, units))}</span>} unit={unit} size={48} />
+        {profile?.targetWeightKg != null && <span className="text-[12px] text-tertiary tabular pb-1.5">Target {fmtWeight(profile.targetWeightKg, units)}</span>}
+      </div>
+    </div>
+  ) : (
+    <div className="mx-[var(--gutter)] glass rounded-lg">
+      <Empty className="pt-6 pb-4" action={<Button variant="plain" onClick={() => setLogOpen(true)}>Log Weight</Button>}>No weight logged yet.</Empty>
     </div>
   );
 
   const chart = (
-    <Section title="Trend">
-      <div className="px-[var(--gutter)]">
-        <Segmented options={PERIODS} value={period} onChange={(p) => { setPeriod(p); setSelected(null); }} className={isDesktop ? "max-w-[280px]" : undefined} />
+    <section className="mt-3">
+      <div className="mx-[var(--gutter)] glass rounded-lg p-4 rise" style={riseStyle(1)}>
+        <CardHeader icon="bars" title="Trend" sub="Smoothed, with each weigh-in as a dot" />
+        <Segmented options={PERIODS} value={period} onChange={(p) => { setPeriod(p); setSelected(null); }} size="sm" className={cn("mt-3", isDesktop ? "max-w-[280px]" : undefined)} />
         <div className="flex items-baseline gap-1.5 mt-4 min-h-[34px]">
           {sel ? (
             <>
-              <span className="num text-title-1 text-primary">{fmt1(sel.raw ?? sel.value)}</span>
-              <span className="text-subhead text-secondary">{unit} · {fmtRelativeDate(sel.key)}</span>
-              <span className="ml-auto text-footnote text-secondary tabular">trend {fmt1(sel.value)}</span>
+              <BigNumber value={fmt1(sel.raw ?? sel.value)} unit={`${unit} · ${fmtRelativeDate(sel.key)}`} size={28} />
+              <span className="ml-auto text-[12px] text-tertiary tabular">trend {fmt1(sel.value)}</span>
             </>
           ) : periodChange == null ? (
-            <span className="text-callout text-secondary">Two weigh-ins show a trend.</span>
+            points.length > 0 && <span className="text-[15px] text-secondary">Two weigh-ins show a trend.</span>
           ) : (
             <>
-              <span className={cn("num text-title-1", deltaClass(periodChange))}>{`${signOf(periodChange)}${fmt1(Math.abs(periodChange))}`}</span>
-              <span className="text-subhead text-secondary">{unit} over {days === 365 ? "a year" : `${days} days`}</span>
+              <span className={cn("num text-[28px] leading-[30px]", deltaClass(periodChange))}>{`${signOf(periodChange)}${fmt1(Math.abs(periodChange))}`}</span>
+              <span className="text-[13px] text-tertiary">{unit} over {days === 365 ? "a year" : `${days} days`}</span>
             </>
           )}
         </div>
         {points.length === 0 ? (
-          <p className="text-callout text-secondary text-center py-8">No weigh-ins in this period.</p>
+          <p className="text-[15px] text-secondary text-center py-8">No weigh-ins in this period.</p>
         ) : (
           <LineChart points={points} target={profile?.targetWeightKg ? toDisplayWeight(profile.targetWeightKg, units) : null} format={(v) => fmt1(v)} selected={selected} onSelect={setSelected} className="mt-2" />
         )}
       </div>
-    </Section>
+    </section>
   );
 
+  const cells: { title: string; kg: number | null; show: boolean }[] = [
+    { title: "7 days", kg: data?.change7d ?? null, show: true },
+    { title: "30 days", kg: data?.change30d ?? null, show: true },
+    { title: "To target", kg: profile?.targetWeightKg != null && latest ? profile.targetWeightKg - latest.weightKg : null, show: profile?.targetWeightKg != null && latest != null },
+  ];
   const changes = (
     <Section title="Change">
-      <Group>
-        <ValueRow title="7 days" value={<span className={cn("flex items-center gap-1", deltaClass(data?.change7d ?? null))}>{data?.change7d != null && Math.abs(data.change7d) >= 0.05 && <Icon name={data.change7d > 0 ? "arrow-up" : "arrow-down"} size={14} strokeWidth={2} />}{deltaText(data?.change7d ?? null)}</span>} />
-        <ValueRow title="30 days" value={<span className={cn("flex items-center gap-1", deltaClass(data?.change30d ?? null))}>{data?.change30d != null && Math.abs(data.change30d) >= 0.05 && <Icon name={data.change30d > 0 ? "arrow-up" : "arrow-down"} size={14} strokeWidth={2} />}{deltaText(data?.change30d ?? null)}</span>} />
-        {profile?.targetWeightKg != null && latest && <ValueRow title="To target" value={deltaText(profile.targetWeightKg - latest.weightKg)} />}
-      </Group>
+      <div className={cn("mx-[var(--gutter)] grid gap-2 rise", cells.filter((c) => c.show).length === 3 ? "grid-cols-3" : "grid-cols-2")} style={riseStyle(2)}>
+        {cells.filter((c) => c.show).map((c) => (
+          <div key={c.title} className="glass rounded-[16px] px-3 py-3">
+            <div className="text-[12px] text-tertiary">{c.title}</div>
+            <div className={cn("mt-1 flex items-center gap-1 text-[15px] tabular", c.title === "To target" ? "text-primary" : deltaClass(c.kg))}>
+              {c.title !== "To target" && moved(c.kg) && <Icon name={c.kg > 0 ? "arrow-up" : "arrow-down"} size={13} strokeWidth={2} />}
+              <span className="truncate">{deltaText(c.kg)}</span>
+            </div>
+          </div>
+        ))}
+      </div>
     </Section>
   );
 
+  const logs = data?.logs.slice(0, 60) ?? [];
   const history = (
-    <Section title="History" footer={data?.logs.length ? "Tap a weigh-in to delete it." : undefined}>
-      {data && data.logs.length ? (
+    <Section title="History" footer={logs.length ? "Tap a weigh-in to delete it." : undefined}>
+      {logs.length ? (
         <Group>
-          {data.logs.slice(0, 60).map((l) => (
-            <Row key={l.id} title={fmtRelativeDate(l.date)} subtitle={l.bodyFatPct != null ? `${fmt1(l.bodyFatPct)}% body fat` : undefined} trailing={fmtWeight(l.weightKg, units)} onPress={() => setConfirm(l)} />
-          ))}
+          {logs.map((l, i) => {
+            const prev = logs[i + 1];
+            const d = prev ? l.weightKg - prev.weightKg : null;
+            return (
+              <Row
+                key={l.id}
+                title={fmtRelativeDate(l.date)}
+                subtitle={l.bodyFatPct != null ? `${fmt1(l.bodyFatPct)}% body fat` : undefined}
+                trailing={
+                  <>
+                    {moved(d) && <span className={cn("text-[12px]", deltaClass(d))}>{`${signOf(d)}${fmt1(toDisplayWeight(Math.abs(d), units))}`}</span>}
+                    <span className="text-primary">{fmtWeight(l.weightKg, units)}</span>
+                  </>
+                }
+                onPress={() => setConfirm(l)}
+              />
+            );
+          })}
         </Group>
       ) : (
         <Group>
@@ -147,8 +179,8 @@ export default function WeightScreen() {
       title="Weight"
       back="/health"
       actions={
-        <IconButton label="Log Weight" tinted onClick={() => setLogOpen(true)} data-testid="open-log-weight">
-          <Icon name="plus" />
+        <IconButton label="Log Weight" className="glass !min-w-0 !min-h-0 w-10 h-10" onClick={() => setLogOpen(true)} data-testid="open-log-weight">
+          <Icon name="plus" size={20} strokeWidth={1.8} />
         </IconButton>
       }
     >
@@ -165,7 +197,7 @@ export default function WeightScreen() {
             {hero}
             {chart}
           </div>
-          <div>
+          <div className="[&>section:first-child]:mt-0">
             {changes}
             {history}
           </div>

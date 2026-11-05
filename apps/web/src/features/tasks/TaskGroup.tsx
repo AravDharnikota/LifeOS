@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, type CSSProperties } from "react";
 import type { Task } from "@aravos/shared";
 import { cn } from "@/lib/cn";
 import { impact } from "@/lib/haptics";
@@ -28,8 +28,8 @@ export interface GroupSharedProps {
   logbook?: boolean;
 }
 
-/** Section header plus an inset group of rows. Long-press reorder lives here so rows can shift as one. */
-export function TaskGroup({ group, lists, actions, expandedId, onExpand, onContext, onSchedule, onDelete, date, logbook }: GroupSharedProps & { group: TaskGroupData }) {
+/** A glass card: quiet header (dot, title, count) and the rows. Long-press reorder lives here so rows can shift as one. */
+export function TaskGroup({ group, index = 0, lists, actions, expandedId, onExpand, onContext, onSchedule, onDelete, date, logbook }: GroupSharedProps & { group: TaskGroupData; index?: number }) {
   const [collapsed, setCollapsed] = useState(Boolean(group.collapsed));
   const [drag, setDrag] = useState<DragState | null>(null);
   const dragRef = useRef<DragState | null>(null);
@@ -85,25 +85,35 @@ export function TaskGroup({ group, lists, actions, expandedId, onExpand, onConte
   };
 
   const count = group.tasks.length;
+  const collapsible = Boolean(group.collapsed);
+  const showRows = !collapsed;
+  const header = group.title ? (
+    <>
+      <span className="flex items-center gap-2 min-w-0">
+        {(group.color || group.tone === "danger") && <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: group.tone === "danger" ? "var(--danger)" : group.color }} />}
+        <span className="text-[15px] text-primary truncate">{group.title}</span>
+        {group.detail && <span className="text-[12px] text-tertiary truncate">{group.detail}</span>}
+      </span>
+      <span className="flex items-center gap-1 shrink-0 text-[12px] text-tertiary tabular">
+        {count}
+        {collapsible && <Icon name="chevron-down" size={14} className="text-quaternary transition-transform duration-300" style={{ transform: collapsed ? "rotate(-90deg)" : undefined, transitionTimingFunction: "var(--ease-out)" }} />}
+      </span>
+    </>
+  ) : null;
+  const headerCls = cn("w-full flex items-center justify-between gap-3 pl-4 pr-4 text-left", showRows ? "pt-3.5 pb-1" : "py-3.5");
   return (
-    <section className="mt-6 first:mt-0" data-task-group={group.key}>
-      {group.title && (
-      <div className="flex items-end justify-between px-[var(--gutter)] pb-2">
-        <button type="button" className={cn("flex items-center gap-2 text-footnote", group.tone === "danger" ? "text-danger-text font-medium" : "text-secondary", group.collapsed ? "pressable" : "cursor-default")} onClick={group.collapsed ? () => setCollapsed((c) => !c) : undefined} aria-expanded={group.collapsed ? !collapsed : undefined}>
-          {group.color && <span className="w-2 h-2 rounded-full" style={{ background: group.color }} />}
-          <span>{group.title}</span>
-          {group.detail && <span className="text-tertiary">{group.detail}</span>}
-          {group.collapsed && (
-            <>
-              <span className="text-tertiary tabular">{count}</span>
-              <Icon name={collapsed ? "chevron-right" : "chevron-down"} size={14} className="text-quaternary" />
-            </>
-          )}
-        </button>
-      </div>
-      )}
-      {!collapsed && (
-        <div ref={ref} className={cn("bg-surface rounded-md mx-[var(--gutter)] group-rows", !drag && "overflow-hidden")}>
+    <section className="rise mt-3 first:mt-0 px-[var(--gutter)]" style={{ "--i": index } as CSSProperties} data-task-group={group.key}>
+      <div className={cn("glass rounded-lg", !drag && "overflow-hidden")}>
+        {header &&
+          (collapsible ? (
+            <button type="button" className={cn(headerCls, "row-hover transition-colors duration-150")} onClick={() => setCollapsed((c) => !c)} aria-expanded={!collapsed}>
+              {header}
+            </button>
+          ) : (
+            <div className={headerCls}>{header}</div>
+          ))}
+      {showRows && (
+        <div ref={ref} className={cn("group-rows", header ? "pb-1" : "py-1")}>
           {group.tasks.map((t) => (
             <TaskRow
               key={t.id}
@@ -116,6 +126,7 @@ export function TaskGroup({ group, lists, actions, expandedId, onExpand, onConte
               date={date}
               logbook={logbook}
               showList={group.showList}
+              groupDate={/^\d{4}-\d{2}-\d{2}$/.test(group.key) ? group.key : undefined}
               onContext={onContext}
               onSchedule={onSchedule}
               onDelete={onDelete}
@@ -124,6 +135,7 @@ export function TaskGroup({ group, lists, actions, expandedId, onExpand, onConte
           ))}
         </div>
       )}
+      </div>
     </section>
   );
 }

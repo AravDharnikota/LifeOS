@@ -23,8 +23,8 @@ export interface ScreenProps {
 }
 
 /**
- * Screen with a large title that collapses into the 44px bar on scroll (crossfade 150ms, hairline appears).
- * The bar background is the canvas with a scroll-edge blur, the single permitted blur.
+ * Screen over the lit scene: an airy large title (regular weight, tight tracking) with a quiet subtitle.
+ * On scroll the title moves into a frosted 44px bar.
  */
 export function Screen({ title, subtitle, actions, back, children, header, className, contentClassName, compact, scrollRef }: ScreenProps) {
   const sentinel = useRef<HTMLDivElement>(null);
@@ -47,26 +47,26 @@ export function Screen({ title, subtitle, actions, back, children, header, class
 
   return (
     <div className={cn("flex flex-col h-full min-h-0", className)}>
-      <div className={cn("shrink-0 relative z-20 pt-[var(--safe-top)] transition-[box-shadow] duration-150", collapsed ? "hairline-b" : "")} style={collapsed ? { background: "color-mix(in oklab, var(--bg-canvas) 82%, transparent)", backdropFilter: "blur(20px) saturate(1.8)", WebkitBackdropFilter: "blur(20px) saturate(1.8)" } : undefined}>
+      <div className={cn("shrink-0 relative z-20 pt-[var(--safe-top)] transition-[background-color,box-shadow] duration-200", collapsed ? "hairline-b" : "")} style={collapsed ? { background: "var(--glass-fill-strong)", backdropFilter: "blur(24px) saturate(1.7)", WebkitBackdropFilter: "blur(24px) saturate(1.7)" } : undefined}>
         <div className="h-[var(--topbar-h)] grid grid-cols-[1fr_auto_1fr] items-center px-1">
           <div className="justify-self-start flex items-center">
             {back && (
-              <IconButton label="Back" onClick={() => (typeof back === "string" ? navigate(back) : navigate(-1))}>
-                <Icon name="chevron-left" size={24} />
+              <IconButton label="Back" className="ml-1 !min-w-0 !min-h-0 w-10 h-10 glass" onClick={() => (typeof back === "string" ? navigate(back) : navigate(-1))}>
+                <Icon name="chevron-left" size={20} strokeWidth={1.8} />
               </IconButton>
             )}
           </div>
-          <button type="button" onClick={scrollTop} className={cn("text-headline text-primary truncate max-w-[60vw] transition-opacity duration-150", collapsed ? "opacity-100" : "opacity-0 pointer-events-none")} tabIndex={-1}>
+          <button type="button" data-haptic="off" onClick={scrollTop} className={cn("text-[16px] font-medium text-primary truncate max-w-[60vw] transition-[opacity,transform] duration-200", collapsed ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1 pointer-events-none")} tabIndex={-1}>
             {title}
           </button>
-          <div className="justify-self-end flex items-center gap-1 pr-1">{actions}</div>
+          <div className="justify-self-end flex items-center gap-2 pr-[calc(var(--gutter)-4px)]">{actions}</div>
         </div>
       </div>
-      <div ref={ref} className={cn("scroller flex-1 min-h-0 pb-[calc(var(--tabbar-h)+var(--safe-bottom)+24px)] lg:pb-10", contentClassName)}>
+      <div ref={ref} className={cn("scroller flex-1 min-h-0 pb-[calc(var(--tabbar-h)+var(--safe-bottom)+24px+var(--kb,0px))] lg:pb-10", contentClassName)}>
         {!compact && (
-          <div className="px-[var(--gutter)] pt-1 pb-2">
-            <h1 className="text-large-title text-primary leading-[41px]">{title}</h1>
-            {subtitle != null && <div className="text-subhead text-secondary mt-0.5">{subtitle}</div>}
+          <div className="px-[var(--gutter)] pt-2 pb-4">
+            <h1 className="text-large-title text-primary tracking-[-0.025em]">{title}</h1>
+            {subtitle != null && <div className="text-[14px] text-tertiary mt-1">{subtitle}</div>}
             <div ref={sentinel} className="h-px" />
           </div>
         )}

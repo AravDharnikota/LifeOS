@@ -7,12 +7,13 @@ import { cn } from "@/lib/cn";
 import { fmt1, fmtInt } from "@/lib/format";
 import { selection } from "@/lib/haptics";
 import { Icon } from "@/ui/Icon";
+import { ThinBar } from "@/ui/viz";
 import type { WidgetOf, WidgetProps } from "../types";
 import { Hero, Sub, WidgetEmpty, WidgetError, WidgetLabel, WidgetSkeleton, WriteError } from "./shared";
 
 const num = (v: number) => (Number.isInteger(v) ? fmtInt(v) : fmt1(v));
 
-/** A counter with minus and plus. The number is the hero. */
+/** A counter with minus and plus. The number is the hero; a slim bar shows progress when there is a target. */
 export function TrackerWidget({ widget, editing }: WidgetProps<WidgetOf<"tracker">>) {
   const qc = useQueryClient();
   const summary = useDaySummary();
@@ -48,7 +49,7 @@ export function TrackerWidget({ widget, editing }: WidgetProps<WidgetOf<"tracker
 
   const pending = summary.isPending && trackers.isPending;
   const missing = !tracker && summary.isSuccess && trackers.isSuccess;
-  const btn = "pointer-events-auto hit-44 w-11 h-11 rounded-md bg-surface-2 text-primary inline-flex items-center justify-center active:bg-pressed transition-colors duration-100 select-none disabled:opacity-40";
+  const btn = "pointer-events-auto hit-44 w-11 h-11 rounded-full well text-primary inline-flex items-center justify-center active:bg-pressed pressable select-none disabled:opacity-40";
 
   return (
     <>
@@ -63,12 +64,13 @@ export function TrackerWidget({ widget, editing }: WidgetProps<WidgetOf<"tracker
         <>
           <Hero value={num(value)} unit={tracker?.unit ?? undefined} pending={delta !== 0} />
           <Sub>{tracker?.target != null ? (value >= tracker.target ? `Target of ${num(tracker.target)} reached` : `${num(tracker.target - value)} to go, target ${num(tracker.target)}`) : tracker?.reset === "daily" ? "today" : tracker?.reset === "weekly" ? "this week" : "all time"}</Sub>
+          {tracker?.target != null && tracker.target > 0 && <ThinBar progress={value / tracker.target} color="var(--accent)" height={4} className="mt-3" />}
           <div className="mt-auto pt-3 flex items-center gap-2">
             <button type="button" aria-label="Decrease" className={btn} disabled={editing || value - step < 0} onClick={() => void log(-step)}>
-              <Icon name="minus" size={20} />
+              <Icon name="minus" size={18} strokeWidth={1.8} />
             </button>
             <button type="button" aria-label="Increase" className={cn(btn, "flex-1")} disabled={editing} onClick={() => void log(step)}>
-              <Icon name="plus" size={20} />
+              <Icon name="plus" size={18} strokeWidth={1.8} />
             </button>
           </div>
           {error != null && <WriteError message="Unable to log." onRetry={() => void log(error)} />}

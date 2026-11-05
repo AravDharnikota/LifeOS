@@ -80,7 +80,7 @@ function RailRow({ task, date, lists, onSchedule, draggable }: { task: Task; dat
   return (
     <div
       data-rail-task={task.id}
-      className={cn("relative flex items-center gap-3 min-h-[52px] pl-[var(--gutter)] pr-3 bg-surface row-sep group", draggable && "cursor-grab active:cursor-grabbing select-none")}
+      className={cn("relative flex items-center gap-3 min-h-[56px] pl-[var(--gutter)] pr-3 row-sep group", draggable && "row-hover transition-colors duration-150", draggable && "cursor-grab active:cursor-grabbing select-none")}
       onPointerDown={onDown}
       onPointerMove={onMove}
       onPointerUp={onUp}
@@ -88,10 +88,10 @@ function RailRow({ task, date, lists, onSchedule, draggable }: { task: Task; dat
     >
       <span className="w-2 h-2 rounded-full shrink-0" style={{ background: colorVar(list?.color ?? "gray") }} aria-hidden="true" />
       <div className="flex-1 min-w-0 py-2">
-        <div className="text-subhead text-primary truncate">{task.title}</div>
-        <div className={cn("text-footnote truncate mt-px", overdue ? "text-danger-text" : "text-secondary")}>{subtitleFor(task, date, lists)}</div>
+        <div className="text-[15px] leading-5 text-primary truncate">{task.title}</div>
+        <div className={cn("text-[12px] leading-4 tabular truncate mt-0.5", overdue ? "text-danger-text" : "text-tertiary")}>{subtitleFor(task, date, lists)}</div>
       </div>
-      <Button variant="plain" size="sm" className={cn("shrink-0 -mr-1", draggable && "absolute right-2 top-1/2 -translate-y-1/2 bg-surface pl-4 opacity-0 group-hover:opacity-100 focus-visible:opacity-100")} onClick={() => onSchedule(task)}>
+      <Button variant="plain" size="sm" className={cn("shrink-0 -mr-1 text-[14px]", draggable && "absolute right-2 top-1/2 -translate-y-1/2 bg-elevated !px-3 opacity-0 group-hover:opacity-100 focus-visible:opacity-100")} onClick={() => onSchedule(task)}>
         Schedule
       </Button>
     </div>
@@ -104,7 +104,7 @@ export function RailList({ date, onSchedule, draggable = false, className }: { d
   if (error) return <InlineError onRetry={refetch}>Unable to load tasks.</InlineError>;
   if (tasks.length === 0) return <Empty className="pt-8">Nothing left to schedule.</Empty>;
   return (
-    <div className={cn("bg-surface rounded-md overflow-hidden group-rows", className)}>
+    <div className={cn("well rounded-lg overflow-hidden group-rows", className)}>
       {tasks.map((t) => (
         <RailRow key={t.id} task={t} date={date} lists={lists} onSchedule={onSchedule} draggable={draggable} />
       ))}
@@ -112,19 +112,26 @@ export function RailList({ date, onSchedule, draggable = false, className }: { d
   );
 }
 
-/** Mobile: a 44px bar under the timeline with the task count and the planner, opening a medium sheet. */
+/**
+ * Mobile: a floating glass pill above the tab bar with the open-task count and the planner.
+ * Tapping the left half opens the task sheet.
+ */
 export function RailBar({ date, open, onOpen, onPlan, planning }: { date: string; open: boolean; onOpen: (v: boolean) => void; onPlan: () => void; planning: boolean }) {
   const { tasks, minutes } = useRailTasks(date);
   return (
-    <div className="shrink-0 bg-surface hairline-t flex items-center px-[var(--gutter)] h-11 gap-2">
-      <button type="button" onClick={() => onOpen(true)} className="flex items-center gap-2 h-11 text-subhead text-primary pressable" aria-expanded={open}>
-        <Icon name="checklist" size={18} className="text-secondary" />
+    <div
+      className="fixed z-20 left-1/2 -translate-x-1/2 h-11 max-w-[calc(100%-32px)] glass-strong rounded-full flex items-center p-1 gap-0.5"
+      style={{ bottom: "calc(var(--tabbar-h) + var(--safe-bottom) + 8px)" }}
+      data-rail-bar
+    >
+      <button type="button" onClick={() => onOpen(true)} className="flex items-center gap-2 h-9 pl-3 pr-2.5 rounded-full text-[14px] text-primary min-w-0 active:bg-pressed transition-colors duration-150" aria-expanded={open}>
+        <Icon name="checklist" size={17} strokeWidth={1.7} className="text-secondary shrink-0" />
         <span>Tasks</span>
-        {tasks.length > 0 && <span className="text-footnote text-secondary tabular">{tasks.length} · {fmtMinutes(minutes)}</span>}
-        <Icon name="chevron-up" size={16} className="text-quaternary" />
+        {tasks.length > 0 && <span className="text-[13px] text-tertiary tabular truncate">{tasks.length} · {fmtMinutes(minutes)}</span>}
+        <Icon name="chevron-up" size={14} className="text-quaternary shrink-0" />
       </button>
-      <div className="flex-1" />
-      <Button variant="plain" size="sm" loading={planning} onClick={onPlan}>
+      <span className="w-px h-5 bg-separator-strong shrink-0" aria-hidden="true" />
+      <Button variant="plain" size="sm" loading={planning} onClick={onPlan} leading={<Icon name="sparkle" size={15} strokeWidth={1.8} />} className="!h-9 !px-3 text-[14px] shrink-0">
         Plan
       </Button>
     </div>
@@ -135,7 +142,7 @@ export function RailSheet({ date, open, onClose, onSchedule }: { date: string; o
   const { tasks } = useRailTasks(date);
   return (
     <Sheet open={open} onClose={onClose} title="Tasks" detent="medium" leading={null} trailing={<button type="button" className="text-headline text-accent-text px-2 h-11" onClick={onClose}>Done</button>}>
-      <p className="text-footnote text-secondary pt-1 pb-2">{tasks.length ? `${plural(tasks.length, "task")} without a time box. Tap Schedule to place one in the next free slot.` : "Everything for this day has a time box."}</p>
+      <p className="text-[13px] text-tertiary pt-1 pb-3 px-1">{tasks.length ? `${plural(tasks.length, "task")} without a time box. Tap Schedule to place one in the next free slot.` : "Everything for this day has a time box."}</p>
       <RailList date={date} onSchedule={onSchedule} />
     </Sheet>
   );
@@ -145,10 +152,10 @@ export function RailSheet({ date, open, onClose, onSchedule }: { date: string; o
 export function DesktopRail({ date, onSchedule }: { date: string; onSchedule: (t: Task) => void }) {
   const { tasks, minutes } = useRailTasks(date);
   return (
-    <aside className="w-[280px] min-[1440px]:w-[320px] shrink-0 h-full flex flex-col border-l border-separator bg-canvas" aria-label="Tasks">
+    <aside className="glass rounded-xl w-[280px] min-[1440px]:w-[320px] shrink-0 h-full flex flex-col overflow-hidden" aria-label="Tasks">
       <div className="px-5 pt-5 pb-3">
-        <h2 className="text-title-3 text-primary">Tasks</h2>
-        <p className="text-footnote text-secondary tabular mt-0.5">{tasks.length ? `${plural(tasks.length, "task")} · ${fmtMinutes(minutes)}. Drag onto the grid.` : "Nothing left to schedule."}</p>
+        <h2 className="text-[20px] leading-6 font-[400] text-primary">Tasks</h2>
+        <p className="text-[12px] text-tertiary tabular mt-1">{tasks.length ? `${plural(tasks.length, "task")} · ${fmtMinutes(minutes)}. Drag onto the grid.` : "Nothing left to schedule."}</p>
       </div>
       <div className="scroller flex-1 min-h-0 px-4 pb-6">
         <RailList date={date} onSchedule={onSchedule} draggable />
@@ -164,7 +171,7 @@ function TaskDragGhost() {
   const hover = useTaskDrag((s) => s.hover);
   if (!task || !point || hover) return null;
   return createPortal(
-    <div className="fixed z-[80] pointer-events-none bg-elevated rounded-md shadow-drag px-3 py-2 text-subhead text-primary max-w-[240px] truncate" style={{ left: point.x + 12, top: point.y - 20, transform: "scale(1.02)" }}>
+    <div className="fixed z-[80] pointer-events-none bg-elevated rounded-full shadow-drag px-4 py-2 text-[14px] text-primary max-w-[240px] truncate" style={{ left: point.x + 12, top: point.y - 20, transform: "scale(1.02)" }}>
       {task.title}
     </div>,
     document.body,

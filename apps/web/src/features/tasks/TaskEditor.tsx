@@ -7,26 +7,35 @@ import { cn } from "@/lib/cn";
 import { fmtMinutes } from "@/lib/format";
 import { Button } from "@/ui/Button";
 import { Checkbox } from "@/ui/Checkbox";
-import { Chip } from "@/ui/Field";
 import { Icon } from "@/ui/Icon";
 import { RRULE_PRESETS, colorVar } from "@/features/calendar/model";
 import { ESTIMATES, PRIORITIES, type ListMap } from "./model";
 import type { TaskActions } from "./useTaskActions";
 
+/** One property line inside the editor's well: quiet label on the left, value on the right. */
 function Prop({ label, children, className }: { label: string; children: ReactNode; className?: string }) {
   return (
-    <div className={cn("flex items-center min-h-[36px] gap-3", className)}>
-      <span className="w-[72px] shrink-0 text-footnote text-secondary">{label}</span>
-      <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">{children}</div>
+    <div className={cn("flex items-center min-h-[44px] gap-3 px-3 py-1.5", className)}>
+      <span className="w-[60px] shrink-0 text-[13px] text-tertiary">{label}</span>
+      <div className="flex-1 min-w-0 flex items-center gap-1.5 flex-wrap">{children}</div>
     </div>
   );
 }
 
-const inputCls = "text-subhead tabular text-primary bg-surface-2 rounded-xs h-7 px-2 outline-none focus:bg-surface focus:ring-1 focus:ring-accent";
+/** Small selectable pill for estimate and priority. */
+function PropChip({ selected, onClick, children }: { selected: boolean; onClick: () => void; children: ReactNode }) {
+  return (
+    <button type="button" aria-pressed={selected} onClick={onClick} className={cn("h-7 px-2.5 rounded-full text-[13px] tabular whitespace-nowrap transition-colors duration-150", selected ? "bg-primary text-canvas" : "bg-pressed text-secondary")}>
+      {children}
+    </button>
+  );
+}
+
+const inputCls = "text-[14px] tabular text-primary bg-pressed rounded-[8px] h-7 px-2 outline-none focus:ring-1 focus:ring-accent/50 transition-shadow duration-150";
 
 function NativeSelect({ value, onChange, options, label, display }: { value: string; onChange: (v: string) => void; options: { value: string; label: string }[]; label: string; display?: ReactNode }) {
   return (
-    <span className="relative inline-flex items-center gap-1.5 h-7 px-2 rounded-xs bg-surface-2 text-subhead text-primary">
+    <span className="relative inline-flex items-center gap-1.5 h-7 px-2 rounded-[8px] bg-pressed text-[14px] text-primary">
       {display ?? options.find((o) => o.value === value)?.label ?? label}
       <Icon name="chevron-down" size={14} className="text-tertiary" />
       <select aria-label={label} value={value} onChange={(e) => onChange(e.target.value)} className="absolute inset-0 opacity-0 w-full h-full cursor-pointer">
@@ -40,8 +49,8 @@ function NativeSelect({ value, onChange, options, label, display }: { value: str
   );
 }
 
-/** The title, edited in place of the row title. Enter or blur saves; Escape restores. */
-export function TaskTitleInput({ task, actions, onClose, autoFocus = true }: { task: Task; actions: TaskActions; onClose: () => void; autoFocus?: boolean }) {
+/** The title, edited in place of the row title. Enter or blur saves; Escape restores. Opening a task never pops the keyboard: the user taps the title to type. */
+export function TaskTitleInput({ task, actions, onClose, autoFocus = false }: { task: Task; actions: TaskActions; onClose: () => void; autoFocus?: boolean }) {
   const [title, setTitle] = useState(task.title);
   const ref = useRef<HTMLInputElement>(null);
   useEffect(() => {
@@ -82,8 +91,8 @@ export function TaskTitleInput({ task, actions, onClose, autoFocus = true }: { t
       }}
       onPointerDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
-      className="w-full bg-transparent outline-none text-body font-medium text-primary py-[11px]"
-      style={{ fontSize: 17 }}
+      className="w-full bg-transparent outline-none text-primary py-3 leading-[21px]"
+      style={{ fontSize: 16 }}
       enterKeyHint="done"
     />
   );
@@ -130,34 +139,34 @@ export function TaskEditor({ task, lists, actions, onClose, onDelete }: { task: 
   const rrule = (task.recurrence ?? "").replace(/^RRULE:/, "");
 
   return (
-    <div className="pl-[calc(var(--gutter)+34px)] pr-[var(--gutter)] pb-3" data-task-editor onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
-      <textarea ref={notesRef} aria-label="Notes" value={notes} placeholder="Notes" rows={1} onChange={(e) => setNotes(e.target.value)} onBlur={commitNotes} className="w-full bg-transparent outline-none text-subhead text-primary placeholder:text-tertiary resize-none leading-[22px] overflow-hidden -mt-1" style={{ fontSize: 16 }} />
+    <div className="pl-[var(--gutter)] pr-3 pb-3" data-task-editor onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+      <textarea ref={notesRef} aria-label="Notes" value={notes} placeholder="Notes" rows={1} onChange={(e) => setNotes(e.target.value)} onBlur={commitNotes} className="block w-full pl-[34px] bg-transparent outline-none text-[15px] text-secondary placeholder:text-quaternary resize-none leading-[22px] overflow-hidden -mt-1.5" style={{ fontSize: 16 }} />
 
-      <div className="mt-2 flex flex-col gap-0.5">
+      <div className="mt-2 well rounded-[14px] flex flex-col divide-y divide-separator">
         <Prop label="When">
-          <input type="date" aria-label="When" value={task.startDate ?? ""} onChange={(e) => save({ startDate: e.target.value || null })} className={inputCls} />
+          <input type="date" aria-label="When" value={task.startDate ?? ""} onChange={(e) => save({ startDate: e.target.value || null })} className={cn(inputCls, "w-[132px]")} />
           {task.startDate && (
-            <button type="button" className="text-footnote text-secondary h-7 px-1" onClick={() => save({ startDate: null })}>
+            <button type="button" className="text-[12px] text-tertiary h-7 px-1.5" onClick={() => save({ startDate: null })}>
               Clear
             </button>
           )}
         </Prop>
         <Prop label="Deadline">
-          <input type="date" aria-label="Deadline" value={task.dueDate ?? ""} onChange={(e) => save({ dueDate: e.target.value || null, ...(e.target.value ? {} : { dueTime: null }) })} className={inputCls} />
-          {task.dueDate && <input type="time" aria-label="Deadline time" value={task.dueTime ?? ""} step={300} onChange={(e) => save({ dueTime: e.target.value || null })} className={inputCls} />}
+          <input type="date" aria-label="Deadline" value={task.dueDate ?? ""} onChange={(e) => save({ dueDate: e.target.value || null, ...(e.target.value ? {} : { dueTime: null }) })} className={cn(inputCls, "w-[132px]")} />
+          {task.dueDate && <input type="time" aria-label="Deadline time" value={task.dueTime ?? ""} step={300} onChange={(e) => save({ dueTime: e.target.value || null })} className={cn(inputCls, "w-[104px]")} />}
         </Prop>
         <Prop label="Estimate">
           {ESTIMATES.map((m) => (
-            <Chip key={m} selected={task.estimateMinutes === m} onClick={() => save({ estimateMinutes: task.estimateMinutes === m ? null : m })}>
+            <PropChip key={m} selected={task.estimateMinutes === m} onClick={() => save({ estimateMinutes: task.estimateMinutes === m ? null : m })}>
               {fmtMinutes(m)}
-            </Chip>
+            </PropChip>
           ))}
         </Prop>
         <Prop label="Priority">
           {PRIORITIES.filter((p) => p.value !== "0").map((p) => (
-            <Chip key={p.value} selected={String(task.priority) === p.value} onClick={() => save({ priority: String(task.priority) === p.value ? 0 : Number(p.value) })}>
+            <PropChip key={p.value} selected={String(task.priority) === p.value} onClick={() => save({ priority: String(task.priority) === p.value ? 0 : Number(p.value) })}>
               {p.label}
-            </Chip>
+            </PropChip>
           ))}
         </Prop>
         <Prop label="List">
@@ -175,37 +184,37 @@ export function TaskEditor({ task, lists, actions, onClose, onDelete }: { task: 
           />
         </Prop>
         <Prop label="Tags">
-          <input aria-label="Tags" value={tags} placeholder="errand, home" onChange={(e) => setTags(e.target.value)} onBlur={commitTags} onKeyDown={(e) => e.key === "Enter" && (e.currentTarget as HTMLInputElement).blur()} className={cn(inputCls, "w-full max-w-[260px] placeholder:text-tertiary")} style={{ fontSize: 16 }} />
+          <input aria-label="Tags" value={tags} placeholder="errand, home" onChange={(e) => setTags(e.target.value)} onBlur={commitTags} onKeyDown={(e) => e.key === "Enter" && (e.currentTarget as HTMLInputElement).blur()} className={cn(inputCls, "w-full max-w-[260px] placeholder:text-quaternary")} style={{ fontSize: 16 }} />
         </Prop>
         <Prop label="Repeat">
           <NativeSelect label="Repeat" value={rrule} onChange={(v) => save({ recurrence: v || null })} options={RRULE_PRESETS} />
         </Prop>
       </div>
 
-      <div className="mt-2">
+      <div className="mt-2 pl-[36px]">
         {subtasks.map((s) => (
-          <div key={s.id} className="flex items-center gap-3 min-h-[36px]">
+          <div key={s.id} className="flex items-center gap-3 min-h-[40px]">
             <Checkbox checked={s.status === "done"} onChange={(v) => toggleSub(s, v)} size={18} label={s.title} />
-            <span className={cn("text-subhead flex-1 min-w-0 truncate", s.status === "done" ? "text-secondary" : "text-primary")}>{s.title}</span>
+            <span className={cn("text-[15px] flex-1 min-w-0 truncate transition-colors duration-200", s.status === "done" ? "text-tertiary" : "text-primary")}>{s.title}</span>
           </div>
         ))}
-        <div className="flex items-center gap-3 min-h-[36px]">
-          <span className="w-[18px] h-[18px] rounded-full border border-dashed border-border shrink-0 inline-flex items-center justify-center">
+        <div className="flex items-center gap-3 min-h-[40px]">
+          <span className="w-[18px] h-[18px] rounded-full border border-dashed border-separator-strong shrink-0 inline-flex items-center justify-center">
             <Icon name="plus" size={10} className="text-tertiary" />
           </span>
-          <input aria-label="Add subtask" value={sub} placeholder="Add subtask" onChange={(e) => setSub(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addSubtask()} onBlur={addSubtask} className="flex-1 min-w-0 bg-transparent outline-none text-subhead text-primary placeholder:text-tertiary" style={{ fontSize: 16 }} enterKeyHint="done" />
+          <input aria-label="Add subtask" value={sub} placeholder="Add subtask" onChange={(e) => setSub(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addSubtask()} onBlur={addSubtask} className="flex-1 min-w-0 bg-transparent outline-none text-[15px] text-primary placeholder:text-quaternary" style={{ fontSize: 16 }} enterKeyHint="done" />
         </div>
       </div>
 
-      <div className="mt-1 -ml-2 -mr-2 flex items-center">
-        <Button variant="plain" size="sm" loading={actions.schedule.isPending} onClick={() => actions.schedule.mutate(task)} leading={<Icon name="bolt" size={16} />}>
+      <div className="mt-2 pl-[26px] flex items-center gap-1">
+        <Button variant="plain" size="sm" loading={actions.schedule.isPending} onClick={() => actions.schedule.mutate(task)} leading={<Icon name="bolt" size={15} strokeWidth={1.7} />} className="!text-[13px] !font-normal">
           Schedule
         </Button>
-        <Button variant="destructive" size="sm" onClick={onDelete}>
+        <Button variant="destructive" size="sm" onClick={onDelete} className="!text-[13px] !font-normal">
           Delete
         </Button>
         <div className="flex-1" />
-        <Button variant="plain" size="sm" onClick={onClose}>
+        <Button variant="primary" size="sm" onClick={onClose} className="!h-8 !px-4 !text-[13px]">
           Done
         </Button>
       </div>

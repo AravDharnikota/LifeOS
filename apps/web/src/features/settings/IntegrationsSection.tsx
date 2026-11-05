@@ -2,7 +2,9 @@ import { useState } from "react";
 import { useNavigate } from "react-router";
 import type { AppSettings } from "@aravos/shared";
 import type { SettingsResponse } from "@/data/queries";
-import { Section, Group, Row, ValueRow, Footnote } from "@/ui/List";
+import { Section, Row, ValueRow, Footnote } from "@/ui/List";
+import { StatusPill } from "@/ui/viz";
+import { IconGroup, IconLabel, RowIcon } from "./parts";
 import { FieldRow, Switch } from "@/ui/Field";
 import { IconButton } from "@/ui/Button";
 import { Icon } from "@/ui/Icon";
@@ -12,6 +14,11 @@ import { toast } from "@/ui/Toast";
 import { notify } from "@/lib/haptics";
 import { fmtInt, fmtRelativeDate, fmtTime } from "@/lib/format";
 import { copyText, fetchGoogleAuthUrl, useGoogleDisconnect, useGoogleStatus, useGoogleSync, useUpdateApp } from "./api";
+
+/** "Live" with a green dot when the integration works, a quiet "Off" when it does not. */
+export function LivePill({ live }: { live: boolean }) {
+  return live ? <StatusPill tone="success" dot>Live</StatusPill> : <StatusPill>Off</StatusPill>;
+}
 
 export function IntegrationsSection({ integrations, app, googleError }: { integrations: SettingsResponse["integrations"]; app: AppSettings; googleError: string | null }) {
   const navigate = useNavigate();
@@ -53,49 +60,50 @@ export function IntegrationsSection({ integrations, app, googleError }: { integr
   return (
     <>
       <Section title="Anthropic" footer="Keys live in the .env file beside the server.">
-        <Group>
-          <Row title="Assistant" subtitle={anthropic.configured ? `Configured, model ${anthropic.model}` : "Not configured. Add ANTHROPIC_API_KEY on the server."} data-testid="anthropic-status" />
-        </Group>
+        <IconGroup>
+          <Row leading={<RowIcon name="sparkle" />} trailing={<LivePill live={anthropic.configured} />} title="Assistant" subtitle={anthropic.configured ? `Configured, model ${anthropic.model}` : "Not configured. Add ANTHROPIC_API_KEY on the server."} data-testid="anthropic-status" />
+        </IconGroup>
       </Section>
 
       <Section title="Google" footer={google.connected ? "Calendars and tasks sync both ways. Timeboxes can be mirrored to the primary calendar." : undefined}>
-        <Group>
+        <IconGroup>
           {!google.configured ? (
-            <Row title="Google" subtitle="Not configured. Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET on the server." data-testid="google-status" />
+            <Row leading={<RowIcon name="google" />} title="Google" subtitle="Not configured. Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET on the server." data-testid="google-status" />
           ) : !google.connected ? (
             <>
-              <Row title="Google" subtitle="Not connected" data-testid="google-status" />
-              <Row title={<span className="text-accent-text">Connect Google</span>} onPress={() => void connect()} trailing={connecting ? <Spinner size={16} className="text-secondary" /> : undefined} disabled={connecting} data-testid="google-connect" />
+              <Row leading={<RowIcon name="google" />} trailing={<LivePill live={false} />} title="Google" subtitle="Not connected" data-testid="google-status" />
+              <Row leading={<RowIcon name="link" tone="accent" />} title={<span className="text-accent-text">Connect Google</span>} onPress={() => void connect()} trailing={connecting ? <Spinner size={16} className="text-secondary" /> : undefined} disabled={connecting} data-testid="google-connect" />
             </>
           ) : (
             <>
-              <Row title="Account" subtitle={google.email ?? undefined} data-testid="google-status" />
-              <ValueRow title="Last sync" value={status.isLoading ? "" : lastSync ? `${fmtRelativeDate(lastSync)} ${fmtTime(lastSync, app.hour12)}` : "Never"} />
-              <FieldRow label="Mirror timeboxes">
+              <Row leading={<RowIcon name="google" />} trailing={<LivePill live />} title="Account" subtitle={google.email ?? undefined} data-testid="google-status" />
+              <ValueRow leading={<RowIcon name="clock" />} title="Last sync" value={status.isLoading ? "" : lastSync ? `${fmtRelativeDate(lastSync)} ${fmtTime(lastSync, app.hour12)}` : "Never"} />
+              <FieldRow label={<IconLabel icon="calendar">Mirror timeboxes</IconLabel>}>
                 <Switch checked={app.mirrorTimeboxes} onChange={(v) => updateApp.mutate({ mirrorTimeboxes: v })} label="Mirror timeboxes" />
               </FieldRow>
-              <Row title={<span className="text-accent-text">Sync Now</span>} onPress={() => void runSync()} trailing={sync.isPending ? <Spinner size={16} className="text-secondary" /> : undefined} disabled={sync.isPending} data-testid="google-sync" />
-              <Row title={<span className="text-danger-text">Disconnect</span>} onPress={() => setConfirm(true)} />
+              <Row leading={<RowIcon name="refresh" tone="accent" />} title={<span className="text-accent-text">Sync Now</span>} onPress={() => void runSync()} trailing={sync.isPending ? <Spinner size={16} className="text-secondary" /> : undefined} disabled={sync.isPending} data-testid="google-sync" />
+              <Row leading={<RowIcon name="x" tone="danger" />} title={<span className="text-danger-text">Disconnect</span>} onPress={() => setConfirm(true)} />
             </>
           )}
-        </Group>
+        </IconGroup>
         {googleInline && <Footnote className="text-danger-text">{googleInline}</Footnote>}
       </Section>
 
       <Section title="MCP" footer={mcp.authRequired ? "Clients send the bearer token set as ARAVOS_TOKEN on the server." : "No token is set on this server, so clients connect without a header."}>
-        <Group>
+        <IconGroup>
           <Row
+            leading={<RowIcon name="link" />}
             title="Server URL"
-            subtitle={<span className="font-mono text-footnote break-all">{mcp.url}</span>}
+            subtitle={<span className="font-mono text-[12px] break-all">{mcp.url}</span>}
             trailing={
-              <IconButton label="Copy URL" onClick={() => void copyUrl()} className="-mr-2" data-testid="mcp-copy">
-                <Icon name="copy" size={20} />
+              <IconButton label="Copy URL" onClick={() => void copyUrl()} className="-mr-2 !text-secondary" data-testid="mcp-copy">
+                <Icon name="copy" size={18} />
               </IconButton>
             }
             data-testid="mcp-url"
           />
-          <Row title="Connection Guide" chevron onPress={() => navigate("/settings/mcp")} data-testid="mcp-guide" />
-        </Group>
+          <Row leading={<RowIcon name="book" />} title="Connection Guide" chevron onPress={() => navigate("/settings/mcp")} data-testid="mcp-guide" />
+        </IconGroup>
       </Section>
 
       <ActionSheet open={confirm} onClose={() => setConfirm(false)} title="Disconnect Google?" message="Synced events and tasks stay on this device." actions={[{ label: "Disconnect", destructive: true, onPress: () => disconnect.mutate() }]} />

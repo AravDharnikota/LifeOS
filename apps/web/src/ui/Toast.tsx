@@ -34,10 +34,10 @@ export function Toaster() {
     <div className="fixed left-0 right-0 z-[70] flex flex-col items-center gap-2 pointer-events-none px-4" style={{ bottom: "calc(var(--tabbar-h) + var(--safe-bottom) + 12px)" }}>
       <AnimatePresence>
         {items.map((t) => (
-          <motion.div key={t.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8, transition: { duration: 0.16 } }} transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }} className="pointer-events-auto flex items-center gap-4 bg-primary text-canvas rounded-md pl-4 pr-2 h-11 max-w-[420px] w-full shadow-popover">
-            <span className="text-subhead flex-1 truncate">{t.text}</span>
+          <motion.div key={t.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8, transition: { duration: 0.16 } }} transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }} className="pointer-events-auto flex items-center gap-3 glass-strong text-primary rounded-full pl-5 pr-2 h-12 max-w-[420px] w-full">
+            <span className="text-[15px] flex-1 truncate">{t.text}</span>
             {t.action && (
-              <button type="button" className="text-subhead font-semibold px-2 h-9 rounded-sm active:opacity-60" style={{ color: "var(--bg-canvas)" }} onClick={() => { t.action?.onPress(); dismiss(t.id); }}>
+              <button type="button" className="text-[14px] font-medium px-4 h-9 rounded-full bg-primary text-canvas active:opacity-80" onClick={() => { t.action?.onPress(); dismiss(t.id); }}>
                 {t.action.label}
               </button>
             )}

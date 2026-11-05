@@ -6,15 +6,17 @@ import { useLists, useTasks } from "@/data/queries";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { fmtRelativeDate } from "@/lib/format";
+import { notify } from "@/lib/haptics";
 import { Checkbox } from "@/ui/Checkbox";
 import { Icon } from "@/ui/Icon";
 import { Spinner } from "@/ui/Spinner";
+import { ThinBar } from "@/ui/viz";
 import type { WidgetOf, WidgetProps } from "../types";
-import { WidgetEmpty, WidgetError, WidgetLabel, WidgetSkeleton, WriteError } from "./shared";
+import { WidgetError, WidgetLabel, WidgetSkeleton, WriteError } from "./shared";
 
 const FILTER_LABEL: Record<WidgetOf<"tasks">["filter"], string> = { today: "Tasks", overdue: "Overdue", upcoming: "Upcoming", list: "List" };
 
-/** A task list with optimistic check-off and an inline quick add. */
+/** A task list like a "Getting Started" card: progress bar with %, rows in a white well with circle checks, and an inline quick add as the last row. */
 export function TasksWidget({ widget, sectionTitle, editing }: WidgetProps<WidgetOf<"tasks">>) {
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -52,6 +54,7 @@ export function TasksWidget({ widget, sectionTitle, editing }: WidgetProps<Widge
     setLocal((p) => ({ ...p, [t.id]: next ? "done" : "open" }));
     try {
       await api.post(`/api/tasks/${t.id}/${next ? "complete" : "reopen"}`);
+      if (next) void notify("success");
     } catch {
       setLocal((p) => ({ ...p, [t.id]: next ? "open" : "done" }));
     } finally {
@@ -90,63 +93,78 @@ export function TasksWidget({ widget, sectionTitle, editing }: WidgetProps<Widge
 
   const listName = widget.filter === "list" ? lists.data?.find((l) => l.id === widget.listId)?.name : undefined;
   const label = widget.title ?? listName ?? FILTER_LABEL[widget.filter];
-  const counter = query.data ? `${done.length} of ${open.length + done.length}` : undefined;
+  const total = open.length + done.length;
+  const pct = total > 0 ? Math.round((done.length / total) * 100) : 0;
+  const emptyText = widget.filter === "overdue" ? "Nothing overdue." : widget.filter === "upcoming" ? "Nothing coming up." : "No tasks today.";
+  const sub = !query.data ? undefined : total === 0 ? emptyText : open.length === 0 ? "All done for now." : `${open.length} open, ${done.length} done`;
 
   return (
     <>
-      {label !== sectionTitle && <WidgetLabel trailing={widget.filter === "today" && open.length + done.length > 0 ? counter : undefined}>{label}</WidgetLabel>}
+      {label !== sectionTitle ? (
+        <WidgetLabel icon="checklist" sub={sub}>{label}</WidgetLabel>
+      ) : (
+        sub && <p className="text-[12px] leading-4 text-tertiary mb-3">{sub}</p>
+      )}
       {query.isPending ? (
         <WidgetSkeleton lines={3} />
       ) : query.isError ? (
         <WidgetError onRetry={() => void query.refetch()} />
-      ) : shown.length === 0 ? (
-        <WidgetEmpty>{widget.filter === "overdue" ? "Nothing overdue." : widget.filter === "upcoming" ? "Nothing coming up." : "No tasks today."}</WidgetEmpty>
       ) : (
-        <ul className="flex flex-col -mx-1">
-          {shown.map((t) => {
-            const isDone = statusOf(t) === "done";
-            return (
-              <li key={t.id} className="relative">
-                <div
-                  role="button"
-                  tabIndex={editing ? -1 : 0}
-                  onClick={() => navigate("/tasks")}
-                  onKeyDown={(e) => { if (e.key === "Enter") navigate("/tasks"); }}
-                  className={cn("flex items-center gap-3 min-h-[44px] px-1 rounded-md cursor-pointer row-hover active:bg-pressed transition-[background-color,opacity] duration-150", isDone && "opacity-50")}
-                >
-                  <Checkbox checked={isDone} onChange={(v) => void toggle(t, v)} label={t.title} tint={t.priority >= 3 ? "var(--danger)" : undefined} />
-                  <span className={cn("flex-1 min-w-0 text-subhead truncate", isDone ? "text-secondary" : "text-primary")}>{t.title}</span>
-                  {!isDone && t.dueDate && (widget.filter !== "today" || t.dueDate < today) && <span className={cn("text-caption-1 tabular shrink-0", t.dueDate < today ? "text-danger-text" : "text-tertiary")}>{fmtRelativeDate(t.dueDate)}</span>}
-                  {!isDone && t.dueTime && <span className="text-caption-1 text-tertiary tabular shrink-0">{t.dueTime}</span>}
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-      {more > 0 && (
-        <button type="button" className="self-start text-footnote text-accent-text font-medium min-h-[32px] px-1 -ml-1" onClick={() => navigate("/tasks")}>
-          {more} more
-        </button>
-      )}
-      {!query.isPending && !query.isError && (
-        <div className={cn("flex items-center gap-3 min-h-[44px] -mx-1 px-1", shown.length > 0 && "mt-1")}>
-          <span className="w-[22px] h-[22px] shrink-0 inline-flex items-center justify-center text-tertiary" aria-hidden="true">
-            {adding ? <Spinner size={16} /> : <Icon name="plus" size={18} />}
-          </span>
-          <input
-            ref={inputRef}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={onKey}
-            placeholder="Add task"
-            aria-label="Add task"
-            enterKeyHint="done"
-            autoCapitalize="sentences"
-            disabled={editing}
-            className="flex-1 min-w-0 bg-transparent text-subhead text-primary placeholder:text-tertiary outline-none py-2"
-          />
-        </div>
+        <>
+          {total > 0 && (
+            <div className="flex items-center gap-3 mb-3">
+              <ThinBar progress={done.length / total} color="var(--success)" height={6} className="flex-1" />
+              <span className="text-[12px] leading-4 tabular text-success-text w-9 text-right">{pct}%</span>
+            </div>
+          )}
+          <div className="well rounded-md overflow-hidden">
+            {shown.length > 0 && (
+              <ul className="flex flex-col">
+                {shown.map((t) => {
+                  const isDone = statusOf(t) === "done";
+                  return (
+                    <li key={t.id} className="relative hairline-b">
+                      <div
+                        role="button"
+                        tabIndex={editing ? -1 : 0}
+                        onClick={() => navigate("/tasks")}
+                        onKeyDown={(e) => { if (e.key === "Enter") navigate("/tasks"); }}
+                        className="flex items-center gap-3 min-h-[44px] px-3 cursor-pointer row-hover active:bg-pressed transition-colors duration-150"
+                      >
+                        <Checkbox checked={isDone} onChange={(v) => void toggle(t, v)} label={t.title} tint={t.priority >= 3 ? "var(--danger)" : undefined} />
+                        <span className={cn("flex-1 min-w-0 text-[14px] leading-5 truncate transition-colors duration-200", isDone ? "text-tertiary line-through decoration-[1px] decoration-quaternary" : "text-primary")}>{t.title}</span>
+                        {!isDone && t.dueDate && (widget.filter !== "today" || t.dueDate < today) && <span className={cn("text-[12px] tabular shrink-0", t.dueDate < today ? "text-danger-text" : "text-tertiary")}>{fmtRelativeDate(t.dueDate)}</span>}
+                        {!isDone && t.dueTime && <span className="text-[12px] text-tertiary tabular shrink-0">{t.dueTime}</span>}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+            {more > 0 && (
+              <button type="button" className="w-full text-left text-[13px] text-accent-text min-h-[40px] px-3 hairline-b active:bg-pressed" onClick={() => navigate("/tasks")}>
+                {more} more
+              </button>
+            )}
+            <div className="flex items-center gap-3 min-h-[44px] px-3">
+              <span className="w-[22px] h-[22px] shrink-0 inline-flex items-center justify-center text-tertiary" aria-hidden="true">
+                {adding ? <Spinner size={16} /> : <Icon name="plus" size={18} strokeWidth={1.8} />}
+              </span>
+              <input
+                ref={inputRef}
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={onKey}
+                placeholder="Add task"
+                aria-label="Add task"
+                enterKeyHint="done"
+                autoCapitalize="sentences"
+                disabled={editing}
+                className="flex-1 min-w-0 bg-transparent text-[14px] leading-5 text-primary placeholder:text-tertiary outline-none py-2"
+              />
+            </div>
+          </div>
+        </>
       )}
       {error && <WriteError message={error} onRetry={() => void add()} />}
     </>

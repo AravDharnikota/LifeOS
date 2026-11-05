@@ -2,6 +2,7 @@ import { useNavigate } from "react-router";
 import { useAppSettings, useDaySummary, type DaySummary } from "@/data/queries";
 import { fmt1, fmtInt, toDisplayWeight } from "@/lib/format";
 import type { WidgetOf, WidgetProps } from "../types";
+import { ThinBar } from "@/ui/viz";
 import { Hero, Pressable, Sub, WidgetError, WidgetLabel, WidgetSkeleton } from "./shared";
 
 type Metric = WidgetOf<"stat">["metric"];
@@ -16,7 +17,25 @@ export const STAT_LABELS: Record<Metric, string> = {
   events_today: "Events",
 };
 
-function read(metric: Metric, s: DaySummary, units: "metric" | "imperial"): { value: string; unit?: string; sub?: string; to: string } {
+type Reading = { value: string; unit?: string; sub?: string; to: string };
+
+/** Progress toward a target, for the metrics that have one. */
+function progressOf(metric: Metric, s: DaySummary): { p: number; color: string } | null {
+  const ratio = (v: number, t: number) => (t > 0 ? v / t : null);
+  const r = (() => {
+    switch (metric) {
+      case "calories_today": return { p: ratio(s.nutrition.totals.calories, s.nutrition.targets.calories), color: "var(--energy)" };
+      case "protein_today": return { p: ratio(s.nutrition.totals.proteinG, s.nutrition.targets.proteinG), color: "var(--protein)" };
+      case "water_today": return { p: ratio(s.water.ml, s.water.target), color: "var(--water)" };
+      case "workouts_this_week": return { p: ratio(s.workouts.thisWeekCount, s.workouts.weeklyTarget), color: "var(--activity)" };
+      case "tasks_done_today": return { p: ratio(s.tasks.doneCount, s.tasks.doneCount + s.tasks.openCount), color: "var(--success)" };
+      default: return { p: null, color: "" };
+    }
+  })();
+  return r.p == null ? null : { p: r.p, color: r.color };
+}
+
+function read(metric: Metric, s: DaySummary, units: "metric" | "imperial"): Reading {
   switch (metric) {
     case "calories_today": return { value: fmtInt(s.nutrition.totals.calories), unit: "kcal", sub: `${fmtInt(Math.max(0, s.nutrition.remaining.calories))} left`, to: "/health" };
     case "protein_today": return { value: fmtInt(s.nutrition.totals.proteinG), unit: "g", sub: `of ${fmtInt(s.nutrition.targets.proteinG)} g`, to: "/health" };
@@ -29,12 +48,13 @@ function read(metric: Metric, s: DaySummary, units: "metric" | "imperial"): { va
   }
 }
 
-/** One number with a label. Tapping opens the metric. */
+/** One thin number with a label, and a slim progress bar when the metric has a target. Tapping opens the metric. */
 export function StatWidget({ widget }: WidgetProps<WidgetOf<"stat">>) {
   const navigate = useNavigate();
   const summary = useDaySummary();
   const settings = useAppSettings();
   const r = summary.data ? read(widget.metric, summary.data, settings.units) : null;
+  const progress = summary.data ? progressOf(widget.metric, summary.data) : null;
   return (
     <Pressable label={`Open ${STAT_LABELS[widget.metric].toLowerCase()}`} onPress={() => navigate(r?.to ?? "/")}>
       <WidgetLabel>{widget.title ?? widget.label ?? STAT_LABELS[widget.metric]}</WidgetLabel>
@@ -46,6 +66,11 @@ export function StatWidget({ widget }: WidgetProps<WidgetOf<"stat">>) {
         <>
           <Hero value={r.value} unit={r.unit} />
           {r.sub && <Sub>{r.sub}</Sub>}
+          {progress && (
+            <div className="mt-auto pt-3">
+              <ThinBar progress={progress.p} color={progress.color} height={5} />
+            </div>
+          )}
         </>
       )}
     </Pressable>

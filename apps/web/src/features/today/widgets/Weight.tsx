@@ -3,9 +3,8 @@ import { useNavigate } from "react-router";
 import type { WeightLog } from "@aravos/shared";
 import { useAppSettings, useDaySummary, useSettings } from "@/data/queries";
 import { api, ApiError } from "@/lib/api";
-import { cn } from "@/lib/cn";
 import { fmt1, fmtRelativeDate, toDisplayWeight } from "@/lib/format";
-import { Icon } from "@/ui/Icon";
+import { Sparkline, StatusPill, Trend } from "@/ui/viz";
 import type { WidgetOf, WidgetProps } from "../types";
 import { Hero, Pressable, Sub, WidgetEmpty, WidgetError, WidgetLabel, WidgetSkeleton } from "./shared";
 
@@ -23,7 +22,7 @@ const useWeight = (limit: number) =>
     staleTime: 60_000,
   });
 
-/** Latest weight and the change over 7 days. A number and an arrow, never a sparkline. */
+/** Latest weight, the 7-day change as a trend badge, and the recent logs as a sparkline. */
 export function WeightTrendWidget({ widget }: WidgetProps<WidgetOf<"weight_trend">>) {
   const navigate = useNavigate();
   const settings = useAppSettings();
@@ -48,9 +47,14 @@ export function WeightTrendWidget({ widget }: WidgetProps<WidgetOf<"weight_trend
   const good = delta7 == null || Math.abs(delta7) < 0.05 ? null : goal === "lose" ? delta7 < 0 : goal === "gain" ? delta7 > 0 : null;
   const loading = summary.isPending && weight.isPending;
 
+  // Logs arrive newest first; the line reads left to right, oldest to newest.
+  const cutoff = latestDate ? new Date(latestDate + "T00:00:00").getTime() - widget.days * 86_400_000 : 0;
+  const line = logs.filter((l) => new Date(l.date + "T00:00:00").getTime() >= cutoff).map((l) => toDisplayWeight(l.weightKg, units)).reverse();
+  const deltaText = delta7 == null ? "" : `${delta7 > 0 ? "+" : delta7 < 0 ? "-" : ""}${fmt1(toDisplayWeight(Math.abs(delta7), units))}`;
+
   return (
     <Pressable label="Open weight" onPress={() => navigate("/health")}>
-      <WidgetLabel>{widget.title ?? "Weight"}</WidgetLabel>
+      <WidgetLabel trailing={latestDate ? fmtRelativeDate(latestDate) : undefined}>{widget.title ?? "Weight"}</WidgetLabel>
       {loading ? (
         <WidgetSkeleton hero lines={1} />
       ) : summary.isError && weight.isError ? (
@@ -59,22 +63,16 @@ export function WeightTrendWidget({ widget }: WidgetProps<WidgetOf<"weight_trend
         <WidgetEmpty action="Log Weight" onAction={() => navigate("/health?weight=1")}>No weight logged.</WidgetEmpty>
       ) : (
         <>
-          <Hero value={fmt1(toDisplayWeight(latestKg, units))} unit={unit} />
-          <div className="flex items-center gap-1 mt-1">
-            {delta7 == null ? (
-              <Sub className="mt-0">{latestDate ? fmtRelativeDate(latestDate) : ""}</Sub>
-            ) : (
-              <>
-                <Icon name={delta7 > 0 ? "arrow-up" : delta7 < 0 ? "arrow-down" : "arrow-right"} size={14} strokeWidth={2} className={cn(good === true ? "text-success-text" : good === false ? "text-danger-text" : "text-secondary")} />
-                <span className={cn("text-footnote tabular", good === true ? "text-success-text" : good === false ? "text-danger-text" : "text-secondary")}>
-                  {delta7 > 0 ? "+" : ""}
-                  {fmt1(toDisplayWeight(Math.abs(delta7), units) * Math.sign(delta7))} {unit}
-                </span>
-                <span className="text-footnote text-tertiary">7 days</span>
-              </>
-            )}
+          <div className="flex items-center gap-2 min-w-0">
+            <Hero value={fmt1(toDisplayWeight(latestKg, units))} unit={unit} />
+            {delta7 != null && (good == null ? <StatusPill>{deltaText}</StatusPill> : <Trend value={deltaText} up={delta7 > 0} good={good} />)}
           </div>
-          {latestDate && delta7 != null && <Sub className="mt-auto pt-2 text-tertiary">{fmtRelativeDate(latestDate)}</Sub>}
+          <Sub>{delta7 != null ? `${unit} change over 7 days` : "Not enough logs for a trend"}</Sub>
+          {line.length > 1 && (
+            <div className="mt-auto pt-3">
+              <Sparkline values={line} height={40} />
+            </div>
+          )}
         </>
       )}
     </Pressable>

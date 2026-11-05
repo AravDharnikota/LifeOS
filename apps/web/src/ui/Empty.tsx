@@ -5,7 +5,7 @@ import { cn } from "@/lib/cn";
 export function Empty({ children, action, className }: { children: ReactNode; action?: ReactNode; className?: string }) {
   return (
     <div className={cn("flex flex-col items-center text-center px-[var(--gutter)] pt-10 pb-6 gap-2", className)}>
-      <p className="text-callout text-secondary max-w-[32ch]">{children}</p>
+      <p className="text-[15px] text-secondary max-w-[32ch]">{children}</p>
       {action}
     </div>
   );
@@ -13,10 +13,10 @@ export function Empty({ children, action, className }: { children: ReactNode; ac
 
 export function Skeleton({ rows = 3, className }: { rows?: number; className?: string }) {
   return (
-    <div className={cn("bg-surface rounded-md mx-[var(--gutter)] overflow-hidden", className)} aria-hidden="true">
+    <div className={cn("glass rounded-lg mx-[var(--gutter)] overflow-hidden", className)} aria-hidden="true">
       {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} className={cn("h-11 flex items-center px-[var(--gutter)] gap-3", i > 0 && "hairline-t")}>
-          <div className="h-3 rounded-full bg-surface-2" style={{ width: `${40 + ((i * 23) % 40)}%` }} />
+        <div key={i} className={cn("h-[52px] flex items-center px-[var(--gutter)] gap-3", i > 0 && "hairline-t")}>
+          <div className="h-3 rounded-full shimmer" style={{ width: `${40 + ((i * 23) % 40)}%` }} />
         </div>
       ))}
     </div>

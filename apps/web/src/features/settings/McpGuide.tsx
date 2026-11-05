@@ -1,5 +1,6 @@
 import { Screen } from "@/ui/Screen";
-import { Section, Group, Row, Footnote } from "@/ui/List";
+import { Section, Row, Footnote } from "@/ui/List";
+import { IconGroup, RowIcon } from "./parts";
 import { Button, IconButton } from "@/ui/Button";
 import { Icon } from "@/ui/Icon";
 import { Skeleton, InlineError } from "@/ui/Empty";
@@ -10,11 +11,14 @@ import { copyText } from "./api";
 function CodeBlock({ code, label }: { code: string; label: string }) {
   const copy = async () => toast((await copyText(code)) ? "Copied" : "Unable to copy");
   return (
-    <div className="mx-[var(--gutter)] bg-surface rounded-md overflow-hidden">
-      <pre className="font-mono text-footnote text-primary p-4 whitespace-pre-wrap [overflow-wrap:anywhere] leading-[18px]">{code}</pre>
-      <div className="hairline-t flex items-center justify-between pl-4 pr-1 h-11">
-        <span className="text-footnote text-secondary">{label}</span>
-        <Button variant="plain" size="sm" onClick={() => void copy()}>
+    <div className="mx-[var(--gutter)] glass rounded-lg p-1.5">
+      <pre className="well rounded-md font-mono text-[12.5px] text-primary px-3.5 py-3 m-0 whitespace-pre-wrap [overflow-wrap:anywhere] leading-[19px]">
+        <span className="text-quaternary select-none" aria-hidden="true">$ </span>
+        {code}
+      </pre>
+      <div className="flex items-center justify-between gap-3 pl-2.5 pr-0.5 pt-1.5">
+        <span className="text-[12px] text-tertiary">{label}</span>
+        <Button variant="secondary" size="sm" className="!h-8 !px-3.5 !text-[13px]" leading={<Icon name="copy" size={14} />} onClick={() => void copy()}>
           Copy
         </Button>
       </div>
@@ -42,17 +46,18 @@ export function McpGuide() {
         ) : (
           <>
             <Section title="Server">
-              <Group>
+              <IconGroup>
                 <Row
+                  leading={<RowIcon name="link" />}
                   title="URL"
-                  subtitle={<span className="font-mono text-footnote break-all">{url}</span>}
+                  subtitle={<span className="font-mono text-[12px] break-all">{url}</span>}
                   trailing={
-                    <IconButton label="Copy URL" onClick={() => void copyUrl()} className="-mr-2">
-                      <Icon name="copy" size={20} />
+                    <IconButton label="Copy URL" onClick={() => void copyUrl()} className="-mr-2 !text-secondary">
+                      <Icon name="copy" size={18} />
                     </IconButton>
                   }
                 />
-              </Group>
+              </IconGroup>
               <Footnote>{auth ? "Requests carry the bearer token set as ARAVOS_TOKEN in the .env file beside the server. Replace <token> below with that value." : "No ARAVOS_TOKEN is set, so no header is needed. Set one before exposing the server beyond this network."}</Footnote>
             </Section>
             <Section title="Claude Code">

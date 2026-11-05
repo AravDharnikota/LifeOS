@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useKeyboardHeight } from "@/lib/keyboard";
 import { createPortal } from "react-dom";
 import { hasFinePointer } from "@/lib/platform";
 import { focusNextInput } from "./SetRow";
@@ -11,32 +11,20 @@ export interface AccessoryHandlers {
   stepLabel: (field: ColumnKind) => string;
 }
 
-/** Fixed row above the system keyboard (touch only): Previous, -step, +step, Next. Buttons keep the keyboard open. */
+/** Frosted glass bar above the system keyboard (touch only) with pill buttons: Previous, -step, +step, Next. Buttons keep the keyboard open. */
 export function KeypadAccessory({ onPrevious, onStep, stepLabel }: AccessoryHandlers) {
   const focused = useSetFocus((s) => s.focused);
-  const [top, setTop] = useState<number | null>(null);
-  useEffect(() => {
-    if (!focused) return;
-    const vv = window.visualViewport;
-    const update = () => setTop(vv ? vv.offsetTop + vv.height - 44 : window.innerHeight - 44);
-    update();
-    vv?.addEventListener("resize", update);
-    vv?.addEventListener("scroll", update);
-    window.addEventListener("resize", update);
-    return () => {
-      vv?.removeEventListener("resize", update);
-      vv?.removeEventListener("scroll", update);
-      window.removeEventListener("resize", update);
-    };
-  }, [focused]);
-  if (hasFinePointer || !focused || top == null) return null;
+  // Sits on top of the keyboard and rides up with it (the keyboard height comes from src/lib/keyboard.ts).
+  const kb = useKeyboardHeight();
+  if (hasFinePointer || !focused) return null;
+  const top = window.innerHeight - kb - 44;
   const keep = (e: React.PointerEvent) => e.preventDefault();
   return createPortal(
     <div className="wk-accessory" style={{ top }} data-testid="keypad-accessory">
       <button type="button" onPointerDown={keep} onClick={() => onPrevious(focused.setId)}>Previous</button>
       <button type="button" onPointerDown={keep} onClick={() => onStep(focused.setId, focused.field, -1)}>{`-${stepLabel(focused.field)}`}</button>
       <button type="button" onPointerDown={keep} onClick={() => onStep(focused.setId, focused.field, 1)}>{`+${stepLabel(focused.field)}`}</button>
-      <button type="button" onPointerDown={keep} onClick={() => { if (!focusNextInput(document.activeElement)) (document.activeElement as HTMLElement | null)?.blur(); }}>Next</button>
+      <button type="button" className="wk-acc-next" onPointerDown={keep} onClick={() => { if (!focusNextInput(document.activeElement)) (document.activeElement as HTMLElement | null)?.blur(); }}>Next</button>
     </div>,
     document.body,
   );

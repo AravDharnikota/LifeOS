@@ -89,6 +89,54 @@ export function stepFor(g: Goal): number {
   return 1;
 }
 
+export type Standing = "complete" | "behind" | "paused" | "ongoing";
+
+/**
+ * Where a goal stands, for the status pill. Complete when done or this period's target is met;
+ * Behind when overdue, or when a dated goal's progress trails the share of time already used by more than 15 points.
+ */
+export function standing(g: Goal): Standing {
+  if (g.status === "done") return "complete";
+  if (g.status === "paused") return "paused";
+  const progress = g.progress ?? 0;
+  if (progress >= 1 && g.kind !== "number" && g.kind !== "milestone") return "complete";
+  if (g.deadline) {
+    const today = todayString();
+    const left = daysBetween(today, g.deadline);
+    if (left < 0) return "behind";
+    if (g.kind === "number" || g.kind === "milestone") {
+      const total = daysBetween(g.createdAt.slice(0, 10), g.deadline);
+      if (total > 0) {
+        const used = Math.min(1, Math.max(0, (total - left) / total));
+        if (progress < used - 0.15) return "behind";
+      }
+    }
+  }
+  return "ongoing";
+}
+
+export const STANDING_LABEL: Record<Standing, string> = { complete: "Complete", behind: "Behind", paused: "Paused", ongoing: "On going" };
+export const STANDING_TONE = { complete: "success", behind: "warning", paused: "neutral", ongoing: "neutral" } as const satisfies Record<Standing, string>;
+
+/** The quiet value beside a goal: "2/12 books", "1 of 3 milestones", "4 day streak". */
+export function quietValue(g: Goal): string {
+  switch (g.kind) {
+    case "number": {
+      const cur = fmtNum(g.currentValue ?? 0);
+      const v = g.targetValue != null ? `${cur}/${fmtNum(g.targetValue)}` : cur;
+      return g.unit ? `${v} ${g.unit}` : v;
+    }
+    case "milestone": {
+      const { done, total } = milestoneCounts(g);
+      return `${fmtInt(done)} of ${fmtInt(total)} milestones`;
+    }
+    case "habit":
+      return periodLabel(g);
+    default:
+      return g.status === "done" ? "Done" : "Not yet";
+  }
+}
+
 export function groupByArea<T extends { area: string }>(items: T[]): { area: string; items: T[] }[] {
   const order = [...AREAS] as string[];
   const map = new Map<string, T[]>();

@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router";
 import type { PersonalRecord } from "@aravos/shared";
 import { useAppSettings } from "@/data/queries";
+import { cn } from "@/lib/cn";
 import { fmt1, fmtClock, fmtRelativeDate, toDisplayWeight } from "@/lib/format";
 import type { WidgetOf, WidgetProps } from "../types";
 import { Pressable, WidgetEmpty, WidgetError, WidgetLabel, WidgetSkeleton } from "./shared";
@@ -19,7 +20,7 @@ function describe(pr: PersonalRecord, units: "metric" | "imperial"): string {
   }
 }
 
-/** Latest personal records in the gym. */
+/** Latest personal records in the gym, as rows in a white well. */
 export function RecentPrsWidget({ widget }: WidgetProps<WidgetOf<"recent_prs">>) {
   const navigate = useNavigate();
   const settings = useAppSettings();
@@ -27,7 +28,7 @@ export function RecentPrsWidget({ widget }: WidgetProps<WidgetOf<"recent_prs">>)
   const prs = (stats.data?.recentPrs ?? []).slice(0, widget.limit);
   return (
     <Pressable label="Open workouts" onPress={() => navigate("/health/workouts")}>
-      <WidgetLabel>{widget.title ?? "Records"}</WidgetLabel>
+      <WidgetLabel icon="trophy" sub={stats.data ? `${stats.data.totalWorkouts} workouts logged` : undefined}>{widget.title ?? "Records"}</WidgetLabel>
       {stats.isPending ? (
         <WidgetSkeleton lines={3} />
       ) : stats.isError ? (
@@ -35,14 +36,14 @@ export function RecentPrsWidget({ widget }: WidgetProps<WidgetOf<"recent_prs">>)
       ) : prs.length === 0 ? (
         <WidgetEmpty action="Start Workout" onAction={() => navigate("/health/workouts")}>No records yet.</WidgetEmpty>
       ) : (
-        <ul className="flex flex-col divide-y divide-separator -my-1">
-          {prs.map((pr) => (
-            <li key={pr.id} className="py-2 first:pt-0 last:pb-0 flex items-baseline justify-between gap-3 min-h-[36px]">
-              <span className="text-subhead text-primary truncate">{pr.exerciseName ?? "Exercise"}</span>
-              <span className="text-footnote tabular text-secondary shrink-0">
-                {describe(pr, settings.units)}
-                <span className="text-tertiary"> {fmtRelativeDate(pr.achievedAt.slice(0, 10))}</span>
-              </span>
+        <ul className="well rounded-md overflow-hidden flex flex-col">
+          {prs.map((pr, i) => (
+            <li key={pr.id} className={cn("px-3 py-2 flex items-center justify-between gap-3 min-h-[44px]", i > 0 && "hairline-t")}>
+              <div className="min-w-0">
+                <div className="text-[14px] leading-5 text-primary truncate">{pr.exerciseName ?? "Exercise"}</div>
+                <div className="text-[12px] leading-4 text-tertiary">{fmtRelativeDate(pr.achievedAt.slice(0, 10))}</div>
+              </div>
+              <span className="text-[13px] tabular text-secondary shrink-0">{describe(pr, settings.units)}</span>
             </li>
           ))}
         </ul>

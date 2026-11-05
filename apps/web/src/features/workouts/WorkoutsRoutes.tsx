@@ -50,23 +50,28 @@ export default function WorkoutsRoutes() {
   );
 }
 
+/** Floating glass pill above the tab bar: the running workout, its clock, and a Resume action. */
 function ResumeBar({ workout }: { workout: Workout }) {
   const navigate = useNavigate();
   const now = useNow(1000);
   const elapsed = Math.max(0, Math.floor((now.getTime() - Date.parse(workout.startedAt)) / 1000));
   const done = (workout.exercises ?? []).reduce((n, e) => n + (e.sets ?? []).filter((s) => s.completed).length, 0);
   return (
-    <div className="wk-resume-bar px-[var(--gutter)] pb-2" style={{ bottom: "calc(var(--tabbar-h) + var(--safe-bottom))" }} data-testid="resume-bar">
-      <button type="button" onClick={() => navigate(`${WORKOUTS}/active`)} className="pressable w-full h-12 rounded-md bg-primary text-canvas flex items-center justify-between pl-4 pr-2 shadow-popover lg:max-w-[640px] lg:mx-auto">
-        <span className="flex items-center gap-2 text-subhead font-medium min-w-0">
-          <Icon name="dumbbell" size={18} />
-          <span className="truncate">{workout.name}</span>
+    <div className="wk-float wk-float-in px-[var(--gutter)]" data-testid="resume-bar">
+      <button type="button" onClick={() => navigate(`${WORKOUTS}/active`)} className="pressable-spring glass-strong w-full h-14 rounded-full flex items-center gap-3 pl-2 pr-2 text-left lg:max-w-[560px] lg:mx-auto">
+        <span className="w-10 h-10 rounded-full well inline-flex items-center justify-center shrink-0 text-primary">
+          <Icon name="dumbbell" size={18} strokeWidth={1.8} />
         </span>
-        <span className="flex items-center gap-3 text-subhead tabular shrink-0">
-          <span className="num">{fmtSeconds(elapsed)}</span>
-          <span className="opacity-70">{plural(done, "set")}</span>
-          <span className="h-8 px-3 inline-flex items-center rounded-sm bg-canvas text-primary text-footnote font-semibold">Resume</span>
+        <span className="flex-1 min-w-0">
+          <span className="block text-[15px] leading-5 text-primary truncate">{workout.name}</span>
+          <span className="flex items-center gap-1.5 text-[12px] leading-4 text-tertiary tabular">
+            <span className="w-1.5 h-1.5 rounded-full bg-success wk-live" aria-hidden="true" />
+            <span className="num text-secondary">{fmtSeconds(elapsed)}</span>
+            <span aria-hidden="true">·</span>
+            <span>{plural(done, "set")}</span>
+          </span>
         </span>
+        <span className="h-10 px-4 inline-flex items-center rounded-full bg-primary text-canvas text-[14px] font-medium shrink-0">Resume</span>
       </button>
     </div>
   );

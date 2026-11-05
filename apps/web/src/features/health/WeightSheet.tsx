@@ -3,13 +3,14 @@ import { todayString } from "@aravos/shared";
 import { Sheet } from "@/ui/Sheet";
 import { Stepper } from "@/ui/Stepper";
 import { FieldRow } from "@/ui/Field";
-import { Group } from "@/ui/List";
+
 import { toast } from "@/ui/Toast";
 import { fmt1, fmtWeight, fromDisplayWeight, toDisplayWeight } from "@/lib/format";
-import { impact, notify } from "@/lib/haptics";
+import { notify } from "@/lib/haptics";
 import { useAppSettings } from "@/data/queries";
 import { useLogWeight, useWeight } from "@/features/nutrition/api";
 import { DateRow } from "./DateRow";
+import { WellGroup } from "./parts";
 
 /** Log a weigh-in: stepper in display units (0.1 steps), optional body fat, date defaults to today. */
 export function WeightSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -49,7 +50,7 @@ export function WeightSheet({ open, onClose }: { open: boolean; onClose: () => v
     }
     try {
       await log.mutateAsync({ date, weightKg: Math.round(kg * 100) / 100, bodyFatPct: bf });
-      void impact("light");
+      void notify("success");
       toast(`Logged ${fmtWeight(kg, units)}`);
       onClose();
     } catch (e) {
@@ -75,13 +76,13 @@ export function WeightSheet({ open, onClose }: { open: boolean; onClose: () => v
           <p className="text-footnote text-secondary text-center mt-2 tabular">{latestKg != null ? `Last ${fmtWeight(latestKg, units)}` : "First weigh-in"}</p>
           {error && <p className="text-footnote text-danger-text text-center mt-2">{error}</p>}
         </div>
-        <Group>
+        <WellGroup>
           <FieldRow label="Body fat">
             <input inputMode="decimal" placeholder="Optional" aria-label="Body fat percent" value={bodyFat} onChange={(e) => setBodyFat(e.target.value)} className="w-24 text-right text-body outline-none bg-transparent tabular" />
             <span className="text-subhead text-secondary ml-1">%</span>
           </FieldRow>
           <DateRow value={date} max={todayString()} onChange={setDate} />
-        </Group>
+        </WellGroup>
       </div>
     </Sheet>
   );

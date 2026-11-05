@@ -1,0 +1,30 @@
+/*
+ * Calendar-only surfaces. Event blocks sit inside one big glass card, so they are plain tinted
+ * fills with a thin left color bar: no backdrop-filter and no shadow at rest (a full day can hold
+ * dozens of blocks, and each blur layer would be re-composited on every scroll frame).
+ * `.cal-fill` (base.css) gives the tinted text color; these rules override its translucent fill
+ * with a near-opaque one so hour lines do not show through a block.
+ */
+.cal-fill.cal-block {
+  background: color-mix(in oklab, var(--cal-color, var(--cal-gray)) var(--cal-mix), var(--bg-elevated));
+  box-shadow: inset 2.5px 0 0 var(--cal-color, var(--cal-gray));
+}
+/* Time boxes: lighter fill and a dashed edge, so planned task time reads as softer than a real event. */
+.cal-fill.cal-block-box {
+  background: color-mix(in oklab, var(--cal-color, var(--cal-graphite)) 7%, var(--bg-elevated));
+  border: 1px dashed color-mix(in oklab, var(--cal-color, var(--cal-graphite)) 50%, transparent);
+}
+
+/* The "now" chip in the hour gutter. */
+.cal-now-chip {
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--accent) 18%, transparent);
+}
+
+/* Sticky header inside the desktop grid: one frosted strip over the scrolling blocks. */
+.cal-sticky {
+  background: var(--glass-fill-strong);
+  backdrop-filter: blur(20px) saturate(1.6);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+}

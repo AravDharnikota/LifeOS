@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { RouterProvider } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StatusBar, Style } from "@capacitor/status-bar";
+import "@fontsource-variable/outfit";
 import "./styles/base.css";
 import { router } from "./app/router";
 import { Connect } from "./app/Connect";
@@ -10,7 +11,8 @@ import { Toaster } from "./ui/Toast";
 import { useAuth } from "./state/auth";
 import { applyTheme } from "./state/ui";
 import { useSettings } from "./data/queries";
-import { setHapticsEnabled } from "./lib/haptics";
+import { installGlobalHaptics, setHapticsEnabled } from "./lib/haptics";
+import { installKeyboard } from "./lib/keyboard";
 import { isNative } from "./lib/platform";
 import { ApiError } from "./lib/api";
 
@@ -54,6 +56,9 @@ function App() {
     </>
   );
 }
+
+installGlobalHaptics();
+installKeyboard();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import type { SchedulerResult } from "@aravos/shared";
 import { api } from "@/lib/api";
 import { fmtRelativeDate, fmtTimeRange } from "@/lib/format";
 import { useInvalidate } from "@/data/queries";
 import { Sheet } from "@/ui/Sheet";
-import { Group, Row, Section } from "@/ui/List";
+import { BigNumber } from "@/ui/viz";
 import { toast } from "@/ui/Toast";
 import { notify } from "@/lib/haptics";
 
@@ -38,27 +38,66 @@ export function usePlanner() {
     <Sheet open={Boolean(result)} onClose={() => setResult(null)} title="Plan" leading={null} trailing={<button type="button" className="text-headline text-accent-text px-2 h-11" onClick={() => setResult(null)}>Done</button>}>
       {result && (
         <div className="pt-1 pb-4">
-          <p className="text-callout text-primary">{result.summary}</p>
+          <div className="well rounded-lg px-4 py-3.5 flex items-start gap-7">
+            <div>
+              <div className="text-[12px] text-tertiary mb-1">Placed</div>
+              <BigNumber value={result.placed.length} unit={result.placed.length === 1 ? "task" : "tasks"} size={30} />
+            </div>
+            {result.unplaced.length > 0 && (
+              <div>
+                <div className="text-[12px] text-tertiary mb-1">Not placed</div>
+                <BigNumber value={result.unplaced.length} size={30} />
+              </div>
+            )}
+            {result.moved > 0 && (
+              <div>
+                <div className="text-[12px] text-tertiary mb-1">Moved</div>
+                <BigNumber value={result.moved} size={30} />
+              </div>
+            )}
+          </div>
+          <p className="text-[14px] leading-5 text-secondary mt-3 px-1">{result.summary}</p>
           {result.placed.length > 0 && (
-            <Section title="Placed" className="mt-5">
-              <Group inset={false}>
-                {result.placed.flatMap((p) => p.blocks.map((b, i) => <Row key={`${p.taskId}-${i}`} title={p.title} subtitle={`${fmtRelativeDate(b.start)} ${fmtTimeRange(b.start, b.end)}`} />))}
-              </Group>
-            </Section>
+            <PlanGroup label="Placed">
+              {result.placed.flatMap((p) =>
+                p.blocks.map((b, i) => <PlanRow key={`${p.taskId}-${i}`} color="var(--cal-graphite)" title={p.title} sub={fmtRelativeDate(b.start)} trailing={fmtTimeRange(b.start, b.end)} />),
+              )}
+            </PlanGroup>
           )}
           {result.unplaced.length > 0 && (
-            <Section title="Not placed" className="mt-5">
-              <Group inset={false}>
-                {result.unplaced.map((u) => (
-                  <Row key={u.taskId} title={u.title} subtitle={u.reason} />
-                ))}
-              </Group>
-            </Section>
+            <PlanGroup label="Not placed">
+              {result.unplaced.map((u) => (
+                <PlanRow key={u.taskId} color="var(--warning)" title={u.title} sub={u.reason} />
+              ))}
+            </PlanGroup>
           )}
-          {result.placed.length === 0 && result.unplaced.length === 0 && <p className="text-footnote text-secondary mt-3">Nothing to plan. Tasks need a date within the horizon or an existing time box.</p>}
+          {result.placed.length === 0 && result.unplaced.length === 0 && <p className="text-[13px] text-tertiary mt-3 px-1">Nothing to plan. Tasks need a date within the horizon or an existing time box.</p>}
         </div>
       )}
     </Sheet>
   );
   return { run, busy, sheet };
+}
+
+function PlanGroup({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <section className="mt-6">
+      <div className="text-[12px] text-tertiary px-1 mb-2">{label}</div>
+      <div className="well rounded-lg overflow-hidden group-rows">{children}</div>
+    </section>
+  );
+}
+
+/** Color dot, title with a quiet sub line, and an optional time on the right. */
+function PlanRow({ color, title, sub, trailing }: { color: string; title: string; sub?: string; trailing?: string }) {
+  return (
+    <div className="row-sep relative flex items-center gap-3 min-h-[56px] pl-[var(--gutter)] pr-[var(--gutter)] py-2">
+      <span className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} aria-hidden="true" />
+      <div className="flex-1 min-w-0">
+        <div className="text-[15px] leading-5 text-primary truncate">{title}</div>
+        {sub && <div className="text-[12px] leading-4 text-tertiary truncate-2 mt-0.5">{sub}</div>}
+      </div>
+      {trailing && <span className="shrink-0 text-[13px] text-secondary tabular">{trailing}</span>}
+    </div>
+  );
 }

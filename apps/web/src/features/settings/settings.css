@@ -1,0 +1,4 @@
+/* Settings rows lead with a 32px icon well and a 12px gap, so the row hairlines start at the text edge, not under the icon. */
+.settings-rows.group-rows > .row-sep ~ .row-sep::before {
+  left: calc(var(--gutter) + 44px);
+}

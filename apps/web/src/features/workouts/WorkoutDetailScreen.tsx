@@ -4,7 +4,7 @@ import type { WorkoutTemplateInput } from "@aravos/shared";
 import { Screen } from "@/ui/Screen";
 import { IconButton } from "@/ui/Button";
 import { Icon } from "@/ui/Icon";
-import { Group, Section } from "@/ui/List";
+import { GlassCard, StatusPill } from "@/ui/viz";
 import { ActionSheet } from "@/ui/Sheet";
 import { Menu, type MenuItem } from "@/ui/Menu";
 import { Empty, InlineError, Skeleton } from "@/ui/Empty";
@@ -13,6 +13,7 @@ import { cn } from "@/lib/cn";
 import { fmtDate, fmtTime } from "@/lib/format";
 import { useAppSettings } from "@/data/queries";
 import { useCreateTemplate, useDeleteWorkout, useWorkout } from "./api";
+import { NumUnit } from "./common";
 import { fmtDuration, fmtSetValues, fmtVolume, plural, prLabel, setLabel, supersetColor, WORKOUTS } from "./lib";
 
 export default function WorkoutDetailScreen() {
@@ -48,8 +49,8 @@ export default function WorkoutDetailScreen() {
       compact
       back={`${WORKOUTS}/history`}
       actions={
-        <IconButton label="Workout menu" onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setMenu({ x: r.left + r.width / 2, y: r.bottom }); }} disabled={!w}>
-          <Icon name="more" />
+        <IconButton label="Workout menu" className="glass !min-w-0 !min-h-0 w-10 h-10" onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setMenu({ x: r.left + r.width / 2, y: r.bottom }); }} disabled={!w}>
+          <Icon name="more" size={20} />
         </IconButton>
       }
     >
@@ -60,44 +61,52 @@ export default function WorkoutDetailScreen() {
       ) : !w ? (
         <Empty>Workout not found.</Empty>
       ) : (
-        <div className="lg:max-w-[640px]">
-          <div className="px-[var(--gutter)] pt-3 pb-3">
-            <h1 className="text-title-2 text-primary">{w.name}</h1>
-            <p className="text-footnote text-secondary mt-0.5 tabular">{fmtDate(w.finishedAt ?? w.startedAt)}, {fmtTime(w.startedAt, app.hour12)}{w.templateName ? ` · ${w.templateName}` : ""}</p>
+        <div className="lg:max-w-[680px]">
+          <div className="px-[var(--gutter)] pt-3 pb-4 rise">
+            <h1 className="text-[28px] leading-[34px] tracking-[-0.02em] text-primary">{w.name}</h1>
+            <p className="text-[13px] text-tertiary mt-1 tabular">{fmtDate(w.finishedAt ?? w.startedAt)}, {fmtTime(w.startedAt, app.hour12)}{w.templateName ? ` · ${w.templateName}` : ""}</p>
           </div>
-          <div className="px-[var(--gutter)] grid grid-cols-3 pb-2">
-            <Stat value={fmtDuration(w.durationSeconds ?? 0)} label="Duration" />
-            <Stat value={fmtVolume(w.totalVolume ?? 0, units)} label="Volume" />
-            <Stat value={<span className="inline-flex items-center gap-1">{w.prCount > 0 && <Icon name="trophy" size={20} className="text-warning-text" />}{w.prCount}</span>} label={w.prCount === 1 ? "Record" : "Records"} />
-          </div>
-          {w.notes && <p className="px-[var(--gutter)] text-subhead text-secondary pb-2">{w.notes}</p>}
-          <div className="flex flex-col gap-4 pt-2">
-            {(w.exercises ?? []).map((e) => {
+          <GlassCard tone="strong" className="mx-[var(--gutter)] rise" style={{ "--i": 1 } as CSSProperties}>
+            <div className="grid grid-cols-3 gap-3">
+              <Stat label="Duration"><NumUnit text={fmtDuration(w.durationSeconds ?? 0)} size={28} /></Stat>
+              <Stat label="Volume"><NumUnit text={fmtVolume(w.totalVolume ?? 0, units)} size={28} /></Stat>
+              <Stat label={w.prCount === 1 ? "Record" : "Records"}><NumUnit text={String(w.prCount)} size={28} /></Stat>
+            </div>
+            <div className="flex items-center justify-between mt-3 pt-3 hairline-t text-[12px] text-tertiary tabular">
+              <span>{plural(w.totalSets ?? 0, "set")} across {plural((w.exercises ?? []).length, "exercise")}</span>
+              {w.prCount > 0 && <StatusPill tone="success">{w.prCount === 1 ? "1 PR" : `${w.prCount} PRs`}</StatusPill>}
+            </div>
+          </GlassCard>
+          {w.notes && <p className="px-[calc(var(--gutter)+4px)] text-[15px] text-secondary pt-4">{w.notes}</p>}
+          <div className="flex flex-col gap-3 pt-5">
+            {(w.exercises ?? []).map((e, ei) => {
               const category = e.exercise?.category ?? "barbell";
               const sets = e.sets ?? [];
+              const prs = sets.filter((s) => s.prs.length).length;
               return (
-                <Group key={e.id} className={cn(e.supersetGroup != null && "wk-superset")} style={e.supersetGroup != null ? ({ "--wk-ss": supersetColor(e.supersetGroup) } as CSSProperties) : undefined} data-testid="detail-exercise">
-                  <button type="button" className="w-full text-left min-h-[44px] px-[var(--gutter)] py-2 text-headline text-accent-text truncate active:opacity-60" onClick={() => navigate(`${WORKOUTS}/exercises/${e.exerciseId}`)}>
-                    {sets.length} × {e.exercise?.name ?? "Exercise"}
+                <div key={e.id} className={cn("glass rounded-lg mx-[var(--gutter)] relative rise", e.supersetGroup != null && "wk-superset")} style={{ "--i": Math.min(ei + 2, 10), ...(e.supersetGroup != null ? { "--wk-ss": supersetColor(e.supersetGroup) } : {}) } as CSSProperties} data-testid="detail-exercise">
+                  <button type="button" className="w-full flex items-center gap-3 text-left pl-4 pr-3 pt-3 pb-2.5 active:opacity-60" onClick={() => navigate(`${WORKOUTS}/exercises/${e.exerciseId}`)}>
+                    <span className="flex-1 min-w-0">
+                      <span className="block text-[16px] leading-5 text-primary truncate">{e.exercise?.name ?? "Exercise"}</span>
+                      <span className="block text-[12px] leading-4 text-tertiary mt-0.5 tabular">{plural(sets.length, "set")}{prs ? ` · ${plural(prs, "record")}` : ""}</span>
+                    </span>
+                    <Icon name="chevron-right" size={16} className="text-quaternary shrink-0" />
                   </button>
-                  {e.notes && <p className="px-[var(--gutter)] pb-2 -mt-1 text-footnote text-secondary">{e.notes}</p>}
-                  <div className="hairline-t px-[var(--gutter)] py-1.5">
+                  {e.notes && <p className="px-4 pb-2 -mt-1 text-[13px] text-secondary">{e.notes}</p>}
+                  <div className="well rounded-[16px] mx-2 mb-2 overflow-hidden">
                     {sets.map((s, i) => (
-                      <div key={s.id} className="flex items-center h-9 gap-3 text-subhead tabular">
-                        <span className={cn("wk-tag text-footnote inline-flex items-center justify-center min-w-[28px] h-7 rounded-sm bg-surface-2", `wk-tag-${s.setType}`)}>{setLabel(sets, i)}</span>
-                        <span className="text-primary num flex-1 min-w-0 truncate">{fmtSetValues(s, category, units)}</span>
-                        {s.prs.length > 0 && <span className="inline-flex items-center gap-1 text-footnote text-warning-text"><Icon name="trophy" size={16} data-testid="pr-badge" />{s.prs.map((t) => prLabel(t)).join(", ")}</span>}
+                      <div key={s.id} className={cn("flex items-center h-11 gap-3 px-3 tabular", i > 0 && "hairline-t", s.prs.length > 0 && "wk-set-done")}>
+                        <span className={cn("wk-tag text-[13px] inline-flex items-center justify-center min-w-[24px]", `wk-tag-${s.setType}`)}>{setLabel(sets, i)}</span>
+                        <span className="text-primary num text-[16px] flex-1 min-w-0 truncate">{fmtSetValues(s, category, units)}</span>
+                        {s.prs.length > 0 && <span data-testid="pr-badge"><StatusPill tone="success">{s.prs.map((t) => prLabel(t)).join(", ")}</StatusPill></span>}
                       </div>
                     ))}
                   </div>
-                </Group>
+                </div>
               );
             })}
             {(w.exercises ?? []).length === 0 && <Empty>No sets were logged.</Empty>}
           </div>
-          <Section title="Totals" className="mt-6">
-            <p className="px-[var(--gutter)] text-footnote text-secondary">{plural(w.totalSets ?? 0, "set")} across {plural((w.exercises ?? []).length, "exercise")}.</p>
-          </Section>
         </div>
       )}
       <Menu open={Boolean(menu)} onClose={() => setMenu(null)} anchor={menu} items={items} />
@@ -106,11 +115,11 @@ export default function WorkoutDetailScreen() {
   );
 }
 
-function Stat({ value, label }: { value: React.ReactNode; label: string }) {
+function Stat({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div>
-      <div className="text-title-2 num text-primary">{value}</div>
-      <div className="text-footnote text-secondary">{label}</div>
+    <div className="min-w-0">
+      <div className="text-[12px] text-tertiary">{label}</div>
+      <div className="mt-1 truncate">{children}</div>
     </div>
   );
 }

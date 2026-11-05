@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useNavigate, useParams } from "react-router";
 import { useQueryClient, type QueryKey } from "@tanstack/react-query";
 import type { Exercise, TemplateAction, Workout, WorkoutExercise, WorkoutFinishResult, WorkoutSet, WorkoutTemplate } from "@aravos/shared";
 import { Button, IconButton } from "@/ui/Button";
 import { Icon } from "@/ui/Icon";
-import { Group, Row } from "@/ui/List";
+import { ArcRing, ThinBar } from "@/ui/viz";
 import { Sheet, ActionSheet } from "@/ui/Sheet";
 import { Menu, type MenuItem } from "@/ui/Menu";
 import { OptionSheet } from "@/features/settings/sheets";
@@ -60,22 +60,22 @@ export default function WorkoutScreen({ mode }: { mode: Mode }) {
   return null;
 }
 
+/** Rest timer in the top bar: a round glass button when idle, a glass pill with a tiny ring and the countdown while resting. */
 function TimerPill() {
   const remaining = useRestRemaining();
   const total = useRestTimer((s) => s.total);
   const setOpen = useRestTimer((s) => s.setSheetOpen);
   if (!remaining) {
     return (
-      <IconButton label="Rest timer" onClick={() => setOpen(true)}>
-        <Icon name="timer" />
+      <IconButton label="Rest timer" className="!min-w-0 !min-h-0 w-10 h-10 glass" onClick={() => setOpen(true)}>
+        <Icon name="timer" size={19} strokeWidth={1.8} />
       </IconButton>
     );
   }
   return (
-    <button type="button" onClick={() => setOpen(true)} className="pressable h-9 pl-2 pr-3 rounded-md bg-accent-soft text-accent-text inline-flex items-center gap-1.5 text-subhead font-semibold tabular" aria-label={`Rest, ${fmtSeconds(remaining)} left`} data-testid="rest-pill">
-      <Icon name="timer" size={18} />
+    <button type="button" onClick={() => setOpen(true)} className="pressable-spring glass h-10 pl-1.5 pr-3 rounded-full inline-flex items-center gap-2 text-[15px] text-primary tabular" aria-label={`Rest, ${fmtSeconds(remaining)} left`} data-testid="rest-pill">
+      <ArcRing progress={total > 0 ? remaining / total : 0} size={28} stroke={3} color="var(--accent)" color2="var(--accent-2)" />
       <span className="num">{fmtSeconds(remaining)}</span>
-      <span className="text-caption-1 opacity-70 num">/ {fmtSeconds(total)}</span>
     </button>
   );
 }
@@ -368,7 +368,16 @@ function WorkoutEditor({ workout: w, mode, queryKey, onFreeze }: { workout: Work
       <ScreenFrame
         onBack={() => navigate(mode === "live" ? WORKOUTS : `${WORKOUTS}/history/${w.id}`)}
         left={mode === "live" ? <TimerPill /> : undefined}
-        center={mode === "live" ? <span className="num tabular text-headline" data-testid="elapsed" aria-label="Elapsed">{fmtSeconds(elapsed)}</span> : "Edit Workout"}
+        center={
+          mode === "live" ? (
+            <span className="inline-flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-success wk-live" aria-hidden="true" />
+              <span className="num tabular text-[17px] text-primary" data-testid="elapsed" aria-label="Elapsed">{fmtSeconds(elapsed)}</span>
+            </span>
+          ) : (
+            "Edit Workout"
+          )
+        }
         right={
           mode === "live" ? (
             <Button variant="primary" size="sm" loading={busy} onClick={() => void beginFinish()} data-testid="finish">Finish</Button>
@@ -377,16 +386,18 @@ function WorkoutEditor({ workout: w, mode, queryKey, onFreeze }: { workout: Work
           )
         }
       >
-        <div className="px-[var(--gutter)] pt-3 pb-2">
-          <input value={name} onChange={(e) => setName(e.target.value)} onBlur={saveName} onKeyDown={(e) => { if (e.key === "Enter") (e.currentTarget as HTMLInputElement).blur(); }} className="w-full bg-transparent outline-none text-title-2 text-primary font-bold" aria-label="Workout name" data-testid="workout-name" />
-          <div className="text-footnote text-secondary mt-0.5 tabular">
+        <div className="px-[var(--gutter)] pt-4 pb-3">
+          <input value={name} onChange={(e) => setName(e.target.value)} onBlur={saveName} onKeyDown={(e) => { if (e.key === "Enter") (e.currentTarget as HTMLInputElement).blur(); }} className="w-full bg-transparent outline-none text-[28px] leading-[34px] tracking-[-0.02em] text-primary focus-visible:!outline-none" aria-label="Workout name" data-testid="workout-name" />
+          <div className="text-[13px] text-tertiary mt-1 tabular">
             {fmtDate(w.startedAt)}, {fmtTime(w.startedAt, app.hour12)}
             {w.templateName ? ` · ${w.templateName}` : ""}
           </div>
-          <textarea ref={autosize} value={notes} onChange={(e) => { setNotes(e.target.value); autosize(e.target); }} onBlur={saveNotes} placeholder="Notes" rows={1} className="w-full bg-transparent outline-none text-subhead text-primary resize-none mt-2 placeholder:text-tertiary" aria-label="Workout notes" />
+          <textarea ref={autosize} value={notes} onChange={(e) => { setNotes(e.target.value); autosize(e.target); }} onBlur={saveNotes} placeholder="Notes" rows={1} className="w-full bg-transparent outline-none text-[15px] text-primary resize-none mt-2 placeholder:text-tertiary focus-visible:!outline-none" aria-label="Workout notes" />
         </div>
 
-        <div className="flex flex-col gap-4 pt-1">
+        {mode === "live" && exercises.length > 0 && <ProgressCard workout={w} />}
+
+        <div className="flex flex-col gap-3 pt-3">
           {exercises.map((e, i) => (
             <ExerciseBlock
               key={e.id}
@@ -419,7 +430,7 @@ function WorkoutEditor({ workout: w, mode, queryKey, onFreeze }: { workout: Work
           {exercises.length === 0 && <Empty className="pt-6 pb-0">No exercises yet.</Empty>}
         </div>
 
-        <div className="px-[var(--gutter)] pt-6 flex flex-col gap-2">
+        <div className="px-[var(--gutter)] pt-5 flex flex-col gap-1">
           <Button variant="secondary" size="lg" full onClick={() => setPicker({ mode: "add" })} data-testid="add-exercises">Add Exercises</Button>
           {mode === "live" && (
             <Button variant="destructive" size="lg" full onClick={() => setCancelOpen(true)} data-testid="cancel-workout">Cancel Workout</Button>
@@ -454,6 +465,24 @@ function WorkoutEditor({ workout: w, mode, queryKey, onFreeze }: { workout: Work
       <SaveAsTemplateSheet open={finish.step === "saveAs"} defaultName={w.name} onClose={() => setFinish({ step: null, discard: true, diff: null })} onSave={(n) => void doFinish(finish.discard, "save_as_template", n)} onSkip={() => void doFinish(finish.discard, "keep")} />
       <SummarySheet result={result} onDone={() => { setResult(null); onFreeze(null); navigate(WORKOUTS); }} />
     </>
+  );
+}
+
+/** Live progress: sets done out of planned, with a thin bar. Calm, no celebration. */
+function ProgressCard({ workout }: { workout: Workout }) {
+  const all = (workout.exercises ?? []).flatMap((e) => e.sets ?? []);
+  const done = all.filter((s) => s.completed).length;
+  return (
+    <div className="glass rounded-lg mx-[var(--gutter)] px-4 py-3.5 rise">
+      <div className="flex items-baseline justify-between">
+        <span className="text-[13px] text-secondary">Sets done</span>
+        <span className="inline-flex items-baseline gap-1">
+          <span className="num text-[22px] leading-6 text-primary">{done}</span>
+          <span className="text-[13px] text-tertiary tabular">/ {all.length}</span>
+        </span>
+      </div>
+      <ThinBar progress={all.length ? done / all.length : 0} color="var(--success)" height={5} className="mt-2.5" />
+    </div>
   );
 }
 
@@ -493,7 +522,7 @@ interface BlockProps {
   onSuperset: (ids: string[], group: number) => void;
 }
 
-/** One exercise: header with name and menu, note, set table, Add Set. Rendered as an inset group; the superset bar sits on its left edge. */
+/** One exercise: a glass card with name + meta, optional note, the set table in a whiter well, and Add Set. The superset bar sits on its left edge. */
 function ExerciseBlock({ exercise: e, index, count, units, mode, all, onChangeValue, onCommit, onToggleComplete, onDelete, onSetType, onCopyPrevious, onAddSet, onReplace, onRemove, onMove, onPatch, onSuperset }: BlockProps) {
   const navigate = useNavigate();
   const category = e.exercise?.category ?? "barbell";
@@ -510,9 +539,17 @@ function ExerciseBlock({ exercise: e, index, count, units, mode, all, onChangeVa
   const [trackOpen, setTrackOpen] = useState(false);
   const updateExercise = useUpdateExercise();
   const noteRef = useRef<HTMLTextAreaElement>(null);
+  // Focus the note only after the user picks Add/Edit Note (never on open). Runs in the same commit as the tap.
+  const [focusNote, setFocusNote] = useState(false);
+  useLayoutEffect(() => {
+    if (!focusNote) return;
+    setFocusNote(false);
+    noteRef.current?.focus({ preventScroll: false });
+  }, [focusNote]);
+  const done = sets.filter((s) => s.completed).length;
 
   const items: MenuItem[] = [
-    { label: noteOpen ? "Edit Note" : "Add Note", icon: "note", onPress: () => { setNoteOpen(true); window.setTimeout(() => noteRef.current?.focus(), 50); } },
+    { label: noteOpen ? "Edit Note" : "Add Note", icon: "note", onPress: () => { setNoteOpen(true); setFocusNote(true); } },
     { label: `Rest Timer (${e.restSeconds ? fmtSeconds(e.restSeconds) : "Off"})`, icon: "timer", onPress: () => setRestOpen(true) },
     { label: `Track As (${categoryLabel(category)})`, icon: "bars", onPress: () => setTrackOpen(true) },
     { label: "Replace Exercise", icon: "swap", onPress: onReplace },
@@ -523,51 +560,60 @@ function ExerciseBlock({ exercise: e, index, count, units, mode, all, onChangeVa
   ];
 
   return (
-    <Group className={cn("overflow-visible", e.supersetGroup != null && "wk-superset")} style={e.supersetGroup != null ? ({ "--wk-ss": supersetColor(e.supersetGroup) } as CSSProperties) : undefined} data-testid="exercise-block">
-      <div className="flex items-center min-h-[44px] pl-[var(--gutter)] pr-1">
-        <button type="button" className="flex-1 min-w-0 text-left text-headline text-accent-text truncate py-2 active:opacity-60" onClick={() => navigate(`${WORKOUTS}/exercises/${e.exerciseId}`)} data-testid="exercise-name">
-          {e.exercise?.name ?? "Exercise"}
-        </button>
-        <IconButton label="Exercise menu" onClick={(ev) => { const r = ev.currentTarget.getBoundingClientRect(); setMenu({ x: r.left + r.width / 2, y: r.bottom }); }}>
+    <div className={cn("glass rounded-lg mx-[var(--gutter)] relative", e.supersetGroup != null && "wk-superset")} style={e.supersetGroup != null ? ({ "--wk-ss": supersetColor(e.supersetGroup) } as CSSProperties) : undefined} data-testid="exercise-block">
+      <div className="flex items-center gap-1 pl-4 pr-1.5 pt-2.5 pb-2">
+        <div className="flex-1 min-w-0">
+          <button type="button" className="block max-w-full text-left text-[17px] leading-[22px] text-primary truncate active:opacity-60" onClick={() => navigate(`${WORKOUTS}/exercises/${e.exerciseId}`)} data-testid="exercise-name">
+            {e.exercise?.name ?? "Exercise"}
+          </button>
+          <div className="text-[12px] leading-4 text-tertiary tabular mt-0.5 truncate">
+            {`${done}/${sets.length} sets`}
+            {e.restSeconds ? ` · Rest ${fmtSeconds(e.restSeconds)}` : ""}
+          </div>
+        </div>
+        <IconButton label="Exercise menu" className="!text-secondary" onClick={(ev) => { const r = ev.currentTarget.getBoundingClientRect(); setMenu({ x: r.left + r.width / 2, y: r.bottom }); }}>
           <Icon name="more" size={20} />
         </IconButton>
       </div>
       {noteOpen && (
-        <div className="px-[var(--gutter)] pb-2 -mt-1">
-          <textarea ref={(el) => { noteRef.current = el; autosize(el); }} value={note} rows={1} placeholder="Exercise note" onChange={(ev) => { setNote(ev.target.value); autosize(ev.target); }} onBlur={() => { const v = note.trim() || null; if (v !== (e.notes ?? null)) onPatch({ notes: v }); if (!v) setNoteOpen(false); }} className="w-full bg-surface-2 rounded-sm px-3 py-2 text-subhead text-primary outline-none resize-none placeholder:text-tertiary" aria-label="Exercise note" />
+        <div className="px-3 pb-2">
+          <textarea ref={(el) => { noteRef.current = el; autosize(el); }} value={note} rows={1} placeholder="Exercise note" onChange={(ev) => { setNote(ev.target.value); autosize(ev.target); }} onBlur={() => { const v = note.trim() || null; if (v !== (e.notes ?? null)) onPatch({ notes: v }); if (!v) setNoteOpen(false); }} className="w-full well rounded-[12px] px-3 py-2 text-[15px] text-primary outline-none resize-none placeholder:text-tertiary focus-visible:!outline-none" aria-label="Exercise note" />
         </div>
       )}
-      <div className="wk-grid wk-grid-head px-[var(--gutter)] text-caption-1 font-medium text-secondary" style={{ gridTemplateColumns: grid }}>
-        <span className="pl-1">Set</span>
-        <span>Previous</span>
-        {columns.map((c) => (
-          <span key={c.kind} className="text-center">{c.label}</span>
-        ))}
-        <span className="text-center"><Icon name={mode === "live" ? "check" : "check"} size={14} className="inline-block text-tertiary" /></span>
-        {hasFinePointer && <span />}
+      <div className="well rounded-[16px] mx-2 overflow-hidden" style={{ "--wk-row-px": "8px" } as CSSProperties}>
+        <div className="wk-grid wk-grid-head px-[var(--wk-row-px)] text-[11px] text-tertiary" style={{ gridTemplateColumns: grid }}>
+          <span className="text-center">Set</span>
+          <span>Previous</span>
+          {columns.map((c) => (
+            <span key={c.kind} className="text-center">{c.label}</span>
+          ))}
+          <span className="flex justify-center"><Icon name="check" size={13} className="text-quaternary" /></span>
+          {hasFinePointer && <span />}
+        </div>
+        <div>
+          {sets.map((s, i) => (
+            <SetRow
+              key={s.id}
+              set={s}
+              index={i}
+              sets={sets}
+              columns={columns}
+              grid={grid}
+              previous={e.previous?.[i] ?? null}
+              category={category}
+              units={units}
+              onChangeValue={(kind, v) => onChangeValue(s.id, kind, v)}
+              onCommit={() => onCommit(s.id)}
+              onToggleComplete={() => onToggleComplete(s.id)}
+              onDelete={() => onDelete(s.id)}
+              onSetType={(anchor) => setTypeMenu({ setId: s.id, anchor })}
+              onCopyPrevious={() => onCopyPrevious(s.id)}
+            />
+          ))}
+        </div>
       </div>
-      <div className="hairline-t">
-        {sets.map((s, i) => (
-          <SetRow
-            key={s.id}
-            set={s}
-            index={i}
-            sets={sets}
-            columns={columns}
-            grid={grid}
-            previous={e.previous?.[i] ?? null}
-            category={category}
-            units={units}
-            onChangeValue={(kind, v) => onChangeValue(s.id, kind, v)}
-            onCommit={() => onCommit(s.id)}
-            onToggleComplete={() => onToggleComplete(s.id)}
-            onDelete={() => onDelete(s.id)}
-            onSetType={(anchor) => setTypeMenu({ setId: s.id, anchor })}
-            onCopyPrevious={() => onCopyPrevious(s.id)}
-          />
-        ))}
-      </div>
-      <button type="button" className="w-full h-11 text-subhead font-semibold text-accent-text hairline-t active:bg-pressed" onClick={onAddSet} data-testid="add-set">
+      <button type="button" className="w-full h-12 inline-flex items-center justify-center gap-1.5 text-[15px] text-accent-text rounded-b-lg active:bg-pressed transition-colors" onClick={onAddSet} data-testid="add-set">
+        <Icon name="plus" size={16} strokeWidth={1.8} />
         {`Add Set${e.restSeconds ? ` (${fmtSeconds(e.restSeconds)})` : ""}`}
       </button>
 
@@ -592,7 +638,7 @@ function ExerciseBlock({ exercise: e, index, count, units, mode, all, onChangeVa
         }}
       />
       <ActionSheet open={removeOpen} onClose={() => setRemoveOpen(false)} title="Remove exercise?" message={`This removes ${e.exercise?.name ?? "the exercise"} and all of its sets from the workout.`} actions={[{ label: "Remove Exercise", destructive: true, onPress: onRemove }]} />
-    </Group>
+    </div>
   );
 }
 

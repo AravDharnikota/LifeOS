@@ -28,10 +28,10 @@ export function Segmented<T extends string>({ options, value, onChange, classNam
     return () => ro.disconnect();
   }, [idx, options.length]);
   return (
-    <div ref={ref} role="tablist" className={cn("relative grid bg-surface-2 rounded-[9px] p-[2px] select-none", size === "sm" ? "h-7" : "h-8", className)} style={{ gridTemplateColumns: `repeat(${options.length}, 1fr)` }}>
-      <div className="absolute top-[2px] bottom-[2px] rounded-[7px] bg-surface shadow-thumb" style={{ left: thumb?.x ?? 2, width: thumb?.w ?? 0, transition: "left 400ms var(--spring-snappy), width 200ms var(--ease-out)", opacity: thumb ? 1 : 0 }} />
+    <div ref={ref} role="tablist" className={cn("relative grid well rounded-full p-[3px] select-none", size === "sm" ? "h-8" : "h-10", className)} style={{ gridTemplateColumns: `repeat(${options.length}, 1fr)` }}>
+      <div className="absolute top-[3px] bottom-[3px] rounded-full bg-primary shadow-thumb" style={{ left: thumb?.x ?? 3, width: thumb?.w ?? 0, transition: "left 400ms var(--spring-snappy), width 200ms var(--ease-out)", opacity: thumb ? 1 : 0 }} />
       {options.map((o) => (
-        <button key={o.value} role="tab" aria-selected={o.value === value} type="button" onClick={() => { if (o.value !== value) { void selection(); onChange(o.value); } }} className={cn("relative z-10 rounded-[7px] text-footnote px-2 truncate transition-colors duration-150", o.value === value ? "text-primary font-semibold" : "text-secondary font-medium")}>
+        <button key={o.value} role="tab" aria-selected={o.value === value} type="button" onClick={() => { if (o.value !== value) { void selection(); onChange(o.value); } }} className={cn("relative z-10 rounded-full px-3 truncate transition-colors duration-200", size === "sm" ? "text-[13px]" : "text-[14px]", o.value === value ? "text-canvas font-medium" : "text-secondary")}>
           {o.label}
         </button>
       ))}

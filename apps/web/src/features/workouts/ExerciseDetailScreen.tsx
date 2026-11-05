@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useNavigate, useParams } from "react-router";
 import { subMonths } from "date-fns";
 import type { Exercise, ExerciseDetail } from "@aravos/shared";
@@ -7,7 +7,8 @@ type ChartPoint = ExerciseDetail["charts"]["oneRm"][number];
 import { Screen } from "@/ui/Screen";
 import { Button } from "@/ui/Button";
 import { Icon } from "@/ui/Icon";
-import { Group, Row, Section, ValueRow } from "@/ui/List";
+import { Group, Section, ValueRow } from "@/ui/List";
+import { GlassCard, StatusPill } from "@/ui/viz";
 import { Segmented } from "@/ui/Segmented";
 import { Sheet, ActionSheet } from "@/ui/Sheet";
 import { TextField, Chip, TextArea } from "@/ui/Field";
@@ -20,6 +21,7 @@ import { useAppSettings } from "@/data/queries";
 import { useDeleteExercise, useExerciseDetail, useUpdateExercise } from "./api";
 import { BODY_PARTS, CATEGORIES, bodyPartLabel, categoryHint, categoryLabel } from "./ExercisePicker";
 import { BarChart, LineChart } from "./charts";
+import { NumUnit } from "./common";
 import { displayWeight, fmtDate, fmtDistanceValue, fmtPrValue, fmtSeconds, fmtSetValues, fmtVolume, fmtWeightValue, isWeighted, plural, prLabel, setLabel, WORKOUTS, type Units } from "./lib";
 
 type Tab = "about" | "history" | "records" | "charts";
@@ -45,8 +47,13 @@ export default function ExerciseDetailScreen() {
       title={d?.exercise.name ?? "Exercise"}
       subtitle={d ? `${bodyPartLabel(d.exercise.bodyPart)} · ${categoryLabel(d.exercise.category)} · ${plural(d.workoutCount, "workout")}` : undefined}
       back
-      actions={d ? <button type="button" className="text-headline text-accent-text px-2 h-11" onClick={() => setEditing(true)}>Edit</button> : undefined}
-      header={<Segmented options={tabs as { value: Tab; label: string }[]} value={tab} onChange={setTab} className="lg:max-w-[480px]" />}
+      actions={d ? <button type="button" className="glass pressable-spring h-10 px-4 rounded-full text-[15px] text-primary" onClick={() => setEditing(true)}>Edit</button> : undefined}
+      header={
+        <div className="flex flex-col gap-3">
+          {d && <Hero d={d} units={units} />}
+          <Segmented options={tabs as { value: Tab; label: string }[]} value={tab} onChange={setTab} className="lg:max-w-[480px]" />
+        </div>
+      }
     >
       {q.isPending ? (
         <Skeleton rows={6} />
@@ -72,6 +79,29 @@ export default function ExerciseDetailScreen() {
   );
 }
 
+/** Hero stats: best estimated 1RM (or the top record), workouts, last done. Thin big numbers on strong glass. */
+function Hero({ d, units }: { d: ExerciseDetail; units: Units }) {
+  const top = d.records.find((r) => r.type === "one_rm") ?? d.records[0];
+  return (
+    <GlassCard tone="strong" className="rise lg:max-w-[640px]">
+      <div className="grid grid-cols-[1.4fr_1fr_1fr] gap-3">
+        <div className="min-w-0">
+          <div className="text-[12px] text-tertiary truncate">{top ? `Best ${prLabel(top.type)}` : "Best"}</div>
+          <div className="mt-1 truncate">{top ? <NumUnit text={fmtPrValue(top.type, top.value, units)} size={28} /> : <span className="num text-[28px] leading-8 text-quaternary">–</span>}</div>
+        </div>
+        <div className="min-w-0">
+          <div className="text-[12px] text-tertiary">Workouts</div>
+          <div className="mt-1"><NumUnit text={String(d.workoutCount)} size={28} /></div>
+        </div>
+        <div className="min-w-0">
+          <div className="text-[12px] text-tertiary">Last done</div>
+          <div className="mt-1.5 text-[15px] text-primary truncate">{d.exercise.lastPerformedAt ? fmtRelativeDate(d.exercise.lastPerformedAt, false) : "Never"}</div>
+        </div>
+      </div>
+    </GlassCard>
+  );
+}
+
 function About({ d, onDeleted }: { d: ExerciseDetail; onDeleted: () => void }) {
   const del = useDeleteExercise();
   const [confirm, setConfirm] = useState(false);
@@ -87,15 +117,20 @@ function About({ d, onDeleted }: { d: ExerciseDetail; onDeleted: () => void }) {
         </Group>
       </Section>
       <Section title="Instructions">
-        {e.instructions ? (
-          <ol className="px-[var(--gutter)] list-decimal pl-[calc(var(--gutter)+18px)] text-subhead text-primary flex flex-col gap-1.5">
-            {e.instructions.split(/\n+/).filter(Boolean).map((line, i) => (
-              <li key={i}>{line.replace(/^\d+[.)]\s*/, "")}</li>
-            ))}
-          </ol>
-        ) : (
-          <p className="px-[var(--gutter)] text-subhead text-secondary">No instructions.</p>
-        )}
+        <GlassCard className="mx-[var(--gutter)]">
+          {e.instructions ? (
+            <ol className="flex flex-col gap-3">
+              {e.instructions.split(/\n+/).filter(Boolean).map((line, i) => (
+                <li key={i} className="flex gap-3 text-[15px] text-primary">
+                  <span className="w-6 h-6 rounded-full well inline-flex items-center justify-center text-[12px] text-secondary tabular shrink-0">{i + 1}</span>
+                  <span className="pt-0.5">{line.replace(/^\d+[.)]\s*/, "")}</span>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="text-[15px] text-secondary">No instructions.</p>
+          )}
+        </GlassCard>
       </Section>
       {e.isCustom && (
         <Section>
@@ -113,21 +148,27 @@ function History({ d, units }: { d: ExerciseDetail; units: Units }) {
   const navigate = useNavigate();
   if (!d.history.length) return <Empty>No sessions yet.</Empty>;
   return (
-    <div className="flex flex-col gap-4 lg:max-w-[640px]" data-testid="exercise-history">
-      {d.history.map((h) => (
-        <Group key={h.workoutExerciseId}>
-          <Row title={h.name} subtitle={fmtDate(h.finishedAt ?? h.startedAt)} chevron onPress={() => navigate(`${WORKOUTS}/history/${h.workoutId}`)} />
-          <div className="px-[var(--gutter)] pb-2 hairline-t pt-1">
+    <div className="flex flex-col gap-3 lg:max-w-[640px]" data-testid="exercise-history">
+      {d.history.map((h, hi) => (
+        <div key={h.workoutExerciseId} className="glass rounded-lg mx-[var(--gutter)] rise" style={{ "--i": Math.min(hi, 8) } as CSSProperties}>
+          <button type="button" className="w-full flex items-center gap-3 text-left pl-4 pr-3 pt-3 pb-2.5 active:opacity-60" onClick={() => navigate(`${WORKOUTS}/history/${h.workoutId}`)}>
+            <span className="flex-1 min-w-0">
+              <span className="block text-[16px] leading-5 text-primary truncate">{h.name}</span>
+              <span className="block text-[12px] leading-4 text-tertiary mt-0.5">{fmtDate(h.finishedAt ?? h.startedAt)}</span>
+            </span>
+            <Icon name="chevron-right" size={16} className="text-quaternary shrink-0" />
+          </button>
+          <div className="well rounded-[16px] mx-2 mb-2 overflow-hidden">
             {h.sets.map((s, i) => (
-              <div key={s.id} className="flex items-center h-8 text-subhead tabular gap-3">
-                <span className={cn("wk-tag text-footnote w-6 text-center", `wk-tag-${s.setType}`)}>{setLabel(h.sets, i)}</span>
-                <span className="text-primary num">{fmtSetValues(s, d.exercise.category, units)}</span>
-                {s.prs.length > 0 && <Icon name="trophy" size={14} className="text-warning-text" />}
+              <div key={s.id} className={cn("flex items-center h-10 gap-3 px-3 tabular", i > 0 && "hairline-t")}>
+                <span className={cn("wk-tag text-[13px] w-6 text-center", `wk-tag-${s.setType}`)}>{setLabel(h.sets, i)}</span>
+                <span className="text-primary num text-[16px] flex-1 min-w-0 truncate">{fmtSetValues(s, d.exercise.category, units)}</span>
+                {s.prs.length > 0 && <StatusPill tone="success">PR</StatusPill>}
               </div>
             ))}
-            {h.notes && <p className="text-footnote text-secondary pt-1">{h.notes}</p>}
           </div>
-        </Group>
+          {h.notes && <p className="text-[13px] text-secondary px-4 pb-3">{h.notes}</p>}
+        </div>
       ))}
     </div>
   );
@@ -142,23 +183,31 @@ function Records({ d, units }: { d: ExerciseDetail; units: Units }) {
         {d.records.length === 0 ? (
           <Empty className="pt-2 pb-2">No records yet. Complete a set to start.</Empty>
         ) : (
-          <Group data-testid="records">
-            {d.records.map((r) => (
-              <Row key={r.id} leading={<Icon name="trophy" size={20} className="text-warning-text" />} title={prLabel(r.type)} subtitle={`${fmtRelativeDate(r.achievedAt)}${r.weight != null && r.reps != null && r.type !== "weight" ? ` · ${fmtWeightValue(r.weight, units)} × ${r.reps}` : ""}`} trailing={<span className="text-primary num text-headline">{fmtPrValue(r.type, r.value, units)}</span>} />
+          <div className="px-[var(--gutter)] lg:px-0 grid grid-cols-2 gap-3" data-testid="records">
+            {d.records.map((r, i) => (
+              <GlassCard key={r.id} className="rise !p-3.5 min-w-0" style={{ "--i": Math.min(i, 8) } as CSSProperties}>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[13px] text-secondary truncate">{prLabel(r.type)}</span>
+                  <StatusPill tone="success">PR</StatusPill>
+                </div>
+                <div className="mt-2.5 truncate"><NumUnit text={fmtPrValue(r.type, r.value, units)} size={26} /></div>
+                <div className="text-[12px] text-tertiary truncate mt-1">{fmtRelativeDate(r.achievedAt, false)}</div>
+                {r.weight != null && r.reps != null && r.type !== "weight" && <div className="text-[12px] text-tertiary truncate tabular">{`${fmtWeightValue(r.weight, units)} × ${r.reps}`}</div>}
+              </GlassCard>
             ))}
-          </Group>
+          </div>
         )}
       </Section>
       {weighted && hasTable && (
         <Section title="Best performance by reps" footer="Predicted values come from the best estimated 1RM. Records cover sets of 12 reps or fewer.">
           <Group>
-            <div className="grid grid-cols-[48px_1fr_1fr] px-[var(--gutter)] h-8 items-center text-caption-1 font-medium text-secondary">
+            <div className="grid grid-cols-[48px_1fr_1fr] px-[var(--gutter)] h-9 items-center text-[11px] text-tertiary">
               <span>Reps</span>
               <span className="text-right">Best</span>
               <span className="text-right">Predicted</span>
             </div>
             {d.bestByReps.map((r) => (
-              <div key={r.reps} className="grid grid-cols-[48px_1fr_1fr] px-[var(--gutter)] h-9 items-center text-subhead tabular hairline-t">
+              <div key={r.reps} className="grid grid-cols-[48px_1fr_1fr] px-[var(--gutter)] h-10 items-center text-[15px] tabular hairline-t">
                 <span className="text-secondary">{r.reps}</span>
                 <span className="text-right text-primary num">{r.best != null ? fmtWeightValue(r.best, units) : "–"}</span>
                 <span className="text-right text-secondary num">{r.predicted != null ? fmtWeightValue(r.predicted, units) : "–"}</span>
@@ -226,7 +275,7 @@ function Charts({ d, units }: { d: ExerciseDetail; units: Units }) {
       {!any ? (
         <Empty className="pt-4">No data in this period.</Empty>
       ) : (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-3">
           {defs.map((def) => (
             <ChartBlock key={def.key} def={def} points={filter(d.charts[def.key])} />
           ))}
@@ -245,13 +294,13 @@ function ChartBlock({ def, points }: { def: ChartDef; points: ChartPoint[] }) {
   if (!points.length) return null;
   const best = Math.max(...points.map((p) => p.value));
   return (
-    <section className="px-[var(--gutter)]" data-testid="chart">
-      <div className="flex items-baseline justify-between">
-        <div className="flex items-baseline gap-2">
-          <span className="text-title-1 num text-primary">{shown ? def.fmt(shown.value) : ""}</span>
-          <span className="text-subhead text-secondary">{sel != null && shown ? fmtDate(shown.date) : def.title}</span>
+    <section className="glass rounded-lg mx-[var(--gutter)] lg:mx-0 p-4 rise" data-testid="chart">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-[13px] text-secondary truncate">{sel != null && shown ? fmtDate(shown.date) : def.title}</div>
+          <div className="mt-1">{shown ? <NumUnit text={def.fmt(shown.value)} size={28} /> : null}</div>
         </div>
-        {sel == null && <span className="text-footnote text-tertiary">Best {def.fmt(best)}</span>}
+        {sel == null && <span className="shrink-0 h-[22px] px-2 rounded-[7px] well inline-flex items-center text-[11px] text-secondary tabular">Best {def.fmt(best)}</span>}
       </div>
       {def.kind === "line" ? <LineChart points={data} format={def.axis} selected={sel} onSelect={setSel} fromZero={def.fromZero} className="mt-2" /> : <BarChart points={data} format={def.axis} selected={sel} onSelect={setSel} fromZero={def.fromZero} className="mt-2" />}
     </section>

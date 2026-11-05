@@ -5,7 +5,7 @@ import { Stepper } from "@/ui/Stepper";
 import { TapChip } from "./TapChip";
 import { Button, IconButton } from "@/ui/Button";
 import { Icon } from "@/ui/Icon";
-import { Group, Row, SectionHeader } from "@/ui/List";
+import { Row, SectionHeader } from "@/ui/List";
 import { Skeleton, InlineError } from "@/ui/Empty";
 import { toast } from "@/ui/Toast";
 import { fmtInt, fmtTime } from "@/lib/format";
@@ -13,6 +13,8 @@ import { impact, notify } from "@/lib/haptics";
 import { useAppSettings } from "@/data/queries";
 import { useAddWater, useDeleteWater, useWater } from "./api";
 import { WATER_CHIPS, WATER_STEP, celebrateOnce, fromDisplayWater, toDisplayWater, waterUnit } from "./model";
+import { GoalCheck, WellGroup } from "@/features/health/parts";
+import { ArcRing } from "@/ui/viz";
 
 /** Quick water entry: today's total as the hero, an amount stepper with chips, and the log with delete. */
 export function WaterSheet({ open, onClose, date }: { open: boolean; onClose: () => void; date?: string }) {
@@ -57,12 +59,13 @@ export function WaterSheet({ open, onClose, date }: { open: boolean; onClose: ()
   return (
     <Sheet open={open} onClose={onClose} title="Water" detent="large">
       <div className="flex flex-col gap-5 pt-3 -mx-[var(--gutter)]">
-        <div className="px-[var(--gutter)] text-center">
-          <div className="flex items-baseline justify-center gap-1.5">
-            <span className="num text-display-44 text-primary" data-testid="water-total">{fmtInt(toDisplayWater(total, units))}</span>
-            <span className="text-subhead text-secondary">{unit}</span>
-          </div>
-          <p className="text-footnote text-secondary tabular mt-1">{target > 0 ? (left > 0 ? `${fmtInt(toDisplayWater(left, units))} ${unit} left of ${fmtInt(toDisplayWater(target, units))}` : "Target reached") : "No target set"}</p>
+        <div className="px-[var(--gutter)] flex flex-col items-center text-center">
+          <ArcRing progress={target > 0 ? total / target : 0} size={168} stroke={10} color={total > 0 ? "var(--water)" : "transparent"} color2={total > 0 ? "var(--accent-2)" : "transparent"} label={`Water, ${fmtInt(toDisplayWater(total, units))} of ${fmtInt(toDisplayWater(target, units))} ${unit}`}>
+            {target > 0 && left === 0 ? <GoalCheck size={20} className="mb-1" /> : <Icon name="drop" size={18} strokeWidth={1.8} className="text-water mb-1" />}
+            <span className="num text-[40px] leading-[42px] text-primary" data-testid="water-total">{fmtInt(toDisplayWater(total, units))}</span>
+            <span className="text-[12px] text-tertiary">{unit}</span>
+          </ArcRing>
+          <p className="text-[13px] text-secondary tabular mt-2">{target > 0 ? (left > 0 ? `${fmtInt(toDisplayWater(left, units))} ${unit} left of ${fmtInt(toDisplayWater(target, units))}` : "Target reached") : "No target set"}</p>
         </div>
         <div className="px-[var(--gutter)]">
           <Stepper value={amount} onChange={setAmount} step={WATER_STEP[units]} min={WATER_STEP[units]} max={units === "imperial" ? 170 : 5000} unit={unit} size="lg" label="Amount" />
@@ -85,7 +88,7 @@ export function WaterSheet({ open, onClose, date }: { open: boolean; onClose: ()
           ) : water.isError ? (
             <InlineError onRetry={() => void water.refetch()}>Unable to load water logs.</InlineError>
           ) : water.data && water.data.logs.length ? (
-            <Group>
+            <WellGroup>
               {water.data.logs.map((l) => (
                 <Row
                   key={l.id}
@@ -100,9 +103,9 @@ export function WaterSheet({ open, onClose, date }: { open: boolean; onClose: ()
                   }
                 />
               ))}
-            </Group>
+            </WellGroup>
           ) : (
-            <p className="text-callout text-secondary text-center px-[var(--gutter)] py-4">No water logged today.</p>
+            <p className="text-[15px] text-secondary text-center px-[var(--gutter)] py-4">No water logged today.</p>
           )}
         </div>
       </div>

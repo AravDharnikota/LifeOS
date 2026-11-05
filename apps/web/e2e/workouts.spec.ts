@@ -115,11 +115,14 @@ test.describe("workouts", () => {
     await page.getByTestId("finish").focus();
 
     const last = firstBlock.getByTestId("set-row").nth(4);
-    const box = await last.boundingBox();
+    await last.scrollIntoViewIfNeeded();
+    // Start the swipe on the check button: drags never start from a text input, and the value chips fill most of the row.
+    const box = await last.getByTestId("set-check").boundingBox();
     if (!box) throw new Error("row not visible");
-    await page.mouse.move(box.x + box.width - 60, box.y + box.height / 2);
+    const sx = box.x + box.width / 2;
+    await page.mouse.move(sx, box.y + box.height / 2);
     await page.mouse.down();
-    for (let i = 1; i <= 12; i++) await page.mouse.move(box.x + box.width - 60 - i * 25, box.y + box.height / 2);
+    for (let i = 1; i <= 12; i++) await page.mouse.move(sx - i * 25, box.y + box.height / 2);
     await page.mouse.up();
     await expect(firstBlock.getByTestId("set-row")).toHaveCount(4);
     await page.getByTestId("cancel-workout").click();

@@ -5,11 +5,13 @@ import type { AgentThread } from "@aravos/shared";
 import { cn } from "@/lib/cn";
 import { fmtRelativeDate, fmtTime } from "@/lib/format";
 import { Menu } from "@/ui/Menu";
+import { Button } from "@/ui/Button";
+import { Icon } from "@/ui/Icon";
+import { StatusPill } from "@/ui/viz";
 import { toast } from "@/ui/Toast";
-import { ErrorLine, WorkingLine } from "./Spinner";
 import { createThread, deleteThread, threadKeys, useThreads } from "./useAgent";
 
-/** Threads as a terminal listing: `❯` marks the current one, `·` the rest, the time on the right. */
+/** Threads as glass rows: an icon well (ink for the current thread), the title and when it last moved, and an options button. */
 export function ThreadList({ current, onSelect }: { current: string | null; onSelect: (id: string | null) => void }) {
   const qc = useQueryClient();
   const threads = useThreads(true);
@@ -57,24 +59,31 @@ export function ThreadList({ current, onSelect }: { current: string | null; onSe
   };
 
   return (
-    <div className="flex-1 min-h-0 scroller px-3 py-2 pb-[max(16px,var(--safe-bottom))]" data-testid="thread-list">
-      <button type="button" onClick={() => void add()} disabled={busy} className="grid grid-cols-[2ch_1fr] w-[calc(100%+8px)] -mx-1 px-1 text-left min-h-[44px] lg:min-h-[32px] items-center text-term-prompt rounded-xs hover:bg-term-bg-hover active:bg-term-bg-hover disabled:opacity-50">
-        <span aria-hidden="true" className="select-none">+</span>
-        <span>new thread</span>
-      </button>
+    <div className="flex-1 min-h-0 scroller px-[var(--gutter)] pt-2 pb-[max(16px,var(--safe-bottom))]" data-testid="thread-list">
+      <Button variant="primary" full loading={busy} leading={<Icon name="plus" size={17} strokeWidth={2} />} onClick={() => void add()}>
+        New Thread
+      </Button>
       {threads.isPending ? (
-        <div className="mt-3">
-          <WorkingLine>loading threads…</WorkingLine>
+        <div className="mt-4 well rounded-lg overflow-hidden" aria-hidden="true">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className={cn("h-[60px] flex items-center gap-3 px-3", i > 0 && "hairline-t")}>
+              <span className="w-8 h-8 rounded-[10px] shimmer" />
+              <span className="h-3 rounded-full shimmer" style={{ width: `${45 + i * 12}%` }} />
+            </div>
+          ))}
         </div>
       ) : threads.isError ? (
-        <div className="mt-3">
-          <ErrorLine onRetry={() => void threads.refetch()}>Unable to load threads.</ErrorLine>
+        <div className="mt-4 flex items-center justify-between gap-3 px-1 text-[13px] text-secondary" role="alert">
+          <span>Unable to load threads.</span>
+          <button type="button" className="text-accent-text font-medium" onClick={() => void threads.refetch()}>
+            Retry
+          </button>
         </div>
       ) : threads.data.length === 0 ? (
-        <div className="mt-3 pl-[2ch] text-term-fg-faint">no threads yet.</div>
+        <p className="mt-6 text-center text-[14px] text-tertiary">No threads yet.</p>
       ) : (
-        <div className="mt-3 flex flex-col" role="list">
-          {threads.data.map((t) => {
+        <div className="mt-4 well rounded-lg overflow-hidden" role="list">
+          {threads.data.map((t, i) => {
             const isCurrent = t.id === current;
             const title = t.title?.trim() || "New conversation";
             return (
@@ -85,26 +94,28 @@ export function ThreadList({ current, onSelect }: { current: string | null; onSe
                 aria-current={isCurrent ? "true" : undefined}
                 onClick={() => onSelect(t.id)}
                 onKeyDown={(e) => rowKey(e, t.id)}
-                className="grid grid-cols-[2ch_1fr_auto] items-center min-h-[44px] lg:min-h-[32px] -mx-1 px-1 rounded-xs cursor-pointer hover:bg-term-bg-hover active:bg-term-bg-hover focus-visible:bg-term-bg-hover"
+                className="relative flex items-center gap-3 min-h-[60px] pl-3 pr-1 cursor-pointer row-hover active:bg-pressed transition-colors duration-150"
               >
-                <span aria-hidden="true" className={cn("select-none", isCurrent ? "text-term-prompt" : "text-term-fg-faint")}>
-                  {isCurrent ? "❯" : "·"}
+                {i > 0 && <span aria-hidden="true" className="absolute left-14 right-0 top-0 h-px bg-separator" />}
+                <span className={cn("w-8 h-8 rounded-[10px] inline-flex items-center justify-center shrink-0", isCurrent ? "bg-primary text-canvas" : "well text-secondary")} aria-hidden="true">
+                  <Icon name={isCurrent ? "sparkle" : "chat"} size={15} strokeWidth={1.8} />
                 </span>
-                <span className="min-w-0 flex items-baseline gap-3">
-                  <span className={cn("truncate", isCurrent ? "text-term-fg" : "text-term-fg-dim")}>{title}</span>
-                  <span className="ml-auto shrink-0 text-[11px] text-term-fg-faint tabular">{when(t)}</span>
+                <span className="flex-1 min-w-0 py-2.5">
+                  <span className="block text-[15px] leading-5 text-primary truncate">{title}</span>
+                  <span className="block text-[12px] leading-4 text-tertiary tabular mt-0.5">{when(t)}</span>
                 </span>
+                {isCurrent && <StatusPill tone="accent">Current</StatusPill>}
                 <button
                   type="button"
                   aria-label="Thread options"
-                  className="inline-flex items-center justify-center w-11 h-11 lg:w-8 lg:h-8 -mr-1 text-term-fg-faint hover:text-term-fg-dim"
+                  className="inline-flex items-center justify-center w-11 h-11 shrink-0 rounded-full text-tertiary hover:text-secondary active:bg-pressed"
                   onClick={(e) => {
                     e.stopPropagation();
                     const r = e.currentTarget.getBoundingClientRect();
                     setMenu({ id: t.id, x: r.left + r.width / 2, y: r.bottom });
                   }}
                 >
-                  <span aria-hidden="true">⋯</span>
+                  <Icon name="more" size={18} />
                 </button>
               </div>
             );

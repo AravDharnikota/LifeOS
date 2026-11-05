@@ -1,12 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Goal, GoalCreate } from "@aravos/shared";
 import { Sheet } from "@/ui/Sheet";
 import { Segmented } from "@/ui/Segmented";
 import { Stepper } from "@/ui/Stepper";
-import { Chip, TextArea, TextField } from "@/ui/Field";
+import { Chip } from "@/ui/Field";
 import { Icon } from "@/ui/Icon";
-import { cn } from "@/lib/cn";
 import { notify } from "@/lib/haptics";
+import { FormLabel, WellGroup, WellInput, WellRow, WellTextArea } from "./form";
 import { AREAS, COLORS, COLOR_LABEL, KINDS, areaLabel, colorVar } from "./model";
 
 type Kind = Goal["kind"];
@@ -70,6 +70,7 @@ export function GoalSheet({ open, onClose, goal, initialKind = "number", onSubmi
   const [d, setD] = useState<Draft>(() => fromGoal(goal, initialKind));
   const [errors, setErrors] = useState<Partial<Record<"title" | "target" | "start" | "submit", string>>>({});
   const [newMilestone, setNewMilestone] = useState("");
+  const titleRef = useRef<HTMLInputElement>(null);
   const initial = useMemo(() => fromGoal(goal, initialKind), [goal, initialKind]);
   const editing = Boolean(goal);
 
@@ -137,6 +138,7 @@ export function GoalSheet({ open, onClose, goal, initialKind = "number", onSubmi
       title={editing ? "Edit Goal" : "New Goal"}
       detent="large"
       dirty={dirty}
+      initialFocus={editing ? undefined : titleRef}
       trailing={
         <button type="button" className="text-headline text-accent-text px-2 h-11 disabled:opacity-40" disabled={pending} onClick={() => void submit()} data-testid="goal-done">
           Done
@@ -145,9 +147,13 @@ export function GoalSheet({ open, onClose, goal, initialKind = "number", onSubmi
     >
       <div className="pt-2 pb-4 flex flex-col gap-5">
         {!editing && <Segmented options={KINDS.map((k) => ({ value: k.value, label: k.label }))} value={d.kind} onChange={(k) => set("kind", k)} />}
-        <TextField label="Title" placeholder={placeholderFor(d.kind)} value={d.title} onChange={(e) => { set("title", e.target.value); setErrors((p) => ({ ...p, title: undefined })); }} error={errors.title} autoFocus={!editing} enterKeyHint="done" data-testid="goal-title" />
+
+        <WellGroup error={errors.title}>
+          <WellInput ref={titleRef} aria-label="Title" placeholder={placeholderFor(d.kind)} value={d.title} onChange={(e) => { set("title", e.target.value); setErrors((p) => ({ ...p, title: undefined })); }} invalid={Boolean(errors.title)} enterKeyHint="done" className="[&_input]:text-[17px]" data-testid="goal-title" />
+        </WellGroup>
+
         <div>
-          <span className="block text-footnote text-secondary mb-1.5">Area</span>
+          <FormLabel>Area</FormLabel>
           <div className="flex gap-2 flex-wrap">
             {AREAS.map((a) => (
               <Chip key={a} selected={d.area === a} onClick={() => set("area", a)}>
@@ -158,78 +164,81 @@ export function GoalSheet({ open, onClose, goal, initialKind = "number", onSubmi
         </div>
 
         {d.kind === "number" && (
-          <>
-            <div className="grid grid-cols-2 gap-3">
-              <TextField label="Start" placeholder="0" inputMode="decimal" value={d.startValue} onChange={(e) => set("startValue", e.target.value)} error={errors.start} data-testid="goal-start" />
-              <TextField label="Target" placeholder="100" inputMode="decimal" value={d.targetValue} onChange={(e) => set("targetValue", e.target.value)} error={errors.target} data-testid="goal-target" />
-            </div>
-            <div className="grid grid-cols-2 gap-3 items-end">
-              <TextField label="Unit" placeholder="kg" value={d.unit} onChange={(e) => set("unit", e.target.value)} autoCapitalize="none" data-testid="goal-unit" />
-              <div>
-                <span className="block text-footnote text-secondary mb-1.5">Direction</span>
-                <Segmented options={[{ value: "increase", label: "Up" }, { value: "decrease", label: "Down" }]} value={d.direction} onChange={(v) => set("direction", v)} />
-              </div>
-            </div>
-          </>
+          <div>
+            <FormLabel>Progress</FormLabel>
+            <WellGroup error={errors.start ?? errors.target}>
+              <WellInput label="Start" placeholder="0" inputMode="decimal" value={d.startValue} onChange={(e) => set("startValue", e.target.value)} invalid={Boolean(errors.start)} data-testid="goal-start" />
+              <WellInput label="Target" placeholder="100" inputMode="decimal" value={d.targetValue} onChange={(e) => set("targetValue", e.target.value)} invalid={Boolean(errors.target)} data-testid="goal-target" />
+              <WellInput label="Unit" placeholder="kg" value={d.unit} onChange={(e) => set("unit", e.target.value)} autoCapitalize="none" data-testid="goal-unit" />
+              <WellRow label="Direction">
+                <Segmented size="sm" options={[{ value: "increase", label: "Up" }, { value: "decrease", label: "Down" }]} value={d.direction} onChange={(v) => set("direction", v)} className="w-[132px]" />
+              </WellRow>
+            </WellGroup>
+          </div>
         )}
 
         {d.kind === "habit" && (
-          <>
-            <div>
-              <span className="block text-footnote text-secondary mb-1.5">Cadence</span>
-              <Segmented options={[{ value: "daily", label: "Daily" }, { value: "weekly", label: "Weekly" }]} value={d.cadence} onChange={(v) => set("cadence", v)} />
-            </div>
-            {d.cadence === "weekly" && (
-              <div>
-                <span className="block text-footnote text-secondary mb-1.5">Days per week</span>
-                <Stepper value={d.timesPerPeriod} onChange={(v) => set("timesPerPeriod", v)} min={1} max={7} editable={false} />
-              </div>
-            )}
-          </>
+          <div>
+            <FormLabel>Schedule</FormLabel>
+            <WellGroup>
+              <WellRow label="Cadence">
+                <Segmented size="sm" options={[{ value: "daily", label: "Daily" }, { value: "weekly", label: "Weekly" }]} value={d.cadence} onChange={(v) => set("cadence", v)} className="w-[160px]" />
+              </WellRow>
+              {d.cadence === "weekly" && (
+                <WellRow label="Days per week">
+                  <Stepper value={d.timesPerPeriod} onChange={(v) => set("timesPerPeriod", v)} min={1} max={7} editable={false} className="w-[150px]" />
+                </WellRow>
+              )}
+            </WellGroup>
+          </div>
         )}
 
         {d.kind === "milestone" && !editing && (
           <div>
-            <span className="block text-footnote text-secondary mb-1.5">Milestones</span>
-            {d.milestones.length > 0 && (
-              <ul className="bg-surface-2 rounded-sm mb-2 overflow-hidden">
-                {d.milestones.map((m, i) => (
-                  <li key={`${m}-${i}`} className={cn("flex items-center justify-between gap-3 pl-3 pr-1 min-h-[44px]", i > 0 && "hairline-t")}>
-                    <span className="text-body truncate">{m}</span>
-                    <button type="button" aria-label={`Remove ${m}`} className="hit-44 inline-flex items-center justify-center text-tertiary active:opacity-60" onClick={() => set("milestones", d.milestones.filter((_, j) => j !== i))}>
-                      <Icon name="x" size={18} />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <TextField
-              placeholder="Add a milestone"
-              value={newMilestone}
-              onChange={(e) => setNewMilestone(e.target.value)}
-              enterKeyHint="next"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  addMilestone();
-                }
-              }}
-              trailing={
-                newMilestone.trim() ? (
-                  <button type="button" className="text-subhead font-semibold text-accent-text px-1 h-9" onClick={addMilestone}>
-                    Add
+            <FormLabel>Milestones</FormLabel>
+            <WellGroup>
+              {d.milestones.map((m, i) => (
+                <div key={`${m}-${i}`} className="flex items-center gap-3 pl-4 pr-1 min-h-[50px]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-quaternary shrink-0" aria-hidden="true" />
+                  <span className="flex-1 min-w-0 text-[16px] text-primary truncate">{m}</span>
+                  <button type="button" aria-label={`Remove ${m}`} className="hit-44 inline-flex items-center justify-center text-tertiary active:opacity-60" onClick={() => set("milestones", d.milestones.filter((_, j) => j !== i))}>
+                    <Icon name="x" size={16} />
                   </button>
-                ) : null
-              }
-            />
+                </div>
+              ))}
+              <WellInput
+                aria-label="Add a milestone"
+                placeholder="Add a milestone"
+                value={newMilestone}
+                onChange={(e) => setNewMilestone(e.target.value)}
+                enterKeyHint="next"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addMilestone();
+                  }
+                }}
+                trailing={
+                  newMilestone.trim() ? (
+                    <button type="button" className="text-[15px] text-accent-text px-1 h-9 active:opacity-60" onClick={addMilestone}>
+                      Add
+                    </button>
+                  ) : (
+                    <Icon name="plus" size={18} className="text-quaternary" />
+                  )
+                }
+              />
+            </WellGroup>
           </div>
         )}
 
-        <TextField label="Deadline" type="date" value={d.deadline} onChange={(e) => set("deadline", e.target.value)} data-testid="goal-deadline" />
-        <TextArea label="Notes" placeholder="Optional" value={d.description} onChange={(e) => set("description", e.target.value)} />
+        <WellGroup>
+          <WellInput label="Deadline" type="date" value={d.deadline} onChange={(e) => set("deadline", e.target.value)} data-testid="goal-deadline" />
+          <WellTextArea aria-label="Notes" placeholder="Notes" value={d.description} onChange={(e) => set("description", e.target.value)} />
+        </WellGroup>
 
         <div>
-          <span className="block text-footnote text-secondary mb-1.5">Color</span>
+          <FormLabel>Color</FormLabel>
           <div className="flex gap-1 flex-wrap -ml-2">
             <ColorDot label="Default" selected={d.color === null} color="var(--accent)" onClick={() => set("color", null)} />
             {COLORS.map((c) => (
@@ -237,7 +246,7 @@ export function GoalSheet({ open, onClose, goal, initialKind = "number", onSubmi
             ))}
           </div>
         </div>
-        {errors.submit && <p className="text-footnote text-danger-text">{errors.submit}</p>}
+        {errors.submit && <p className="text-footnote text-danger-text px-1">{errors.submit}</p>}
       </div>
     </Sheet>
   );
@@ -246,8 +255,8 @@ export function GoalSheet({ open, onClose, goal, initialKind = "number", onSubmi
 function ColorDot({ color, selected, onClick, label }: { color: string; selected: boolean; onClick: () => void; label: string }) {
   return (
     <button type="button" aria-label={label} aria-pressed={selected} onClick={onClick} className="hit-44 inline-flex items-center justify-center active:opacity-70">
-      <span className="w-7 h-7 rounded-full inline-flex items-center justify-center" style={{ background: color }}>
-        {selected && <Icon name="check" size={16} strokeWidth={2.5} className="text-white" />}
+      <span className="w-[30px] h-[30px] rounded-full inline-flex items-center justify-center transition-[box-shadow] duration-200" style={{ boxShadow: selected ? `0 0 0 2px var(--bg-surface-2), 0 0 0 3.5px ${color}` : undefined }}>
+        <span className="w-[22px] h-[22px] rounded-full" style={{ background: color }} />
       </span>
     </button>
   );

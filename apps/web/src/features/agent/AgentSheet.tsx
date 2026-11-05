@@ -1,39 +1,23 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useKeyboardHeight } from "@/lib/keyboard";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useNavigate } from "react-router";
 import { useSettings } from "@/data/queries";
 import { cn } from "@/lib/cn";
 import { useHotkey, useIsDesktop } from "@/lib/hooks";
 import { useUi } from "@/state/ui";
 import { Sheet } from "@/ui/Sheet";
+import { Icon } from "@/ui/Icon";
 import type { Attachment } from "./images";
 import { Turn } from "./Messages";
 import { PromptLine } from "./PromptLine";
 import { ErrorLine, WorkingLine } from "./Spinner";
 import { describeWork, formatElapsed, promptHistory } from "./terminal";
 import { ThreadList } from "./ThreadList";
-import { useChat } from "./useAgent";
+import { useChat, useThreads } from "./useAgent";
 
 const SUGGESTIONS = ["What is left today", "Add a coffee counter", "Plan my day"];
 type View = "chat" | "threads";
 
-/** Keyboard inset from the visual viewport, so the prompt stays above the keyboard on iOS. */
-function useKeyboardInset(active: boolean): number {
-  const [inset, setInset] = useState(0);
-  useEffect(() => {
-    const vv = window.visualViewport;
-    if (!active || !vv) return;
-    const update = () => setInset(Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)));
-    update();
-    vv.addEventListener("resize", update);
-    vv.addEventListener("scroll", update);
-    return () => {
-      vv.removeEventListener("resize", update);
-      vv.removeEventListener("scroll", update);
-      setInset(0);
-    };
-  }, [active]);
-  return inset;
-}
 
 /** Milliseconds since the turn started, ticking at 10Hz while it runs; keeps the final value until the next turn. */
 function useTurnClock(running: boolean): number {
@@ -51,17 +35,12 @@ function useTurnClock(running: boolean): number {
   return ms;
 }
 
-function ChromeButton({ onClick, children, strong }: { onClick: () => void; children: ReactNode; strong?: boolean }) {
-  return (
-    <button type="button" onClick={onClick} className={cn("h-11 px-2 text-[12px] transition-colors duration-100 hover:text-term-fg", strong ? "text-term-fg" : "text-term-fg-dim")}>
-      {children}
-    </button>
-  );
-}
+/** Round glass pill used in the sheet header (thread switcher, back, done). */
+const pill = "glass pressable-spring inline-flex items-center rounded-full text-[14px] text-primary";
 
 /**
- * The assistant as a terminal: a dark monospace panel (right side on the desktop, a tall sheet on the phone)
- * with a transcript, a `❯` prompt and a status line. The sheet keeps its grabber and drag-to-dismiss.
+ * The assistant: a glass sheet (right-side panel on the desktop, a tall sheet on the phone) holding a smoked-glass terminal:
+ * monospace transcript, a `❯` prompt and a status line. The header carries the sparkle mark and a thread switcher.
  */
 export function AgentSheet() {
   const open = useUi((s) => s.agentOpen);
@@ -73,6 +52,10 @@ export function AgentSheet() {
   useHotkey("k", toggle, { meta: true, enabled: isDesktop });
 
   const [view, setView] = useState<View>("chat");
+  const [threadId, setThreadId] = useState<string | null>(null);
+  const threads = useThreads(open);
+  // The switcher names the current thread once it has a title; an untitled or new thread just reads "Threads".
+  const threadTitle = (threadId && threads.data?.find((t) => t.id === threadId)?.title?.trim()) || null;
   useEffect(() => {
     if (!open) setView("chat");
   }, [open]);
@@ -84,32 +67,45 @@ export function AgentSheet() {
       detent="large"
       desktop="panel"
       flush
-      className="term overflow-hidden"
-      style={{ background: "var(--term-bg)", color: "var(--term-fg)", ...(isDesktop ? { maxWidth: 560 } : {}) }}
+      className="overflow-hidden lg:m-2 lg:rounded-[28px] lg:h-[calc(100%-16px)]"
+      style={isDesktop ? { maxWidth: 560 } : undefined}
       title={
-        <span className="text-[12px] font-normal tracking-wide text-term-fg-dim">
-          {view === "threads" ? (
-            "Threads"
-          ) : (
-            <>
-              aravos <span className="text-term-prompt">❯</span> <span className="text-term-fg">Assistant</span>
-            </>
-          )}
-        </span>
+        view === "threads" ? (
+          "Threads"
+        ) : (
+          <span className="inline-flex items-center gap-2 font-normal">
+            <span className="w-6 h-6 rounded-[8px] bg-primary text-canvas inline-flex items-center justify-center shrink-0">
+              <Icon name="sparkle" size={13} strokeWidth={2} />
+            </span>
+            Assistant
+          </span>
+        )
       }
-      leading={view === "threads" ? <ChromeButton onClick={() => setView("chat")}>← back</ChromeButton> : <ChromeButton onClick={() => setView("threads")}>threads</ChromeButton>}
+      leading={
+        view === "threads" ? (
+          <button type="button" aria-label="Back" onClick={() => setView("chat")} className={cn(pill, "ml-1 w-9 h-9 justify-center")}>
+            <Icon name="chevron-left" size={18} strokeWidth={1.8} />
+          </button>
+        ) : (
+          <button type="button" aria-label={threadTitle ? `Threads: ${threadTitle}` : "Threads"} title={threadTitle ?? undefined} onClick={() => setView("threads")} className={cn(pill, "ml-1 h-9 max-w-[128px] lg:max-w-[180px] pl-2.5 pr-2 gap-1.5 !text-[13px] !text-secondary")}>
+            <Icon name="list" size={15} strokeWidth={1.8} className="shrink-0" />
+            <span className="truncate">{threadTitle ?? "Threads"}</span>
+            <Icon name="chevron-down" size={12} strokeWidth={2} className="shrink-0 text-tertiary" />
+          </button>
+        )
+      }
       trailing={
-        <ChromeButton onClick={close} strong>
-          done
-        </ChromeButton>
+        <button type="button" onClick={close} className={cn(pill, "mr-1 h-9 px-4")}>
+          Done
+        </button>
       }
     >
-      {open && <AgentBody view={view} onView={setView} prefill={prefill} isDesktop={isDesktop} />}
+      {open && <AgentBody view={view} onView={setView} onThread={setThreadId} prefill={prefill} isDesktop={isDesktop} />}
     </Sheet>
   );
 }
 
-function AgentBody({ view, onView, prefill, isDesktop }: { view: View; onView: (v: View) => void; prefill: string | null; isDesktop: boolean }) {
+function AgentBody({ view, onView, onThread, prefill, isDesktop }: { view: View; onView: (v: View) => void; onThread: (id: string | null) => void; prefill: string | null; isDesktop: boolean }) {
   const navigate = useNavigate();
   const close = useUi((s) => s.closeAgent);
   const settings = useSettings();
@@ -120,13 +116,19 @@ function AgentBody({ view, onView, prefill, isDesktop }: { view: View; onView: (
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const listRef = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
-  const inset = useKeyboardInset(view === "chat");
+  // The sheet itself rides up with the keyboard; here we only drop the safe-area padding while it is open.
+  const kb = useKeyboardHeight();
   const elapsed = useTurnClock(chat.sending);
   const history = useMemo(() => promptHistory(chat.messages), [chat.messages]);
 
   useEffect(() => {
     if (prefill) setDraft(prefill);
   }, [prefill]);
+
+  // The header's thread switcher shows the current thread's title.
+  useEffect(() => {
+    onThread(chat.threadId);
+  }, [chat.threadId, onThread]);
 
   // Follow the stream while the reader is at the bottom. Text length and tool count both move the end of the transcript.
   const last = chat.messages[chat.messages.length - 1];
@@ -168,7 +170,8 @@ function AgentBody({ view, onView, prefill, isDesktop }: { view: View; onView: (
   const empty = chat.messages.length === 0 && !chat.loading;
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col" style={inset ? { paddingBottom: inset } : undefined} data-testid="agent-chat">
+    <div className="flex-1 min-h-0 flex flex-col px-2 pb-[max(8px,var(--safe-bottom))]" style={kb > 0 && view === "chat" ? { paddingBottom: 8 } : undefined}>
+      <div className="term flex-1 min-h-0 flex flex-col rounded-[22px] overflow-hidden bg-term-bg text-term-fg shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_0_0_1px_var(--term-line),var(--shadow-card)]" data-testid="agent-chat">
       {!configured && (
         <div className="px-3 pt-3 grid grid-cols-[2ch_1fr_auto] items-start" role="status">
           <span aria-hidden="true" className="text-term-err select-none">✗</span>
@@ -215,24 +218,37 @@ function AgentBody({ view, onView, prefill, isDesktop }: { view: View; onView: (
         }}
       />
       <StatusLine model={model} configured={configured} work={work} elapsed={elapsed} sending={chat.sending} failed={Boolean(failed)} isDesktop={isDesktop} />
+      </div>
     </div>
   );
 }
 
-/** The empty transcript: a boxed header like a shell's login banner, then suggested prompts as `❯` lines. */
+/**
+ * The empty transcript: a quiet greeting with a thin blinking caret ("Hey, need help? / Just ask me anything"),
+ * the session facts in mono, and suggested prompts as `❯` lines at the bottom.
+ */
 function Banner({ model, configured, onPick }: { model: string | undefined; configured: boolean; onPick: (text: string) => void }) {
   return (
-    <div className="py-4 flex flex-col gap-5">
-      <div className="border border-term-line rounded-xs px-3 py-2.5 text-term-fg-dim">
-        <div className="text-term-fg">AravOS assistant</div>
-        <dl className="mt-1.5 grid grid-cols-[7ch_1fr] gap-y-0.5 m-0">
+    <div className="min-h-full flex flex-col py-4">
+      <div className="pt-[8vh] lg:pt-16 px-0.5">
+        <div className="rise font-ui inline-flex items-center gap-2 text-[15px] text-term-fg-dim">
+          <span className="w-6 h-6 rounded-[8px] bg-term-fg text-term-bg inline-flex items-center justify-center shrink-0" aria-hidden="true">
+            <Icon name="sparkle" size={13} strokeWidth={2} />
+          </span>
+          Hey, need help?
+        </div>
+        <p className="rise font-ui mt-2.5 text-[30px] leading-[38px] font-light tracking-[-0.025em] text-term-fg" style={{ "--i": 1 } as CSSProperties}>
+          <span aria-hidden="true" className="term-cursor inline-block w-[2px] h-[30px] bg-term-prompt align-[-5px] mr-1.5 rounded-full" />
+          Just ask me anything
+        </p>
+        <dl className="rise mt-5 grid grid-cols-[7ch_1fr] gap-y-0.5 m-0 text-[12px] leading-[18px] text-term-fg-dim" style={{ "--i": 2 } as CSSProperties}>
           <dt className="text-term-fg-faint">model</dt>
           <dd className="m-0 truncate">{model ?? "…"}</dd>
           <dt className="text-term-fg-faint">tools</dt>
           <dd className="m-0">tasks · calendar · health · goals · dashboard</dd>
         </dl>
       </div>
-      <div>
+      <div className="mt-auto pt-8 rise" style={{ "--i": 3 } as CSSProperties}>
         <div className="text-term-fg-faint mb-1">try:</div>
         <div className="flex flex-col">
           {SUGGESTIONS.map((s) => (
@@ -251,7 +267,7 @@ function Banner({ model, configured, onPick }: { model: string | undefined; conf
 function StatusLine({ model, configured, work, elapsed, sending, failed, isDesktop }: { model: string | undefined; configured: boolean; work: string; elapsed: number; sending: boolean; failed: boolean; isDesktop: boolean }) {
   const hint = sending ? (isDesktop ? "esc to cancel" : "■ to cancel") : isDesktop ? "↵ send · ⇧↵ newline · ↑ history" : null;
   return (
-    <div className="shrink-0 flex items-center gap-2 px-3 h-7 text-[11px] leading-none text-term-fg-faint bg-term-bg-raised border-t border-term-line pb-[var(--safe-bottom)] box-content" data-testid="agent-status">
+    <div className="shrink-0 flex items-center gap-2 px-3 h-7 text-[11px] leading-none text-term-fg-faint bg-term-bg-raised border-t border-term-line" data-testid="agent-status">
       <span className={cn("truncate", configured ? "text-term-fg-dim" : "text-term-err")} title={model}>
         {configured ? (model ?? "…") : "no api key"}
       </span>

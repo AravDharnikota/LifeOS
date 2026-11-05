@@ -11,16 +11,19 @@ export interface GridHandlers {
 
 /** Sections of widgets. Mobile: two columns (s = 1, m = 1 tall, l = 2). Desktop: four (s = 1, m = 2, l = 4). */
 export function WidgetGrid({ spec, editing, handlers }: { spec: LayoutSpec; editing: boolean; handlers: GridHandlers }) {
+  // A running index across sections staggers the cards' rise in reading order.
+  const offsets = spec.sections.reduce<number[]>((acc, s, i) => [...acc, i === 0 ? 0 : acc[i - 1]! + spec.sections[i - 1]!.widgets.length], []);
   return (
     <div className="flex flex-col">
       {spec.sections.map((section, si) => (
-        <Section key={section.id} title={section.title} className={si > 0 && section.title ? "mt-8" : undefined}>
+        <Section key={section.id} title={section.title} className={si > 0 && !section.title ? "!mt-3 lg:!mt-4" : undefined}>
           <div className="px-[var(--gutter)] grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 [grid-auto-flow:dense]" data-section={section.id}>
             {section.widgets.map((widget, wi) => (
               <WidgetFrame
                 key={widget.id}
                 widget={widget}
                 editing={editing}
+                index={offsets[si]! + wi}
                 actions={{
                   moveUp: wi > 0 ? () => handlers.onMove(widget.id, section.id, wi - 1) : si > 0 ? () => handlers.onMove(widget.id, spec.sections[si - 1]!.id, spec.sections[si - 1]!.widgets.length) : undefined,
                   moveDown: wi < section.widgets.length - 1 ? () => handlers.onMove(widget.id, section.id, wi + 1) : si < spec.sections.length - 1 ? () => handlers.onMove(widget.id, spec.sections[si + 1]!.id, 0) : undefined,

@@ -3,7 +3,8 @@ import type { Goal } from "@aravos/shared";
 import { Sheet } from "@/ui/Sheet";
 import { Segmented } from "@/ui/Segmented";
 import { Stepper } from "@/ui/Stepper";
-import { TextField } from "@/ui/Field";
+import { ThinBar } from "@/ui/viz";
+import { WellGroup, WellInput } from "./form";
 import { notify } from "@/lib/haptics";
 import { stepFor, withUnit } from "./model";
 
@@ -45,6 +46,7 @@ export function LogSheet({ goal, open, onClose, onLog, pending }: { goal: Goal; 
   };
 
   const preview = mode === "change" ? (goal.currentValue ?? 0) + value : value;
+  const reached = goal.targetValue != null && (goal.direction === "decrease" ? preview <= goal.targetValue : preview >= goal.targetValue);
 
   return (
     <Sheet
@@ -57,17 +59,20 @@ export function LogSheet({ goal, open, onClose, onLog, pending }: { goal: Goal; 
         </button>
       }
     >
-      <div className="pt-2 flex flex-col gap-5">
+      <div className="pt-2 pb-2 flex flex-col gap-5">
         <Segmented options={[{ value: "change", label: "Change" }, { value: "total", label: "Total" }]} value={mode} onChange={switchMode} />
-        <div className="py-2">
+        <div className="well rounded-[14px] px-3 pt-4 pb-3.5">
           <Stepper value={value} onChange={(v) => { setValue(v); setError(null); }} step={step} min={mode === "change" ? -1e9 : 0} unit={goal.unit ?? undefined} size="lg" format={mode === "change" ? (v) => (v > 0 ? `+${fmtStep(v, step)}` : fmtStep(v, step)) : (v) => fmtStep(v, step)} label={mode === "change" ? "Change" : "New total"} />
-          <p className="text-footnote text-secondary text-center mt-2 tabular">
+          {goal.targetValue != null && <ThinBar progress={progressOf(goal, preview)} height={4} className="mt-4" color={reached ? "var(--success)" : "var(--accent)"} />}
+          <p className="text-[13px] text-tertiary text-center mt-2.5 tabular">
             {mode === "change" ? `New total ${withUnit(preview, goal.unit)}` : `Now ${withUnit(goal.currentValue ?? 0, goal.unit)}`}
             {goal.targetValue != null ? `, target ${withUnit(goal.targetValue, goal.unit)}` : ""}
           </p>
-          {error && <p className="text-footnote text-danger-text text-center mt-2">{error}</p>}
+          {error && <p className="text-[13px] text-danger-text text-center mt-2">{error}</p>}
         </div>
-        <TextField label="Note" placeholder="Optional" value={note} onChange={(e) => setNote(e.target.value)} enterKeyHint="done" onKeyDown={(e) => { if (e.key === "Enter") void submit(); }} />
+        <WellGroup>
+          <WellInput aria-label="Note" placeholder="Note (optional)" value={note} onChange={(e) => setNote(e.target.value)} enterKeyHint="done" onKeyDown={(e) => { if (e.key === "Enter") void submit(); }} />
+        </WellGroup>
       </div>
     </Sheet>
   );
@@ -76,4 +81,12 @@ export function LogSheet({ goal, open, onClose, onLog, pending }: { goal: Goal; 
 function fmtStep(v: number, step: number): string {
   const prec = String(step).includes(".") ? String(step).split(".")[1]!.length : 0;
   return Number(v.toFixed(prec)).toLocaleString("en-US", { maximumFractionDigits: prec });
+}
+
+/** Progress toward the target for a hypothetical value, respecting start and direction. */
+function progressOf(goal: Goal, value: number): number {
+  if (goal.targetValue == null) return 0;
+  const start = goal.startValue ?? 0;
+  const span = goal.targetValue - start;
+  return span === 0 ? 1 : Math.max(0, Math.min(1, (value - start) / span));
 }

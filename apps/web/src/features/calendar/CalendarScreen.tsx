@@ -2,9 +2,8 @@ import { useCallback, useMemo, useState } from "react";
 import { format } from "date-fns";
 import type { CalEvent, Task } from "@aravos/shared";
 import { parseDateString, todayString } from "@aravos/shared";
-import { cn } from "@/lib/cn";
 import { useHotkey, useIsDesktop, useNow } from "@/lib/hooks";
-import { fmtTimeRange } from "@/lib/format";
+import { fmtMinutes, fmtTimeRange, plural } from "@/lib/format";
 import { useUi } from "@/state/ui";
 import { IconButton, Button } from "@/ui/Button";
 import { Icon } from "@/ui/Icon";
@@ -13,7 +12,6 @@ import { Menu, type MenuItem } from "@/ui/Menu";
 import { ActionSheet } from "@/ui/Sheet";
 import { InlineError } from "@/ui/Empty";
 import { toast } from "@/ui/Toast";
-import { QuickAdd } from "@/features/tasks/QuickAdd";
 import { useCalendar } from "./state";
 import { useCalendarData, useEventMutations } from "./useCalendarData";
 import { TimeGrid, DayHeader } from "./TimeGrid";
@@ -23,12 +21,36 @@ import { EventSheet } from "./EventSheet";
 import { usePlanner } from "./PlanSheet";
 import { RailBar, RailSheet, DesktopRail } from "./TaskRail";
 import { MiniMonth, CalendarsList, SidebarPlan } from "./CalendarSidebar";
-import { defaultStartFor, isoAt, minutesOfDate, nextFreeSlot, shiftDate, type View } from "./model";
+import { allDayForDay, defaultStartFor, isoAt, itemsForDay, minutesOfDate, nextFreeSlot, shiftDate, type View } from "./model";
+import "./calendar.css";
 
 const VIEWS: { value: View; label: string }[] = [
   { value: "day", label: "Day" },
   { value: "week", label: "Week" },
 ];
+
+/** Pill height of the floating task bar (RailBar). The grid card stops this far above the tab bar plus a gap. */
+const RAIL_H = 44;
+const GLASS_BTN = "glass !min-w-0 !min-h-0 w-10 h-10";
+const GLASS_BTN_SM = "glass !min-w-0 !min-h-0 w-9 h-9";
+
+/** "4 events · 3h 20m busy": count of events and the union of their timed minutes across `days`. */
+function summarize(events: CalEvent[], days: string[]): string {
+  let count = 0;
+  let busy = 0;
+  for (const d of days) {
+    const items = itemsForDay(events, d).sort((a, b) => a.startMin - b.startMin);
+    count += items.length + allDayForDay(events, d).length;
+    let end = -1;
+    for (const it of items) {
+      const s = Math.max(it.startMin, end);
+      if (it.endMin > s) busy += it.endMin - s;
+      end = Math.max(end, it.endMin);
+    }
+  }
+  if (count === 0) return "Nothing scheduled";
+  return busy > 0 ? `${plural(count, "event")} · ${fmtMinutes(busy)} busy` : plural(count, "event");
+}
 
 export function CalendarScreen() {
   const isDesktop = useIsDesktop();
@@ -43,6 +65,7 @@ export function CalendarScreen() {
   const [confirm, setConfirm] = useState<CalEvent | null>(null);
 
   const days = useMemo(() => (view === "week" ? data.week : isDesktop ? [date] : [shiftDate(date, -1), date, shiftDate(date, 1)]), [view, data.week, date, isDesktop]);
+  const summary = useMemo(() => summarize(data.events, view === "week" ? data.week : [date]), [data.events, data.week, view, date]);
   const pager = useMemo(() => (view === "day" && !isDesktop ? { onPage: (delta: -1 | 1) => setDate(shiftDate(date, delta)) } : undefined), [view, isDesktop, date, setDate]);
 
   const step = view === "week" ? 7 : 1;
@@ -97,7 +120,13 @@ export function CalendarScreen() {
       ]
     : [];
 
-  const monthLabel = format(parseDateString(date), "MMMM yyyy");
+  const monthDate = parseDateString(date);
+  const dayLabel = view === "week" ? "This week" : date === today ? "Today" : format(monthDate, "EEEE d");
+  const monthTitle = (
+    <>
+      {format(monthDate, "MMMM")} <span className="text-tertiary">{format(monthDate, "yyyy")}</span>
+    </>
+  );
   const gridProps = { events: data.events, calendars: data.calendars, now, onOpen, onMove, onResize, onCreate, onContext, onToggleTask };
 
   const sheets = (
@@ -123,32 +152,36 @@ export function CalendarScreen() {
 
   if (isDesktop) {
     return (
-      <div className="flex h-full min-h-0" data-calendar-screen>
-        <aside className="w-[224px] min-[1440px]:w-[260px] shrink-0 h-full flex flex-col border-r border-separator px-4 min-[1440px]:px-5 pt-5 pb-6 scroller" aria-label="Calendars">
+      <div className="flex h-full min-h-0 gap-3 py-3 pr-3" data-calendar-screen>
+        <aside className="glass rounded-xl w-[232px] min-[1440px]:w-[260px] shrink-0 h-full flex flex-col px-4 pt-4 pb-5 scroller" aria-label="Calendars">
           <MiniMonth date={date} weekStartsOn={data.weekStartsOn} onSelect={setDate} />
-          <h2 className="text-footnote text-secondary mt-6 mb-1">Calendars</h2>
+          <h2 className="text-[13px] text-tertiary mt-6 mb-1">Calendars</h2>
           <CalendarsList calendars={data.calendarList} hidden={hidden} onToggle={toggleCalendar} />
           <SidebarPlan onPlan={() => void planner.run()} busy={planner.busy} />
         </aside>
-        <section className="flex-1 min-w-0 h-full flex flex-col">
-          <header className="shrink-0 flex items-center gap-2 pl-5 pr-3 h-14 hairline-b">
-            <h1 className="text-title-3 text-primary whitespace-nowrap">Calendar</h1>
-            <span className="text-subhead text-secondary whitespace-nowrap hidden min-[1440px]:inline">{view === "day" ? format(parseDateString(date), "EEE d MMM") : monthLabel}</span>
+        <section className="glass rounded-xl flex-1 min-w-0 h-full flex flex-col overflow-hidden">
+          <header className="shrink-0 flex items-center gap-2 pl-6 pr-4 h-[72px]">
+            <div className="min-w-0">
+              <h1 className="text-[26px] leading-[30px] font-[300] tracking-[-0.03em] text-primary whitespace-nowrap"><span className="sr-only">Calendar, </span>{monthTitle}</h1>
+              <p className="text-[12px] text-tertiary tabular whitespace-nowrap mt-0.5">
+                {dayLabel} · {summary}
+              </p>
+            </div>
             <div className="flex-1" />
-            <div className="flex items-center -mr-1">
-              <IconButton label="Previous" onClick={goPrev} className="w-9">
-                <Icon name="chevron-left" size={20} />
+            <div className="flex items-center gap-1.5">
+              <IconButton label="Previous" onClick={goPrev} className={GLASS_BTN_SM}>
+                <Icon name="chevron-left" size={18} strokeWidth={1.8} />
               </IconButton>
-              <Button variant="plain" size="sm" onClick={goToday} disabled={date === today && view === "day"} className="px-1.5">
+              <Button variant="secondary" size="sm" onClick={goToday} disabled={date === today && view === "day"} className="!h-9 !px-3.5 text-[13px]">
                 Today
               </Button>
-              <IconButton label="Next" onClick={goNext} className="w-9">
-                <Icon name="chevron-right" size={20} />
+              <IconButton label="Next" onClick={goNext} className={GLASS_BTN_SM}>
+                <Icon name="chevron-right" size={18} strokeWidth={1.8} />
               </IconButton>
             </div>
-            <Segmented options={VIEWS} value={view} onChange={setView} className="w-[128px]" />
-            <IconButton label="Add" tinted onClick={newEvent}>
-              <Icon name="plus" />
+            <Segmented options={VIEWS} value={view} onChange={setView} size="sm" className="w-[128px] ml-2" />
+            <IconButton label="Add" onClick={newEvent} className={GLASS_BTN}>
+              <Icon name="plus" size={20} strokeWidth={1.8} />
             </IconButton>
           </header>
           {data.error && <InlineError onRetry={data.refetch}>Unable to load events.</InlineError>}
@@ -158,9 +191,9 @@ export function CalendarScreen() {
             {...gridProps}
             onDropTask={(task, start, end) => scheduleTask(task, start, end)}
             header={
-              <div className="bg-canvas hairline-b">
+              <div className="cal-sticky hairline-t hairline-b">
                 <DayHeader days={days} selected={date} onSelect={(d) => { setDate(d); if (view === "week") setView("day"); }} />
-                <AllDayRow days={days} events={data.events} calendars={data.calendars} onOpen={onOpen} className="hairline-t" />
+                <AllDayRow days={days} events={data.events} calendars={data.calendars} onOpen={onOpen} className="hairline-t !border-b-0" />
               </div>
             }
           />
@@ -173,34 +206,57 @@ export function CalendarScreen() {
 
   return (
     <div className="flex flex-col h-full min-h-0" data-calendar-screen>
-      <div className="shrink-0 pt-[var(--safe-top)]">
-        <div className="h-[var(--topbar-h)] grid grid-cols-[1fr_auto_1fr] items-center px-1">
+      <header className="shrink-0 pt-[var(--safe-top)] px-[var(--gutter)]">
+        <div className="h-[var(--topbar-h)] grid grid-cols-[1fr_auto_1fr] items-center">
           <div className="justify-self-start">
             {date !== today && (
-              <Button variant="plain" size="sm" onClick={goToday}>
+              <Button variant="secondary" size="sm" onClick={goToday} className="!h-8 !px-3.5 text-[13px]">
                 Today
               </Button>
             )}
           </div>
           <Segmented options={VIEWS} value={view} onChange={setView} size="sm" className="w-[132px]" />
-          <div className="justify-self-end flex items-center pr-1">
-            <IconButton label="Add" tinted onClick={newEvent}>
-              <Icon name="plus" />
+          <div className="justify-self-end">
+            <IconButton label="Add" onClick={newEvent} className={GLASS_BTN}>
+              <Icon name="plus" size={20} strokeWidth={1.8} />
             </IconButton>
           </div>
         </div>
-        <div className="px-[var(--gutter)] pt-1 pb-1">
-          <h1 className="text-large-title text-primary leading-[41px]">Calendar</h1>
-          <button type="button" className="text-subhead text-secondary mt-0.5 block" onClick={goToday}>
-            {monthLabel}
-          </button>
+        <div className="flex items-end gap-3 pt-2">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-[30px] leading-[36px] font-[300] tracking-[-0.03em] text-primary truncate"><span className="sr-only">Calendar, </span>{monthTitle}</h1>
+            <p className="text-[13px] leading-[18px] text-tertiary tabular truncate mt-0.5" data-day-summary>
+              {dayLabel} · {summary}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 pb-0.5 shrink-0">
+            <IconButton label="Previous" onClick={goPrev} className={GLASS_BTN_SM}>
+              <Icon name="chevron-left" size={18} strokeWidth={1.8} />
+            </IconButton>
+            <IconButton label="Next" onClick={goNext} className={GLASS_BTN_SM}>
+              <Icon name="chevron-right" size={18} strokeWidth={1.8} />
+            </IconButton>
+          </div>
         </div>
-        {view === "day" ? <WeekStrip date={date} weekStartsOn={data.weekStartsOn} events={data.events} calendars={data.calendars} onSelect={setDate} /> : <DayHeader days={days} selected={date} onSelect={(d) => { setDate(d); setView("day"); }} />}
-        <div className={cn("hairline-b", view === "day" ? "mt-1" : "")} />
-        <AllDayRow days={view === "day" ? [date] : days} events={data.events} calendars={data.calendars} onOpen={onOpen} />
+        {view === "day" && (
+          <div className="glass rounded-lg mt-3 overflow-hidden">
+            <WeekStrip date={date} weekStartsOn={data.weekStartsOn} events={data.events} calendars={data.calendars} onSelect={setDate} />
+          </div>
+        )}
+      </header>
+      <div
+        className="glass rounded-lg mx-[var(--gutter)] mt-3 flex-1 min-h-0 flex flex-col overflow-hidden"
+        style={{ marginBottom: `calc(var(--tabbar-h) + var(--safe-bottom) + ${8 + RAIL_H + 10}px)` }}
+      >
+        {view === "week" && (
+          <div className="shrink-0 hairline-b">
+            <DayHeader days={days} selected={date} onSelect={(d) => { setDate(d); setView("day"); }} />
+          </div>
+        )}
+        <AllDayRow days={view === "day" ? [date] : days} events={data.events} calendars={data.calendars} onOpen={onOpen} className="shrink-0" />
+        {data.error && <InlineError onRetry={data.refetch}>Unable to load events.</InlineError>}
+        <TimeGrid key={view} days={days} pager={pager} {...gridProps} />
       </div>
-      {data.error && <InlineError onRetry={data.refetch}>Unable to load events.</InlineError>}
-      <TimeGrid key={view} days={days} pager={pager} {...gridProps} />
       <RailBar date={date} open={railOpen} onOpen={setRail} onPlan={() => void planner.run()} planning={planner.busy} />
       <RailSheet date={date} open={railOpen} onClose={() => setRail(false)} onSchedule={(t) => { setRail(false); scheduleTask(t); }} />
       {sheets}

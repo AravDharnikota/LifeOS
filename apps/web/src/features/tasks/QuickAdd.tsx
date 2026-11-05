@@ -57,15 +57,12 @@ export function QuickAdd() {
   const ref = useRef<HTMLInputElement>(null);
   const chipRef = useRef<HTMLSpanElement>(null);
 
+  // Focus happens in <Sheet initialFocus>, after the sheet has finished sliding in.
   useEffect(() => {
-    if (!open) {
-      setText("");
-      setKind(null);
-      return;
-    }
-    const id = window.setTimeout(() => ref.current?.focus(), isDesktop ? 60 : 350);
-    return () => window.clearTimeout(id);
-  }, [open, isDesktop]);
+    if (open) return;
+    setText("");
+    setKind(null);
+  }, [open]);
 
   const detected = detectEvent(text);
   const kind: Kind = kindOverride ?? (detected.isEvent ? "event" : "task");
@@ -112,10 +109,10 @@ export function QuickAdd() {
 
   return (
     <>
-      <Sheet open={open} onClose={close} title="Quick Add" detent="auto" trailing={<button type="button" className="text-headline text-accent-text px-2 h-11 disabled:opacity-40" disabled={!text.trim() || busy} onClick={() => void submit()}>Add</button>}>
+      <Sheet open={open} onClose={close} title="Quick Add" detent="auto" initialFocus={ref} trailing={<button type="button" className="text-headline text-accent-text px-2 h-11 disabled:opacity-40" disabled={!text.trim() || busy} onClick={() => void submit()}>Add</button>}>
         <div className="pt-2 pb-3 flex flex-col gap-3" data-quick-add>
-          <div className={cn("flex items-center gap-2 h-12 px-3 rounded-sm bg-surface-2 border border-transparent focus-within:border-accent focus-within:bg-surface transition-colors duration-150")}>
-            <Icon name={kind === "event" ? "calendar" : "plus"} size={20} className="text-tertiary shrink-0" />
+          <div className={cn("well flex items-center gap-2.5 h-[52px] pl-3.5 pr-3 rounded-[16px] focus-within:shadow-[inset_0_0_0_1px_var(--glass-edge),0_0_0_4px_var(--accent-soft)] transition-shadow duration-200")}>
+            <Icon name={kind === "event" ? "calendar" : "plus"} size={18} strokeWidth={1.7} className="text-tertiary shrink-0" />
             <input
               ref={ref}
               aria-label={kind === "event" ? "New event" : "New task"}
@@ -124,7 +121,7 @@ export function QuickAdd() {
               placeholder={kind === "event" ? "Lunch with Sam tomorrow 12:30 1h" : "Call dentist tomorrow 4pm !high 30m #health"}
               enterKeyHint="done"
               autoCapitalize="sentences"
-              className="flex-1 min-w-0 h-full bg-transparent outline-none text-body text-primary placeholder:text-tertiary"
+              className="flex-1 min-w-0 h-full bg-transparent outline-none text-[16px] text-primary placeholder:text-quaternary"
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();
@@ -133,10 +130,10 @@ export function QuickAdd() {
               }}
             />
           </div>
-          <div className="flex items-center gap-2 flex-wrap min-h-7">
+          <div className="flex items-center gap-1.5 flex-wrap min-h-7">
             {chips.map((c) => (
-              <span key={c.key} className="inline-flex items-center gap-1 h-7 px-2 rounded-xs bg-accent-soft text-accent-text text-caption-1 font-medium" data-chip={c.key}>
-                {c.icon && <Icon name={c.icon} size={13} />}
+              <span key={c.key} className="enter inline-flex items-center gap-1 h-6 px-2 rounded-[7px] well text-secondary text-[12px] tabular" data-chip={c.key}>
+                {c.icon && <Icon name={c.icon} size={12} strokeWidth={1.7} className="text-tertiary" />}
                 {c.text}
               </span>
             ))}
@@ -147,19 +144,19 @@ export function QuickAdd() {
                     const r = chipRef.current?.getBoundingClientRect();
                     setListMenu(r ? { x: r.left + r.width / 2, y: r.bottom } : { x: 100, y: 200 });
                   }}
-                  className="inline-flex items-center gap-1.5"
+                  className="inline-flex items-center gap-1.5 !h-7 !px-2.5 !text-[12px]"
                 >
-                  <span className="w-2 h-2 rounded-full" style={{ background: colorVar(list?.color ?? "gray") }} />
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: colorVar(list?.color ?? "gray") }} />
                   {list?.name ?? "Inbox"}
-                  <Icon name="chevron-down" size={12} />
+                  <Icon name="chevron-down" size={12} className="text-tertiary" />
                 </Chip>
               </span>
             )}
-            {text.trim() && <span className="text-footnote text-secondary truncate ml-auto">{parsed.title || "Untitled"}</span>}
+            {text.trim() && <span className="text-[12px] text-tertiary truncate ml-auto max-w-[45%]">{parsed.title || "Untitled"}</span>}
           </div>
           <div className="flex items-center justify-between gap-3">
             <Segmented size="sm" className="w-[150px]" options={KINDS} value={kind} onChange={(v) => setKind(v)} />
-            <span className="text-footnote text-tertiary tabular">{count > 0 ? `${count} added` : isDesktop ? "Enter adds, Esc closes" : "Enter adds"}</span>
+            <span className="text-[12px] text-tertiary tabular">{count > 0 ? `${count} added` : isDesktop ? "Enter adds, Esc closes" : "Enter adds"}</span>
           </div>
         </div>
       </Sheet>

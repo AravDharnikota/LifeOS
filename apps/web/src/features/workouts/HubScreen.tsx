@@ -1,38 +1,59 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, type CSSProperties } from "react";
 import { useNavigate } from "react-router";
-import type { WorkoutListItem, WorkoutTemplate } from "@aravos/shared";
+import { addDays, format, isSameDay, parseISO, startOfWeek } from "date-fns";
+import type { WorkoutListItem, WorkoutStats, WorkoutTemplate } from "@aravos/shared";
 import { Screen } from "@/ui/Screen";
 import { Button, IconButton } from "@/ui/Button";
 import { Icon } from "@/ui/Icon";
-import { Group, Row, Section, SectionHeader } from "@/ui/List";
+import { Row, Section, SectionHeader } from "@/ui/List";
 import { Sheet, ActionSheet } from "@/ui/Sheet";
 import { Menu, type MenuItem } from "@/ui/Menu";
 import { Empty, InlineError, Skeleton } from "@/ui/Empty";
 import { TextField, Chip } from "@/ui/Field";
+import { BigNumber, CapsuleBars, CardHeader, DotBars, GlassCard, StatusPill, TickBars, Trend } from "@/ui/viz";
 import { toast } from "@/ui/Toast";
 import { cn } from "@/lib/cn";
 import { fmtRelativeDate } from "@/lib/format";
-import { fmtDate } from "./lib";
 import { impact } from "@/lib/haptics";
 import { useIsDesktop, useLongPress } from "@/lib/hooks";
 import { useAppSettings } from "@/data/queries";
 import { useActiveWorkout, useDeleteTemplate, useDuplicateTemplate, usePatchTemplate, useTemplates, useWorkoutStats, useWorkouts } from "./api";
-import { exerciseSummary, fmtPrValue, fmtSetValues, fmtVolume, plural, prLabel, supersetColor, WORKOUTS } from "./lib";
-import { BarChart } from "./charts";
+import { fmtPrValue, fmtSetValues, fmtVolume, plural, prLabel, supersetColor, WORKOUTS, type Units } from "./lib";
 import { SettingsSheet } from "./SettingsSheet";
 import { useStartFlow, WorkoutRow } from "./common";
 
 const EXAMPLE_FOLDER = "Example Templates";
+
+/** "1,240 lb" -> ["1,240", "lb"]; "1:30" -> ["1:30", undefined]. For BigNumber value + small unit. */
+function splitUnit(text: string): [string, string | undefined] {
+  const m = /^([\d.,:]+)\s+(.+)$/.exec(text);
+  return m ? [m[1]!, m[2]] : [text, undefined];
+}
+
+/** Past volumes of each template, oldest first (from the recent workout list). */
+function useTemplateVolumes(list: WorkoutListItem[] | undefined): Map<string, number[]> {
+  return useMemo(() => {
+    const map = new Map<string, number[]>();
+    const sorted = [...(list ?? [])].sort((a, b) => Date.parse(a.finishedAt ?? a.startedAt) - Date.parse(b.finishedAt ?? b.startedAt));
+    for (const w of sorted) {
+      if (!w.templateId) continue;
+      map.set(w.templateId, [...(map.get(w.templateId) ?? []), w.totalVolume ?? 0]);
+    }
+    return map;
+  }, [list]);
+}
 
 export default function HubScreen() {
   const navigate = useNavigate();
   const isDesktop = useIsDesktop();
   const templates = useTemplates();
   const active = useActiveWorkout();
+  const recent = useWorkouts(50);
   const { start, pending } = useStartFlow();
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
   const [settings, setSettings] = useState(false);
   const [preview, setPreview] = useState<WorkoutTemplate | null>(null);
+  const volumes = useTemplateVolumes(recent.data);
 
   const folders = useMemo(() => {
     const map = new Map<string, WorkoutTemplate[]>();
@@ -53,30 +74,29 @@ export default function HubScreen() {
     { label: "Exercises", icon: "dumbbell", onPress: () => navigate(`${WORKOUTS}/exercises`) },
     { label: "Settings", icon: "gear", onPress: () => setSettings(true) },
   ];
+  // The one hero action floats in the thumb zone. While a workout runs, the resume bar takes that spot instead.
+  const showStart = !active.data;
 
   return (
     <Screen
       title="Workouts"
       back="/health"
+      contentClassName={cn(showStart && "wk-with-float")}
       actions={
-        <IconButton label="More" onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setMenu({ x: r.left + r.width / 2, y: r.bottom }); }}>
-          <Icon name="more" />
+        <IconButton label="More" className="glass !min-w-0 !min-h-0 w-10 h-10" onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setMenu({ x: r.left + r.width / 2, y: r.bottom }); }}>
+          <Icon name="more" size={20} />
         </IconButton>
       }
     >
       <div className={cn(isDesktop && "max-w-[960px]")}>
-        <div className="px-[var(--gutter)] pt-1 pb-2 lg:max-w-[420px]">
-          {active.data ? (
-            <Button variant="secondary" size="lg" full onClick={() => navigate(`${WORKOUTS}/active`)}>Resume Workout</Button>
-          ) : (
-            <Button variant="primary" size="lg" full loading={pending} onClick={() => start(null)} data-testid="start-empty">Start Empty Workout</Button>
-          )}
-        </div>
+        <WeekCard list={recent.data} />
 
         <Section
           title="My Templates"
+          className="!mt-7"
           action={
-            <button type="button" className="text-footnote text-accent-text font-medium pb-0.5" onClick={() => navigate(`${WORKOUTS}/templates/new`)}>
+            <button type="button" className="text-[13px] text-accent-text pb-0.5 inline-flex items-center gap-1" onClick={() => navigate(`${WORKOUTS}/templates/new`)}>
+              <Icon name="plus" size={14} strokeWidth={1.8} />
               New Template
             </button>
           }
@@ -86,23 +106,31 @@ export default function HubScreen() {
           ) : templates.isError ? (
             <InlineError onRetry={() => void templates.refetch()}>Unable to load templates.</InlineError>
           ) : folders.mine.length === 0 ? (
-            <Group>
-              <Row title={<span className="text-secondary">No templates yet.</span>} />
-              <Row title={<span className="text-accent-text">New Template</span>} onPress={() => navigate(`${WORKOUTS}/templates/new`)} />
-            </Group>
+            <GlassCard className="mx-[var(--gutter)] rise">
+              <div className="text-[15px] text-primary">No templates yet</div>
+              <div className="text-[13px] text-tertiary mt-1">Create one, or start from an example below.</div>
+            </GlassCard>
           ) : (
-            <TemplateGrid templates={folders.mine} onOpen={setPreview} onStart={start} />
+            <TemplateGrid templates={folders.mine} volumes={volumes} onOpen={setPreview} onStart={start} />
           )}
         </Section>
 
         {folders.others.map(([name, list]) => (
-          <FolderSection key={name} name={name} templates={list} onOpen={setPreview} onStart={start} />
+          <FolderSection key={name} name={name} templates={list} volumes={volumes} onOpen={setPreview} onStart={start} />
         ))}
-        {folders.examples.length > 0 && <FolderSection name={EXAMPLE_FOLDER} templates={folders.examples} collapsed onOpen={setPreview} onStart={start} />}
+        {folders.examples.length > 0 && <FolderSection name={EXAMPLE_FOLDER} templates={folders.examples} volumes={volumes} collapsed onOpen={setPreview} onStart={start} />}
 
-        <RecentHistory />
         <StatsSection />
+        <RecentHistory />
       </div>
+
+      {showStart && (
+        <div className="wk-float wk-float-in px-[var(--gutter)]">
+          <Button variant="primary" size="lg" full loading={pending} onClick={() => start(null)} data-testid="start-empty" leading={<Icon name="plus" size={18} strokeWidth={1.8} />} className="!bg-highlight !text-on-highlight shadow-float lg:max-w-[420px] lg:mx-auto lg:flex">
+            Start Empty Workout
+          </Button>
+        </div>
+      )}
 
       <Menu open={Boolean(menu)} onClose={() => setMenu(null)} anchor={menu} items={hubMenu} />
       <SettingsSheet open={settings} onClose={() => setSettings(false)} />
@@ -111,35 +139,99 @@ export default function HubScreen() {
   );
 }
 
-function FolderSection({ name, templates, collapsed = false, onOpen, onStart }: { name: string; templates: WorkoutTemplate[]; collapsed?: boolean; onOpen: (t: WorkoutTemplate) => void; onStart: (id: string) => void }) {
+/** "This week": workouts and volume as thin big numbers with trends, and a capsule bar per day. */
+function WeekCard({ list }: { list: WorkoutListItem[] | undefined }) {
+  const app = useAppSettings();
+  const units = app.units;
+  const q = useWorkoutStats();
+  const week = useMemo(() => {
+    const ws = startOfWeek(new Date(), { weekStartsOn: app.weekStartsOn === 0 ? 0 : 1 });
+    const days = Array.from({ length: 7 }, (_, i) => addDays(ws, i));
+    const vol = days.map(() => 0);
+    const count = days.map(() => 0);
+    for (const w of list ?? []) {
+      const d = parseISO(w.finishedAt ?? w.startedAt);
+      const i = days.findIndex((x) => isSameDay(x, d));
+      if (i < 0) continue;
+      vol[i] = (vol[i] ?? 0) + (w.totalVolume ?? 0);
+      count[i] = (count[i] ?? 0) + 1;
+    }
+    const max = Math.max(1, ...vol);
+    // A day with a workout but no volume (cardio, bodyweight) still shows a short capsule.
+    const values = vol.map((v, i) => (count[i]! > 0 ? Math.max(v, max * 0.22) : 0));
+    const today = days.findIndex((x) => isSameDay(x, new Date()));
+    return { values, max, labels: days.map((d) => format(d, "EEEEE")), today };
+  }, [list, app.weekStartsOn]);
+
+  if (q.isPending) return <Skeleton rows={3} />;
+  if (q.isError) return <InlineError onRetry={() => void q.refetch()}>Unable to load stats.</InlineError>;
+  const s: WorkoutStats = q.data;
+  const delta = s.thisWeek - s.lastWeek;
+  const weeks = s.volumeByWeek;
+  const thisVol = weeks[weeks.length - 1]?.volume ?? 0;
+  const lastVol = weeks[weeks.length - 2]?.volume ?? 0;
+  const volPct = lastVol > 0 ? Math.round(((thisVol - lastVol) / lastVol) * 100) : null;
+  const [volNum, volUnit] = splitUnit(fmtVolume(thisVol, units));
+  return (
+    <GlassCard className="mx-[var(--gutter)] rise" tone="strong">
+      <CardHeader
+        icon="dumbbell"
+        title="This week"
+        sub={s.weeklyTarget ? `${s.thisWeek} of ${s.weeklyTarget} planned` : s.streakWeeks > 1 ? `${s.streakWeeks} weeks in a row` : "Workouts and volume"}
+        trailing={s.thisWeek || s.lastWeek ? <><Trend value={`${delta > 0 ? "+" : delta < 0 ? "−" : ""}${Math.abs(delta)}`} up={delta >= 0} /><span>vs last week</span></> : undefined}
+      />
+      <div className="grid grid-cols-2 gap-3 mt-4">
+        <div>
+          <BigNumber value={s.thisWeek} unit={s.thisWeek === 1 ? "workout" : "workouts"} />
+          <div className="text-[12px] text-tertiary mt-1">Completed</div>
+        </div>
+        <div>
+          <BigNumber value={volNum} unit={volUnit} />
+          <div className="text-[12px] text-tertiary mt-1 flex items-center gap-1.5">
+            Volume
+            {volPct != null && thisVol > 0 && <Trend value={`${Math.abs(volPct)}%`} up={volPct >= 0} />}
+          </div>
+        </div>
+      </div>
+      <CapsuleBars values={week.values} max={week.max} height={92} color="var(--accent)" className="mt-5" />
+      <div className="flex justify-between gap-2 mt-2" aria-hidden="true">
+        {week.labels.map((l, i) => (
+          <span key={i} className={cn("flex-1 text-center text-[11px] tabular", i === week.today ? "text-primary font-medium" : "text-tertiary")}>{l}</span>
+        ))}
+      </div>
+    </GlassCard>
+  );
+}
+
+function FolderSection({ name, templates, volumes, collapsed = false, onOpen, onStart }: { name: string; templates: WorkoutTemplate[]; volumes: Map<string, number[]>; collapsed?: boolean; onOpen: (t: WorkoutTemplate) => void; onStart: (id: string) => void }) {
   const [open, setOpen] = useState(!collapsed);
   return (
     <section className="mt-6">
       <SectionHeader
         title={
-          <button type="button" className="flex items-center gap-1 -ml-1 pl-1 pr-2 h-7 -my-1 rounded-sm active:bg-pressed text-footnote text-secondary" onClick={() => setOpen((v) => !v)} aria-expanded={open}>
+          <button type="button" className="flex items-center gap-1 -ml-1 pl-1 pr-2 h-7 -my-1 rounded-full active:bg-pressed text-[15px] text-primary" onClick={() => setOpen((v) => !v)} aria-expanded={open}>
             <Icon name={open ? "chevron-down" : "chevron-right"} size={16} className="text-tertiary" />
-            {name} ({templates.length})
+            {name} <span className="text-tertiary tabular">({templates.length})</span>
           </button>
         }
       />
-      {open && <TemplateGrid templates={templates} onOpen={onOpen} onStart={onStart} />}
+      {open && <TemplateGrid templates={templates} volumes={volumes} onOpen={onOpen} onStart={onStart} />}
     </section>
   );
 }
 
-function TemplateGrid({ templates, onOpen, onStart }: { templates: WorkoutTemplate[]; onOpen: (t: WorkoutTemplate) => void; onStart: (id: string) => void }) {
+function TemplateGrid({ templates, volumes, onOpen, onStart }: { templates: WorkoutTemplate[]; volumes: Map<string, number[]>; onOpen: (t: WorkoutTemplate) => void; onStart: (id: string) => void }) {
   return (
     <div className="px-[var(--gutter)] grid grid-cols-2 lg:grid-cols-3 gap-3" data-testid="template-grid">
-      {templates.map((t) => (
-        <TemplateCard key={t.id} template={t} onOpen={() => onOpen(t)} onStart={() => onStart(t.id)} />
+      {templates.map((t, i) => (
+        <TemplateCard key={t.id} template={t} index={i} history={volumes.get(t.id) ?? []} onOpen={() => onOpen(t)} onStart={() => onStart(t.id)} />
       ))}
     </div>
   );
 }
 
-/** One tappable unit: name, exercise summary, last performed. Long press or the glyph opens the menu. */
-function TemplateCard({ template, onOpen, onStart }: { template: WorkoutTemplate; onOpen: () => void; onStart: () => void }) {
+/** Glass card: name, exercise count, a tiny dot chart of past volume, last done. Long press or the glyph opens the menu. */
+function TemplateCard({ template, index, history, onOpen, onStart }: { template: WorkoutTemplate; index: number; history: number[]; onOpen: () => void; onStart: () => void }) {
   const navigate = useNavigate();
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
   const [confirm, setConfirm] = useState(false);
@@ -148,7 +240,9 @@ function TemplateCard({ template, onOpen, onStart }: { template: WorkoutTemplate
   const dup = useDuplicateTemplate();
   const lastPoint = useRef({ x: 0, y: 0 });
   const lp = useLongPress(() => { void impact("medium"); setMenu(lastPoint.current); });
-  const names = (template.exercises ?? []).map((e) => e.exercise?.name ?? "Exercise");
+  const count = (template.exercises ?? []).length;
+  const past = history.slice(-9);
+  const dots = [...Array.from({ length: 9 - past.length }, () => 0), ...past];
   const items: MenuItem[] = [
     { label: "Start Workout", icon: "dumbbell", onPress: onStart },
     { label: "Edit", icon: "pencil", onPress: () => navigate(`${WORKOUTS}/templates/${template.id}/edit`) },
@@ -162,18 +256,22 @@ function TemplateCard({ template, onOpen, onStart }: { template: WorkoutTemplate
         role="button"
         tabIndex={0}
         data-testid="template-card"
-        className="wk-card relative rounded-lg p-4 pr-10 min-h-[112px] flex flex-col cursor-pointer row-hover active:bg-pressed transition-colors duration-100 select-none"
+        style={{ "--i": Math.min(index, 8) } as CSSProperties}
+        className="glass rise pressable-spring relative rounded-lg p-3.5 pr-9 min-h-[148px] flex flex-col cursor-pointer select-none"
         onClick={() => { if (!lp.fired.current) onOpen(); }}
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(); } }}
         onContextMenu={(e) => { e.preventDefault(); setMenu({ x: e.clientX, y: e.clientY }); }}
         {...lp}
         onPointerDown={(e) => { lastPoint.current = { x: e.clientX, y: e.clientY }; lp.onPointerDown(e); }}
       >
-        <div className="text-headline text-primary truncate-2">{template.name}</div>
-        <div className="text-footnote text-secondary mt-1 truncate-2">{exerciseSummary(names)}</div>
-        {template.lastPerformedAt && <div className="text-caption-1 text-tertiary mt-auto pt-2">{fmtRelativeDate(template.lastPerformedAt)}</div>}
-        <button type="button" aria-label="Template menu" className="absolute top-1 right-1 hit-44 inline-flex items-center justify-center text-tertiary rounded-md active:bg-pressed" onClick={(e) => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); setMenu({ x: r.left + r.width / 2, y: r.bottom }); }} onPointerDown={(e) => e.stopPropagation()}>
-          <Icon name="more" size={20} />
+        <div className="text-[15px] leading-5 text-primary truncate-2">{template.name}</div>
+        <div className="text-[12px] text-tertiary mt-1 tabular">{plural(count, "exercise")}</div>
+        <div className="mt-auto pt-3 -mr-5">
+          <DotBars values={dots} rows={5} color="var(--accent)" current={past.length ? dots.length - 1 : -1} />
+          <div className="text-[11px] text-tertiary mt-2 truncate">{template.lastPerformedAt ? fmtRelativeDate(template.lastPerformedAt) : "Not done yet"}</div>
+        </div>
+        <button type="button" aria-label="Template menu" className="absolute top-0.5 right-0.5 hit-44 inline-flex items-center justify-center text-tertiary rounded-full active:bg-pressed" onClick={(e) => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); setMenu({ x: r.left + r.width / 2, y: r.bottom }); }} onPointerDown={(e) => e.stopPropagation()}>
+          <Icon name="more" size={18} />
         </button>
       </div>
       <Menu open={Boolean(menu)} onClose={() => setMenu(null)} anchor={menu} items={items} />
@@ -237,9 +335,9 @@ function TemplatePreviewSheet({ template, onClose, onStart, pending }: { templat
       >
         {t && (
           <div className="flex flex-col gap-4 pt-1">
-            {t.notes && <p className="text-subhead text-secondary">{t.notes}</p>}
-            {t.lastPerformedAt && <p className="text-footnote text-tertiary -mt-2">Last performed {fmtRelativeDate(t.lastPerformedAt)}</p>}
-            <Group inset={false}>
+            {t.notes && <p className="text-[15px] text-secondary">{t.notes}</p>}
+            {t.lastPerformedAt && <p className="text-[13px] text-tertiary -mt-2">Last performed {fmtRelativeDate(t.lastPerformedAt)}</p>}
+            <div className="well rounded-[16px] overflow-hidden group-rows">
               {(t.exercises ?? []).map((e) => {
                 const sets = e.sets ?? [];
                 const targets = sets.map((s) => fmtSetValues({ weight: s.targetWeight, reps: s.targetReps, seconds: s.targetSeconds, distance: s.targetDistance }, e.exercise?.category ?? "barbell", units)).filter(Boolean);
@@ -251,12 +349,12 @@ function TemplatePreviewSheet({ template, onClose, onStart, pending }: { templat
                     style={e.supersetGroup != null ? ({ "--wk-ss": supersetColor(e.supersetGroup) } as React.CSSProperties) : undefined}
                     title={`${sets.length} × ${e.exercise?.name ?? "Exercise"}`}
                     subtitle={uniq.length ? uniq.join(", ") : e.exercise?.bodyPart?.replace("_", " ")}
-                    trailing={e.exercise?.recordOneRm ? <span className="text-footnote">{`1RM ${fmtPrValue("one_rm", e.exercise.recordOneRm, units)}`}</span> : undefined}
+                    trailing={e.exercise?.recordOneRm ? <span className="text-[13px] text-tertiary">{`1RM ${fmtPrValue("one_rm", e.exercise.recordOneRm, units)}`}</span> : undefined}
                   />
                 );
               })}
               {(t.exercises ?? []).length === 0 && <Row title="No exercises" className="text-secondary" />}
-            </Group>
+            </div>
             <Button variant="primary" size="lg" full loading={pending} onClick={() => onStart(t.id)} data-testid="preview-start">Start Workout</Button>
           </div>
         )}
@@ -272,7 +370,7 @@ function RecentHistory() {
   const navigate = useNavigate();
   const q = useWorkouts(5);
   return (
-    <Section title="History" action={<button type="button" className="text-footnote text-accent-text font-medium pb-0.5" onClick={() => navigate(`${WORKOUTS}/history`)}>See All</button>}>
+    <Section title="History" action={<button type="button" className="text-[13px] text-accent-text pb-0.5" onClick={() => navigate(`${WORKOUTS}/history`)}>See All</button>}>
       {q.isPending ? (
         <Skeleton rows={3} />
       ) : q.isError ? (
@@ -280,64 +378,68 @@ function RecentHistory() {
       ) : q.data.length === 0 ? (
         <Empty className="pt-4 pb-2">No workouts yet.</Empty>
       ) : (
-        <Group data-testid="recent-history">
+        <div className="px-[var(--gutter)] flex flex-col gap-2.5" data-testid="recent-history">
           {q.data.map((w) => (
             <WorkoutRow key={w.id} workout={w} onPress={() => navigate(`${WORKOUTS}/history/${w.id}`)} />
           ))}
-        </Group>
+        </div>
       )}
     </Section>
   );
 }
 
+/** Records as small stat cards, then two overview cards: total workouts (dot columns per week) and 12-week volume (tick bars). */
 function StatsSection() {
-  const navigate = useNavigate();
   const units = useAppSettings().units;
   const q = useWorkoutStats();
-  const [sel, setSel] = useState<number | null>(null);
-  if (q.isPending) return <Section title="Stats"><Skeleton rows={2} /></Section>;
-  if (q.isError) return <Section title="Stats"><InlineError onRetry={() => void q.refetch()}>Unable to load stats.</InlineError></Section>;
+  if (q.isPending || q.isError) return null; // WeekCard already shows the loading and error states for stats.
   const s = q.data;
-  const circles = Math.max(s.weeklyTarget, s.thisWeek, 1);
-  const weeks = s.volumeByWeek.map((w) => ({ label: fmtDate(w.weekStart, true), value: units === "imperial" ? w.volume / 0.45359237 : w.volume, title: fmtDate(w.weekStart) }));
-  const shown = sel != null ? weeks[sel] : weeks[weeks.length - 1];
-  const delta = s.thisWeek - s.lastWeek;
+  const weeks = s.volumeByWeek;
+  const avg = weeks.length ? weeks.reduce((a, w) => a + w.volume, 0) / weeks.length : 0;
+  const [avgNum, avgUnit] = splitUnit(fmtVolume(avg, units));
   return (
     <>
-      <Section title="Stats">
-        <Group>
-          <Row
-            title="This week"
-            subtitle={s.weeklyTarget ? `${s.thisWeek} of ${s.weeklyTarget}${delta ? `, ${delta > 0 ? "+" : ""}${delta} vs last week` : ""}` : plural(s.thisWeek, "workout")}
-            trailing={
-              <span className="flex items-center gap-1.5" aria-hidden="true">
-                {Array.from({ length: Math.min(circles, 10) }).map((_, i) => (
-                  <span key={i} className={cn("w-2.5 h-2.5 rounded-full", i < s.thisWeek ? "bg-success" : "border border-border")} />
-                ))}
-              </span>
-            }
-          />
-          <Row title="Total workouts" trailing={<span className="text-primary num text-title-3">{s.totalWorkouts}</span>} subtitle={s.streakWeeks > 1 ? `${s.streakWeeks} weeks in a row` : undefined} />
-          <div className="row-sep relative px-[var(--gutter)] pt-3 pb-2">
-            <div className="flex items-baseline justify-between">
-              <div>
-                <span className="text-title-1 num text-primary">{shown ? fmtVolume(units === "imperial" ? shown.value * 0.45359237 : shown.value, units) : "0"}</span>
-              </div>
-              <span className="text-subhead text-secondary">{sel != null && shown ? `Week of ${shown.title}` : "Volume this week"}</span>
-            </div>
-            <BarChart points={weeks} height={120} format={(v) => (v >= 1000 ? `${Math.round(v / 1000)}k` : String(Math.round(v)))} selected={sel} onSelect={setSel} xLabels={3} className="mt-2" />
-          </div>
-        </Group>
-      </Section>
       {s.recentPrs.length > 0 && (
         <Section title="Recent records">
-          <Group>
-            {s.recentPrs.slice(0, 5).map((p) => (
-              <Row key={p.id} leading={<Icon name="trophy" size={20} className="text-warning-text" />} title={p.exerciseName ?? "Exercise"} subtitle={`${prLabel(p.type)} · ${fmtRelativeDate(p.achievedAt)}`} trailing={<span className="text-primary">{fmtPrValue(p.type, p.value, units)}</span>} chevron onPress={() => navigate(`${WORKOUTS}/exercises/${p.exerciseId}`)} />
+          <div className="px-[var(--gutter)] grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {s.recentPrs.slice(0, 4).map((p, i) => (
+              <RecordCard key={p.id} pr={p} units={units} index={i} />
             ))}
-          </Group>
+          </div>
         </Section>
       )}
+      <Section title="Overview">
+        <div className="px-[var(--gutter)] grid grid-cols-2 gap-3">
+          <GlassCard className="rise">
+            <div className="text-[13px] text-secondary">Workouts</div>
+            <BigNumber value={s.totalWorkouts} size={30} className="mt-1" />
+            <div className="text-[12px] text-tertiary mt-0.5 truncate">{s.streakWeeks > 1 ? `${s.streakWeeks} weeks in a row` : "All time"}</div>
+            <DotBars values={weeks.map((w) => w.count)} rows={5} color="var(--accent)" className="mt-3" />
+          </GlassCard>
+          <GlassCard className="rise" style={{ "--i": 1 } as CSSProperties}>
+            <div className="text-[13px] text-secondary">Weekly volume</div>
+            <BigNumber value={avgNum} unit={avgUnit} size={30} className="mt-1" />
+            <div className="text-[12px] text-tertiary mt-0.5">12-week average</div>
+            <TickBars values={weeks.map((w) => w.volume)} current={weeks.some((w) => w.volume > 0) ? weeks.length - 1 : -1} color="var(--accent)" height={34} gap={6} className="mt-3" />
+          </GlassCard>
+        </div>
+      </Section>
     </>
+  );
+}
+
+function RecordCard({ pr: p, units, index }: { pr: WorkoutStats["recentPrs"][number]; units: Units; index: number }) {
+  const navigate = useNavigate();
+  const [num, unit] = splitUnit(fmtPrValue(p.type, p.value, units));
+  return (
+    <GlassCard className="rise !p-3.5" style={{ "--i": index } as CSSProperties} onPress={() => navigate(`${WORKOUTS}/exercises/${p.exerciseId}`)} label={`${p.exerciseName ?? "Exercise"}, ${prLabel(p.type)}`}>
+      <div className="flex items-center justify-between gap-2">
+        <StatusPill tone="success">PR</StatusPill>
+        <span className="text-[11px] text-tertiary truncate">{fmtRelativeDate(p.achievedAt, false)}</span>
+      </div>
+      <BigNumber value={num} unit={unit} size={26} className="mt-2.5" />
+      <div className="text-[13px] text-primary truncate mt-1">{p.exerciseName ?? "Exercise"}</div>
+      <div className="text-[12px] text-tertiary truncate">{prLabel(p.type)}</div>
+    </GlassCard>
   );
 }
