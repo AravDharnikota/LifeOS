@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { impact } from "./haptics";
 
 export function useMediaQuery(query: string): boolean {
   const get = () => (typeof window !== "undefined" ? window.matchMedia(query).matches : false);
@@ -33,6 +34,8 @@ export function useLongPress(onLongPress: () => void, { ms = 400, moveTolerance 
       start.current = { x: e.clientX, y: e.clientY };
       timer.current = window.setTimeout(() => {
         fired.current = true;
+        // A long press is a "you found the secret menu" moment: a medium thump before the handler runs.
+        void impact("medium");
         onLongPress();
       }, ms);
     },

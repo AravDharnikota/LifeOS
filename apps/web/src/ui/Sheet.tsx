@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useDragControls, type PanInfo } from "motion/react";
 import { cn } from "@/lib/cn";
-import { impact } from "@/lib/haptics";
+import { impact, notify } from "@/lib/haptics";
 import { useMediaQuery } from "@/lib/hooks";
 
 export interface SheetProps {
@@ -115,6 +115,8 @@ export function Sheet({ open, onClose, title, detent = "auto", leading, trailing
   };
 
   const requestClose = () => {
+    // Covers the backdrop, Escape and drag-to-dismiss (taps on Cancel also land here, and the global tap skips after it).
+    void impact("light");
     if (dirty) setConfirmClose(true);
     else onClose();
   };
@@ -194,7 +196,7 @@ export function Sheet({ open, onClose, title, detent = "auto", leading, trailing
                 <div className="w-full max-w-[520px] p-2 pb-[max(8px,var(--safe-bottom))] enter" onClick={(e) => e.stopPropagation()}>
                   <div className="glass-strong rounded-xl overflow-hidden">
                     <div className="px-4 py-3 text-footnote text-secondary text-center">Unsaved changes</div>
-                    <button type="button" className="w-full h-14 text-body text-danger-text hairline-t active:bg-pressed" onClick={() => { setConfirmClose(false); onClose(); }}>Discard Changes</button>
+                    <button type="button" className="w-full h-14 text-body text-danger-text hairline-t active:bg-pressed" onClick={() => { void notify("warning"); setConfirmClose(false); onClose(); }}>Discard Changes</button>
                   </div>
                   <button type="button" className="w-full h-14 mt-2 glass-strong rounded-xl text-headline text-primary active:bg-pressed" onClick={() => setConfirmClose(false)}>Keep Editing</button>
                 </div>
@@ -226,7 +228,7 @@ export function ActionSheet({ open, onClose, title, message, actions }: { open: 
                 </div>
               )}
               {actions.map((a) => (
-                <button key={a.label} type="button" className={cn("w-full h-14 text-body hairline-t active:bg-pressed", a.destructive ? "text-danger-text" : "text-accent-text")} onClick={() => { onClose(); a.onPress(); }}>
+                <button key={a.label} type="button" className={cn("w-full h-14 text-body hairline-t active:bg-pressed", a.destructive ? "text-danger-text" : "text-accent-text")} onClick={() => { if (a.destructive) void notify("warning"); onClose(); a.onPress(); }}>
                   {a.label}
                 </button>
               ))}

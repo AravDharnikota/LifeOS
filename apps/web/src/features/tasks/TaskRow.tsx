@@ -170,8 +170,10 @@ export function TaskRow({ task, lists, actions, expanded, onExpand, hideDone, da
     const g = gesture.current;
     if (!g || g.id !== e.pointerId) return;
     if (g.lifted) {
-      if (g.moved && reorder) reorder.onDrop();
-      else {
+      if (g.moved && reorder) {
+        void impact("light"); // a task snaps into its new slot
+        reorder.onDrop();
+      } else {
         reorder?.onCancel();
         swallowNextClick();
         onContext(task, { x: e.clientX, y: e.clientY });
@@ -321,6 +323,7 @@ export function TaskRow({ task, lists, actions, expanded, onExpand, hideDone, da
                     onPointerUp={() => {
                       if (!liftedRef.current) return;
                       liftedRef.current = false;
+                      void impact("light"); // a task snaps into its new slot
                       reorder.onDrop();
                     }}
                     onPointerCancel={() => {

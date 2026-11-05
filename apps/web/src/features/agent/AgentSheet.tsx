@@ -170,8 +170,8 @@ function AgentBody({ view, onView, onThread, prefill, isDesktop }: { view: View;
   const empty = chat.messages.length === 0 && !chat.loading;
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col px-2 pb-[max(8px,var(--safe-bottom))]" style={kb > 0 && view === "chat" ? { paddingBottom: 8 } : undefined}>
-      <div className="term flex-1 min-h-0 flex flex-col rounded-[22px] overflow-hidden bg-term-bg text-term-fg shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_0_0_1px_var(--term-line),var(--shadow-card)]" data-testid="agent-chat">
+    <div className="flex-1 min-h-0 flex flex-col px-2 pb-[max(8px,var(--safe-bottom))]" style={kb > 0 && view === "chat" ? { paddingBottom: 0 } : undefined}>
+      <div className="term flex-1 min-h-0 flex flex-col rounded-[22px] overflow-hidden bg-term-bg text-term-fg shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_0_0_1px_var(--term-line),var(--shadow-card)]" style={kb > 0 && view === "chat" ? { borderBottomLeftRadius: 0, borderBottomRightRadius: 0 } : undefined} data-testid="agent-chat">
       {!configured && (
         <div className="px-3 pt-3 grid grid-cols-[2ch_1fr_auto] items-start" role="status">
           <span aria-hidden="true" className="text-term-err select-none">✗</span>

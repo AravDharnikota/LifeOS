@@ -2,6 +2,7 @@ import { useEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "motion/react";
 import { cn } from "@/lib/cn";
+import { impact } from "@/lib/haptics";
 import { Icon, type IconName } from "./Icon";
 
 export interface MenuItem {
@@ -19,6 +20,7 @@ export function Menu({ open, onClose, anchor, items, children }: { open: boolean
   useEffect(() => {
     if (!open) return;
     openedAt.current = performance.now();
+    void impact("medium"); // the menu pops up: a physical "open" beat
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
